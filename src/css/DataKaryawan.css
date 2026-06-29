@@ -1,0 +1,154 @@
+/* --- LAYOUT CONTAINER UTAMA --- */
+.content-container {
+    -fx-background-color: #F8F9FB;
+}
+
+/* --- KARTU RINGKASAN DATA (CARDS) --- */
+.card-wrapper {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 8px;
+    -fx-border-color: #C3C6D3;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+}
+
+.card-main-title {
+    -fx-font-family: "Hanken Grotesk", sans-serif;
+    -fx-font-size: 28px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #002F6B;
+}
+
+.summary-card {
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #C3C6D3;
+    -fx-border-width: 1px;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+}
+
+.summary-label {
+    -fx-font-family: "JetBrains Mono", monospace;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #434751;
+}
+
+.summary-value {
+    -fx-font-family: "Hanken Grotesk", sans-serif;
+    -fx-font-size: 26px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #002F6B;
+}
+
+/* --- FILTER TAB MANAGEMENT --- */
+.filter-tab-container {
+    -fx-border-color: #C3C6D3;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+}
+
+.filter-tab-btn {
+    -fx-background-color: transparent;
+    -fx-background-radius: 0;
+    -fx-text-fill: #434751;
+    -fx-padding: 8px 16px;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+    -fx-cursor: hand;
+}
+.filter-tab-btn:hover {
+    -fx-background-color: #EBF0FA;
+    -fx-text-fill: #004596;
+}
+
+.filter-tab-btn-active {
+    -fx-background-color: #E2E8F8;
+    -fx-background-radius: 0;
+    -fx-text-fill: #002F6B;
+    -fx-padding: 8px 16px;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+    -fx-cursor: hand;
+}
+
+/* --- ACTION CONTROLS (SEARCH & BUTTON) --- */
+.search-box {
+    -fx-border-color: #C3C6D3;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+    -fx-background-color: #FFFFFF;
+}
+
+.search-input {
+    -fx-background-color: transparent;
+    -fx-prompt-text-fill: #737783;
+    -fx-text-fill: #151C27;
+    -fx-font-size: 13px;
+}
+
+.btn-primary {
+    -fx-background-color: #004596;
+    -fx-text-fill: #FFFFFF;
+    -fx-background-radius: 4px;
+    -fx-font-size: 14px;
+    -fx-font-weight: 600;
+    -fx-cursor: hand;
+}
+.btn-primary:hover {
+    -fx-background-color: #002F6B;
+}
+
+/* --- KONTROL MANAJEMEN WARNA IKON SVG --- */
+.svg-icon-dark {
+    -fx-fill: #002F6B !important;
+}
+.svg-icon-muted {
+    -fx-fill: #151C27 !important;
+}
+.svg-icon-light {
+    -fx-fill: #94B7FF !important;
+}
+
+/* --- TABLEVIEW DESIGN STYLE --- */
+.table-wrapper {
+    -fx-border-color: #C3C6D3;
+    -fx-border-width: 1px;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+}
+
+.custom-table {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 4px;
+}
+
+.custom-table .column-header-background {
+    -fx-background-color: #F0F3FF;
+    -fx-border-color: #C3C6D3;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.custom-table .column-header {
+    -fx-background-color: transparent;
+    -fx-size: 44px;
+}
+
+.custom-table .column-header .label {
+    -fx-font-family: "JetBrains Mono", monospace;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #434751;
+}
+
+.custom-table .table-row-cell {
+    -fx-size: 40px;
+    -fx-background-color: #FFFFFF;
+    -fx-border-color: #C3C6D3;
+    -fx-border-width: 0 0 1px 0;
+}
+.custom-table .table-row-cell:filled:selected {
+    -fx-background-color: #EBF0FA;
+}

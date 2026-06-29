@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import java.net.URL?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.SVGPath?>
+
+<VBox prefHeight="960.0" prefWidth="1028.0" spacing="24.0" styleClass="content-container" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="SistemFotocopy.DataPegawai">
+    <stylesheets>
+        <URL value="@../css/DataKaryawan.css" />
+    </stylesheets>
+    <padding>
+        <Insets bottom="32.0" left="32.0" right="32.0" top="32.0" />
+    </padding>
+
+    <children>
+        <VBox spacing="16.0" styleClass="card-wrapper">
+            <padding>
+                <Insets bottom="24.0" left="24.0" right="24.0" top="24.0" />
+            </padding>
+            <children>
+                <Label styleClass="card-main-title" text="Data Pegawai" />
+
+                <HBox spacing="24.0" VBox.vgrow="ALWAYS">
+                    <children>
+                        <HBox alignment="CENTER_LEFT" styleClass="summary-card" HBox.hgrow="ALWAYS">
+                            <padding><Insets bottom="24.0" left="24.0" right="24.0" top="24.0" /></padding>
+                            <children>
+                                <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <Label styleClass="summary-label" text="TOTAL PEGAWAI" />
+                                        <Label styleClass="summary-value" text="0" />
+                                    </children>
+                                </VBox>
+                                <SVGPath content="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" scaleX="1.2" scaleY="1.2" styleClass="svg-icon-dark" />
+                            </children>
+                        </HBox>
+
+                        <HBox alignment="CENTER_LEFT" styleClass="summary-card" HBox.hgrow="ALWAYS">
+                            <padding><Insets bottom="24.0" left="24.0" right="24.0" top="24.0" /></padding>
+                            <children>
+                                <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <Label styleClass="summary-label" text="PEGAWAI AKTIF" />
+                                        <Label styleClass="summary-value" text="0" />
+                                    </children>
+                                </VBox>
+                                <SVGPath content="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" scaleX="1.2" scaleY="1.2" styleClass="svg-icon-dark" />
+                            </children>
+                        </HBox>
+
+                        <HBox alignment="CENTER_LEFT" styleClass="summary-card" HBox.hgrow="ALWAYS">
+                            <padding><Insets bottom="24.0" left="24.0" right="24.0" top="24.0" /></padding>
+                            <children>
+                                <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                                    <children>
+                                        <Label styleClass="summary-label" text="PEGAWAI NON AKTIF" />
+                                        <Label styleClass="summary-value" text="0" />
+                                    </children>
+                                </VBox>
+                                <SVGPath content="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" scaleX="1.2" scaleY="1.2" styleClass="svg-icon-muted" />
+                            </children>
+                        </HBox>
+                    </children>
+                </HBox>
+            </children>
+        </VBox>
+
+        <HBox alignment="CENTER_LEFT" spacing="16.0">
+            <children>
+                <HBox styleClass="filter-tab-container">
+                    <children>
+                        <Button fx:id="btSemuaPegawai" mnemonicParsing="false" onAction="#OnActionbtSemuaPegawai" styleClass="filter-tab-btn-active" text="Semua Pegawai" />
+                        <Button fx:id="btPegawaiAktif" mnemonicParsing="false" onAction="#OnActionBtPegawaiAktif" styleClass="filter-tab-btn" text="Pegawai Aktif" />
+                        <Button fx:id="btPegawaiNonAktif" mnemonicParsing="false" onAction="#OnActionBtPegawaiNonAktif" styleClass="filter-tab-btn" text="Pegawai NonAktif" />
+                    </children>
+                </HBox>
+
+                <Region HBox.hgrow="ALWAYS" />
+
+                <HBox alignment="CENTER_LEFT" prefHeight="38.0" prefWidth="240.0" styleClass="search-box">
+                    <padding><Insets left="12.0" right="12.0" /></padding>
+                    <children>
+                        <SVGPath content="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" styleClass="svg-icon-dark" />
+                        <TextField fx:id="TxtCari" promptText="Cari nama pegawai..." styleClass="search-input" HBox.hgrow="ALWAYS" />
+                    </children>
+                </HBox>
+
+                <Button fx:id="btTambahKaryawan" graphicTextGap="8.0" mnemonicParsing="false" onAction="#OnActionBtTambah" styleClass="btn-primary" text="Tambah Pegawai">
+                    <graphic>
+                        <SVGPath content="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" styleClass="svg-icon-light" />
+                    </graphic>
+                    <padding><Insets bottom="10.0" left="20.0" right="20.0" top="10.0" /></padding>
+                </Button>
+            </children>
+        </HBox>
+
+        <VBox styleClass="table-wrapper" VBox.vgrow="ALWAYS">
+            <children>
+                <TableView fx:id="TabelDataKaryawan" prefHeight="200.0" prefWidth="200.0" styleClass="custom-table" VBox.vgrow="ALWAYS">
+                    <columnResizePolicy>
+                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                    </columnResizePolicy>
+                    <columns>
+                        <TableColumn fx:id="IDPegawai" prefWidth="100.0" text="ID PEGAWAI" />
+                        <TableColumn fx:id="NamaPegawai" prefWidth="160.0" text="NAMA PEGAWAI" />
+                        <TableColumn fx:id="Alamat" prefWidth="140.0" text="ALAMAT" />
+                        <TableColumn fx:id="Telepon" prefWidth="120.0" text="NO TELEPON" />
+                        <TableColumn fx:id="Email" prefWidth="160.0" text="EMAIL" />
+                        <TableColumn fx:id="Username" prefWidth="110.0" text="USERNAME" />
+                        <TableColumn fx:id="Password" prefWidth="110.0" text="PASSWORD" />
+                        <TableColumn fx:id="Status" prefWidth="100.0" text="STATUS" />
+                    </columns>
+                </TableView>
+            </children>
+        </VBox>
+    </children>
+</VBox>
