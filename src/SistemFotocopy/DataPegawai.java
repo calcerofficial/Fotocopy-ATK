@@ -3,71 +3,141 @@ package SistemFotocopy;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.BorderPane;
 
 public class DataPegawai {
 
     @FXML
-    private TableColumn<?, ?> Alamat;
+    private Button btnBatal;
 
     @FXML
-    private TableColumn<?, ?> Email;
+    private Button btnHapus;
 
     @FXML
-    private TableColumn<?, ?> IDPegawai;
+    private Button btnNextPage;
 
     @FXML
-    private TableColumn<?, ?> NamaPegawai;
+    private Button btnPage1;
 
     @FXML
-    private TableColumn<?, ?> Password;
+    private Button btnPrevPage;
 
     @FXML
-    private TableColumn<?, ?> Status;
+    private Button btnSimpan;
 
     @FXML
-    private TableView<?> TabelDataKaryawan;
+    private Button btnTogglePassword;
 
     @FXML
-    private TableColumn<?, ?> Telepon;
+    private Button btnUbah;
 
     @FXML
-    private TextField TxtCari;
+    private TableColumn<?, ?> colAlamat;
 
     @FXML
-    private TableColumn<?, ?> Username;
+    private TableColumn<?, ?> colEmail;
 
     @FXML
-    private Button btPegawaiAktif;
+    private TableColumn<?, ?> colIdPegawai;
 
     @FXML
-    private Button btPegawaiNonAktif;
+    private TableColumn<?, ?> colNamaPegawai;
 
     @FXML
-    private Button btSemuaPegawai;
+    private TableColumn<?, ?> colNoTelepon;
 
     @FXML
-    private Button btTambahKaryawan;
+    private TableColumn<?, ?> colStatus;
 
     @FXML
-    void OnActionBtPegawaiAktif(ActionEvent event) {
+    private TableColumn<?, ?> colUsername;
+
+    @FXML
+    private Label lblInfoData;
+
+    @FXML
+    private Label lblPegawaiAktif;
+
+    @FXML
+    private Label lblPegawaiNonAktif;
+
+    @FXML
+    private Label lblTotalPegawai;
+
+    @FXML
+    private BorderPane rootPane;
+
+    @FXML
+    private TableView<?> tblPegawai;
+
+    @FXML
+    private TextArea txtAlamatLengkap;
+
+    @FXML
+    private TextField txtCari;
+
+    @FXML
+    private TextField txtEmail;
+
+    @FXML
+    private TextField txtIdPegawai;
+
+    @FXML
+    private TextField txtNamaLengkap;
+
+    @FXML
+    private TextField txtNomorTelepon;
+
+    @FXML
+    private PasswordField txtPassword;
+
+    @FXML
+    private TextField txtPasswordVisible;
+
+    @FXML
+    private TextField txtStatus;
+
+    @FXML
+    private TextField txtUsername;
+
+    @FXML
+    void handleBatal(ActionEvent event) {
 
     }
 
     @FXML
-    void OnActionBtPegawaiNonAktif(ActionEvent event) {
+    void handleHapusData(ActionEvent event) {
 
     }
 
     @FXML
-    void OnActionBtTambah(ActionEvent event) {
+    void handleNextPage(ActionEvent event) {
 
     }
 
     @FXML
-    void OnActionbtSemuaPegawai(ActionEvent event) {
+    void handlePrevPage(ActionEvent event) {
+
+    }
+
+    @FXML
+    void handleSimpanData(ActionEvent event) {
+
+    }
+
+    @FXML
+    void handleTogglePassword(ActionEvent event) {
+
+    }
+
+    @FXML
+    void handleUbahData(ActionEvent event) {
 
     }
 
