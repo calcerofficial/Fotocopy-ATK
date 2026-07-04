@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane fx:id="rootPane" prefHeight="1355.0" prefWidth="1280.0" styleClass="root-bg" stylesheets="@../css/DataPegawai.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="SistemFotocopy.DataPegawai">
+
+    <center>
+        <ScrollPane fitToWidth="true" styleClass="main-scroll">
+            <content>
+                <VBox spacing="24.0" styleClass="content-wrapper">
+                    <padding>
+                        <Insets bottom="32.0" left="32.0" right="32.0" top="32.0" />
+                    </padding>
+
+                    <!-- ===================== HEADER + STAT CARDS ===================== -->
+                    <VBox spacing="32.0" styleClass="card-panel">
+                        <Label styleClass="page-title" text="Data Pegawai" />
+
+                        <HBox spacing="24.0">
+                            <!-- Total Pegawai -->
+                            <HBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                                <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                                    <Label styleClass="stat-label" text="TOTAL PEGAWAI" />
+                                    <Label fx:id="lblTotalPegawai" styleClass="stat-value" text="0" />
+                                </VBox>
+                                <Region HBox.hgrow="ALWAYS" />
+                                <Label styleClass="stat-icon" text="👥" />
+                            </HBox>
+
+                            <!-- Pegawai Aktif -->
+                            <HBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                                <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                                    <Label styleClass="stat-label" text="PEGAWAI AKTIF" />
+                                    <Label fx:id="lblPegawaiAktif" styleClass="stat-value" text="0" />
+                                </VBox>
+                                <Region HBox.hgrow="ALWAYS" />
+                                <Label styleClass="stat-icon" text="🧑‍✔" />
+                            </HBox>
+
+                            <!-- Pegawai Non Aktif -->
+                            <HBox styleClass="stat-card" HBox.hgrow="ALWAYS">
+                                <VBox spacing="4.0" HBox.hgrow="ALWAYS">
+                                    <Label styleClass="stat-label" text="PEGAWAI NON AKTIF" />
+                                    <Label fx:id="lblPegawaiNonAktif" styleClass="stat-value-dark" text="0" />
+                                </VBox>
+                                <Region HBox.hgrow="ALWAYS" />
+                                <Label styleClass="stat-icon" text="🧑‍✖" />
+                            </HBox>
+                        </HBox>
+                    </VBox>
+
+                    <!-- ===================== FORM PANEL ===================== -->
+                    <VBox spacing="0.0" styleClass="form-panel">
+                        <padding>
+                            <Insets bottom="32.0" left="40.0" right="40.0" top="32.0" />
+                        </padding>
+
+                        <GridPane hgap="48.0" vgap="16.0">
+                            <columnConstraints>
+                                <ColumnConstraints hgrow="ALWAYS" percentWidth="50.0" />
+                                <ColumnConstraints hgrow="ALWAYS" percentWidth="50.0" />
+                            </columnConstraints>
+                            <rowConstraints>
+                                <RowConstraints />
+                                <RowConstraints />
+                                <RowConstraints />
+                                <RowConstraints />
+                            </rowConstraints>
+
+                            <!-- ===== KOLOM KIRI ===== -->
+                            <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                                <Label styleClass="field-label" text="ID PEGAWAI" />
+                                <TextField fx:id="txtIdPegawai" disable="true" styleClass="text-field-disabled" />
+                                <Label styleClass="field-hint" text="ID di-isi otomatis oleh sistem" />
+                            </VBox>
+
+                            <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                                <Label styleClass="field-label" text="NAMA LENGKAP" />
+                                <TextField fx:id="txtNamaLengkap" promptText="Masukan Nama lengkap..." styleClass="text-field" />
+                            </VBox>
+
+                            <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="2">
+                                <Label styleClass="field-label" text="EMAIL" />
+                                <TextField fx:id="txtEmail" promptText="Masukan Email...." styleClass="text-field" />
+                            </VBox>
+
+                            <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="3">
+                                <Label styleClass="field-label" text="NOMOR TELEPON" />
+                                <TextField fx:id="txtNomorTelepon" promptText="Masukan Nomer telepon..." styleClass="text-field" />
+                            </VBox>
+
+                            <!-- ===== KOLOM KANAN ===== -->
+                            <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                                <Label styleClass="field-label" text="ALAMAT LENGKAP" />
+                                <TextArea fx:id="txtAlamatLengkap" prefRowCount="3" promptText="Masukkan alamat domisili..." styleClass="text-area" wrapText="true" />
+                            </VBox>
+
+                            <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                                <Label styleClass="field-label" text="USERNAME" />
+                                <TextField fx:id="txtUsername" promptText="Masukkan username unik...." styleClass="text-field" />
+                            </VBox>
+
+                            <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
+                                <Label styleClass="field-label" text="PASSWORD" />
+                                <HBox alignment="CENTER_LEFT" styleClass="password-box">
+                                    <PasswordField fx:id="txtPassword" promptText="Masukan Password..." styleClass="password-field" HBox.hgrow="ALWAYS" />
+                                    <TextField fx:id="txtPasswordVisible" managed="false" promptText="Masukan Password..." styleClass="password-field" visible="false" HBox.hgrow="ALWAYS" />
+                                    <Button fx:id="btnTogglePassword" onAction="#handleTogglePassword" styleClass="toggle-password-btn" text="👁" />
+                                </HBox>
+                            </VBox>
+
+                            <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="3">
+                                <Label styleClass="field-label" text="STATUS" />
+                        <TextField fx:id="txtStatus" disable="true" promptText="Aktif" styleClass="text-field-disabled" />
+                            </VBox>
+                        </GridPane>
+                    </VBox>
+
+                    <!-- ===================== TOMBOL AKSI + PENCARIAN ===================== -->
+                    <HBox alignment="CENTER_LEFT" spacing="12.0">
+                        <Button fx:id="btnSimpan" onAction="#handleSimpanData" styleClass="btn-primary" text="💾 Simpan Data" />
+                        <Button fx:id="btnUbah" onAction="#handleUbahData" styleClass="btn-primary" text="✏ Ubah Data" />
+                        <Button fx:id="btnHapus" onAction="#handleHapusData" styleClass="btn-danger" text="🗑 Hapus Data" />
+                        <Button fx:id="btnBatal" onAction="#handleBatal" styleClass="btn-primary" text="Batal" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <TextField fx:id="txtCari" promptText="🔍 Cari Berdasarkan nama......" styleClass="search-field" />
+                    </HBox>
+
+                    <!-- ===================== TABEL DATA ===================== -->
+                    <VBox styleClass="table-panel">
+                        <TableView fx:id="tblPegawai" styleClass="table-pegawai" VBox.vgrow="ALWAYS">
+                            <columns>
+                                <TableColumn fx:id="colIdPegawai" prefWidth="130.0" text="ID PEGAWAI" />
+                                <TableColumn fx:id="colNamaPegawai" prefWidth="160.0" text="NAMA PEGAWAI" />
+                                <TableColumn fx:id="colAlamat" prefWidth="160.0" text="ALAMAT" />
+                                <TableColumn fx:id="colNoTelepon" prefWidth="130.0" text="NO_TELEPON" />
+                                <TableColumn fx:id="colEmail" prefWidth="160.0" text="EMAIL" />
+                                <TableColumn fx:id="colUsername" prefWidth="140.0" text="USERNAME" />
+                                <TableColumn fx:id="colStatus" prefWidth="100.0" text="STATUS" />
+                            </columns>
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                            </columnResizePolicy>
+                        </TableView>
+
+                        <HBox alignment="CENTER_LEFT" styleClass="pagination-bar">
+                            <Label fx:id="lblInfoData" styleClass="pagination-info" text="Menampilkan 0 dari 0 data" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <HBox alignment="CENTER" spacing="8.0">
+                                <Button fx:id="btnPrevPage" onAction="#handlePrevPage" styleClass="pagination-btn" text="&lt;" />
+                                <Button fx:id="btnPage1" styleClass="pagination-btn-active" text="1" />
+                                <Button fx:id="btnNextPage" onAction="#handleNextPage" styleClass="pagination-btn" text="&gt;" />
+                            </HBox>
+                        </HBox>
+                    </VBox>
+
+                    <!-- ===================== FOOTER ===================== -->
+                    <AnchorPane styleClass="footer-panel">
+                        <HBox alignment="CENTER_LEFT" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
+                            <Label styleClass="footer-copyright" text="© 2025 COPYSTREAM PROFESSIONAL SERVICES | ENTERPRISE BUILD V4.2.1" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <HBox spacing="24.0">
+                                <Label styleClass="footer-link" text="PRIVACY PROTOCOL" />
+                                <Label styleClass="footer-link" text="COMPLIANCE HUB" />
+                                <Label styleClass="footer-link" text="SYSTEM SUPPORT" />
+                            </HBox>
+                        </HBox>
+                    </AnchorPane>
+
+                </VBox>
+            </content>
+        </ScrollPane>
+    </center>
+</BorderPane>

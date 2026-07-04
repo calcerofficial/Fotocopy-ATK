@@ -3,15 +3,14 @@ package SistemFotocopy;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
-import javafx.scene.control.PasswordField;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
-import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 
-public class DataPegawai {
+public class DataProduk {
 
     @FXML
     private Button btnBatal;
@@ -32,79 +31,70 @@ public class DataPegawai {
     private Button btnSimpan;
 
     @FXML
-    private Button btnTogglePassword;
-
-    @FXML
     private Button btnUbah;
 
     @FXML
-    private TableColumn<?, ?> colAlamat;
+    private ComboBox<?> cmbKategoriProduk;
 
     @FXML
-    private TableColumn<?, ?> colEmail;
+    private TableColumn<?, ?> colHarga;
 
     @FXML
-    private TableColumn<?, ?> colIdPegawai;
+    private TableColumn<?, ?> colIdBarang;
 
     @FXML
-    private TableColumn<?, ?> colNamaPegawai;
+    private TableColumn<?, ?> colKategoriProduk;
 
     @FXML
-    private TableColumn<?, ?> colNoTelepon;
+    private TableColumn<?, ?> colMerkProduk;
 
     @FXML
-    private TableColumn<?, ?> colStatus;
+    private TableColumn<?, ?> colNamaBarang;
 
     @FXML
-    private TableColumn<?, ?> colUsername;
+    private TableColumn<?, ?> colStatusProduk;
+
+    @FXML
+    private TableColumn<?, ?> colStock;
 
     @FXML
     private Label lblInfoData;
 
     @FXML
-    private Label lblPegawaiAktif;
+    private Label lblProdukTersedia;
 
     @FXML
-    private Label lblPegawaiNonAktif;
+    private Label lblProdukTidakTersedia;
 
     @FXML
-    private Label lblTotalPegawai;
+    private Label lblTotalProduk;
 
     @FXML
     private BorderPane rootPane;
 
     @FXML
-    private TableView<?> tblPegawai;
-
-    @FXML
-    private TextArea txtAlamatLengkap;
+    private TableView<?> tblProduk;
 
     @FXML
     private TextField txtCari;
 
     @FXML
-    private TextField txtEmail;
+    private TextField txtHargaBarang;
 
     @FXML
-    private TextField txtIdPegawai;
+    private TextField txtIdBarang;
 
     @FXML
-    private TextField txtNamaLengkap;
+    private TextField txtMerk;
 
     @FXML
-    private TextField txtNomorTelepon;
-
-    @FXML
-    private PasswordField txtPassword;
-
-    @FXML
-    private TextField txtPasswordVisible;
+    private TextField txtNamaBarang;
 
     @FXML
     private TextField txtStatus;
 
     @FXML
-    private TextField txtUsername;
+    private TextField txtStockBarang;
 
     @FXML
     void handleBatal(ActionEvent event) {
@@ -128,11 +118,6 @@ public class DataPegawai {
 
     @FXML
     void handleSimpanData(ActionEvent event) {
-
-    }
-
-    @FXML
-    void handleTogglePassword(ActionEvent event) {
 
     }
 

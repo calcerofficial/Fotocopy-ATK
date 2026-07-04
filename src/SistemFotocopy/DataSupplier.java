@@ -4,14 +4,13 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
-import javafx.scene.control.PasswordField;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.BorderPane;
 
-public class DataPegawai {
+public class DataSupplier {
 
     @FXML
     private Button btnBatal;
@@ -32,9 +31,6 @@ public class DataPegawai {
     private Button btnSimpan;
 
     @FXML
-    private Button btnTogglePassword;
-
-    @FXML
     private Button btnUbah;
 
     @FXML
@@ -44,10 +40,10 @@ public class DataPegawai {
     private TableColumn<?, ?> colEmail;
 
     @FXML
-    private TableColumn<?, ?> colIdPegawai;
+    private TableColumn<?, ?> colIdSupplier;
 
     @FXML
-    private TableColumn<?, ?> colNamaPegawai;
+    private TableColumn<?, ?> colNamaSupplier;
 
     @FXML
     private TableColumn<?, ?> colNoTelepon;
@@ -56,25 +52,22 @@ public class DataPegawai {
     private TableColumn<?, ?> colStatus;
 
     @FXML
-    private TableColumn<?, ?> colUsername;
-
-    @FXML
     private Label lblInfoData;
 
     @FXML
-    private Label lblPegawaiAktif;
+    private Label lblSupplierAktif;
 
     @FXML
-    private Label lblPegawaiNonAktif;
+    private Label lblSupplierNonaktif;
 
     @FXML
-    private Label lblTotalPegawai;
+    private Label lblTotalSupplier;
 
     @FXML
     private BorderPane rootPane;
 
     @FXML
-    private TableView<?> tblPegawai;
+    private TableView<?> tblSupplier;
 
     @FXML
     private TextArea txtAlamatLengkap;
@@ -86,25 +79,16 @@ public class DataPegawai {
     private TextField txtEmail;
 
     @FXML
-    private TextField txtIdPegawai;
+    private TextField txtIdSupplier;
 
     @FXML
-    private TextField txtNamaLengkap;
+    private TextField txtNamaSupplier;
 
     @FXML
     private TextField txtNomorTelepon;
 
     @FXML
-    private PasswordField txtPassword;
-
-    @FXML
-    private TextField txtPasswordVisible;
-
-    @FXML
     private TextField txtStatus;
-
-    @FXML
-    private TextField txtUsername;
 
     @FXML
     void handleBatal(ActionEvent event) {
@@ -128,11 +112,6 @@ public class DataPegawai {
 
     @FXML
     void handleSimpanData(ActionEvent event) {
-
-    }
-
-    @FXML
-    void handleTogglePassword(ActionEvent event) {
 
     }
 

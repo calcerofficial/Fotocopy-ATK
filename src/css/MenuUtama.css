@@ -35,15 +35,15 @@
    KONTROL WARNA TOMBOL & IKON SIDEBAR (DASHBOARD & PEMBELIAN STOK)
    ========================================================================== */
 
-/* --- 1. KONDISI TOMBOL AKTIF / TERPILIH (KOTAK BIRU) --- */
+/* Style untuk tombol navigasi AKTIF (biru solid) */
 .nav-btn-active {
-    -fx-background-color: #004596;
-    -fx-text-fill: #FFFFFF;
+    -fx-background-color: #004596 !important;
+    -fx-text-fill: #FFFFFF !important;
+    -fx-background-radius: 8px;
 }
 .nav-btn-active:hover {
-    -fx-background-color: #002F6B;
+    -fx-background-color: #002F6B !important;
 }
-/* Ikon di dalam kotak biru WAJIB berubah menjadi PUTIH NYALA */
 .nav-btn-active .graphic SVGPath {
     -fx-fill: #FFFFFF !important;
 }
@@ -51,27 +51,24 @@
     -fx-fill: #FFFFFF !important;
 }
 
-/* --- 2. KONDISI TOMBOL TIDAK AKTIF (BACKGROUND PUTIH/TRANSPARAN) --- */
+/* Style untuk tombol navigasi DEFAULT (transparan) */
 .nav-btn {
     -fx-background-color: transparent;
-    -fx-text-fill: #434751; /* Warna teks abu-abu asli */
+    -fx-text-fill: #434751;
+    -fx-background-radius: 8px;
 }
-/* Ikon di dalam tombol tidak aktif kembali ke WARNA ASLINYA (Abu-abu gelap) */
 .nav-btn .graphic SVGPath {
     -fx-fill: #434751 !important;
 }
-
-/* --- 3. KONDISI TOMBOL TIDAK AKTIF SAAT DISOROT (HOVER) --- */
 .nav-btn:hover {
     -fx-background-color: #EBF0FA;
     -fx-text-fill: #004596;
 }
-/* Ikon ikut berubah menjadi BIRU mengikuti teksnya saat disorot */
 .nav-btn:hover .graphic SVGPath {
     -fx-fill: #004596 !important;
 }
 
-/* --- 4. TOMBOL KEMBALI / DANGER (KHUSUS) --- */
+/* Tombol Kembali - Merah */
 .nav-btn-danger {
     -fx-background-color: transparent;
     -fx-text-fill: #BA1A1A;
@@ -85,45 +82,37 @@
 }
 
 /* ==========================================================================
-   WRAPPER & COMBOBOX KELOLA DATA
+   SUBMENU KELOLA DATA
    ========================================================================== */
-.nav-combo-container {
+.submenu-box {
     -fx-background-color: transparent;
-    -fx-background-radius: 6px;
-    -fx-cursor: hand;
-}
-.nav-combo-container:hover {
-    -fx-background-color: #EBF0FA;
-}
-/* Warna ikon kelola data default */
-.nav-combo-container .graphic SVGPath {
-    -fx-fill: #434751 !important;
-}
-/* Warna ikon kelola data saat disorot */
-.nav-combo-container:hover .graphic SVGPath {
-    -fx-fill: #004596 !important;
 }
 
-.nav-combo {
+.submenu-btn {
     -fx-background-color: transparent;
-    -fx-background-radius: 6px;
+    -fx-text-fill: #6B7280;
     -fx-font-family: "Hanken Grotesk", sans-serif;
-    -fx-font-size: 14px;
-    -fx-font-weight: 600;
-    -fx-prompt-text-fill: #434751;
-    -fx-padding: 12px 16px 12px 16px;
+    -fx-font-size: 13px;
+    -fx-font-weight: 500;
+    -fx-cursor: hand;
+    -fx-background-radius: 4px;
 }
-.nav-combo-container:hover .nav-combo {
-    -fx-prompt-text-fill: #004596;
+
+.submenu-btn:hover {
+    -fx-background-color: #EBF0FA;
+    -fx-text-fill: #004596;
 }
-.nav-combo .arrow-button {
-    -fx-background-color: transparent;
-}
-.nav-combo .arrow {
-    -fx-background-color: #434751;
-}
-.nav-combo-container:hover .nav-combo .arrow {
-    -fx-background-color: #004596;
+
+/* ==========================================================================
+   HEADER CONTAINER (di atas sidebar)
+   ========================================================================== */
+.header-container {
+    -fx-padding: 10px 20px;
+    -fx-background-color: white;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 0 0 1px 0;
+    -fx-alignment: CENTER_LEFT;
+    -fx-spacing: 12px;
 }
 
 /* --- TOP HEADER BAR --- */
