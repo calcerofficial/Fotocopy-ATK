@@ -12,19 +12,62 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.shape.SVGPath?>
 
-<AnchorPane prefHeight="1024.0" prefWidth="1280.0" styleClass="main-bg" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="SistemFotocopy.MenuUtama">
+<AnchorPane prefHeight="1024.0" prefWidth="1280.0" styleClass="main-bg"
+            xmlns="http://javafx.com/javafx/8"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="SistemFotocopy.MenuUtama">
 
     <stylesheets>
         <URL value="@../css/MenuUtama.css" />
     </stylesheets>
 
-    <HBox spacing="10" styleClass="header-container">
-        <SVGPath fx:id="iconDashboard" content="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z" style="-fx-fill: #2196F3;"/>
-        <Label fx:id="lblDashboardText" text="Dashboard" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #333333;"/>
-    </HBox>
-
     <children>
-        <VBox prefWidth="288.0" styleClass="sidebar-bg" AnchorPane.bottomAnchor="0.0" AnchorPane.topAnchor="0.0">
+
+        <!-- ===================== TOP HEADER BAR ===================== -->
+        <!-- Diletakkan di dalam children, menempel atas, kiri-kanan penuh -->
+        <HBox alignment="CENTER_LEFT" prefHeight="64.0" styleClass="header-bar"
+              AnchorPane.topAnchor="0.0"
+              AnchorPane.leftAnchor="0.0"
+              AnchorPane.rightAnchor="0.0">
+            <padding><Insets left="24.0" right="24.0" /></padding>
+            <children>
+                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <children>
+                        <SVGPath fx:id="IconNavigasi"
+                                 content="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"
+                                 fill="#002F6B"
+                                 onMouseClicked="#OnMouseKlikNavigasi"
+                                 scaleX="1.2" scaleY="1.2" />
+                        <Label styleClass="header-title" text="Dashboard Admin" />
+                    </children>
+                </HBox>
+                <Region HBox.hgrow="ALWAYS" />
+                <HBox alignment="CENTER" spacing="24.0">
+                    <children>
+                        <SVGPath fx:id="IconPesan"
+                                 content="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"
+                                 fill="#002F6B"
+                                 onMouseClicked="#OnMouseKlikPesan"
+                                 scaleX="1.2" scaleY="1.2" />
+                        <VBox alignment="CENTER_RIGHT" spacing="2.0">
+                            <children>
+                                <Label styleClass="admin-name" text="Alexander Pierce" />
+                                <Label styleClass="admin-role" text="ADMINISTRATOR" />
+                            </children>
+                        </VBox>
+                        <SVGPath content="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"
+                                 fill="#151C27" scaleX="2.0" scaleY="2.0" />
+                    </children>
+                </HBox>
+            </children>
+        </HBox>
+
+        <!-- ===================== SIDEBAR KIRI ===================== -->
+        <!-- topAnchor=64 agar sidebar mulai di bawah header (tinggi header 64px) -->
+        <VBox prefWidth="288.0" styleClass="sidebar-bg"
+              AnchorPane.topAnchor="64.0"
+              AnchorPane.bottomAnchor="0.0"
+              AnchorPane.leftAnchor="0.0">
             <padding>
                 <Insets bottom="24.0" left="16.0" right="16.0" top="40.0" />
             </padding>
@@ -35,42 +78,63 @@
 
                 <VBox spacing="12.0" VBox.vgrow="ALWAYS">
                     <children>
-                        <Button fx:id="btDashboard" alignment="BASELINE_LEFT" graphicTextGap="16.0" maxWidth="1.1797693134862315E308" mnemonicParsing="false" onAction="#OnActionDasbord" styleClass="nav-btn-active" text="Dashboard">
+                        <!-- Dashboard -->
+                        <Button fx:id="btDashboard"
+                                alignment="BASELINE_LEFT"
+                                graphicTextGap="16.0"
+                                maxWidth="1.7976931348623157E308"
+                                mnemonicParsing="false"
+                                onAction="#OnActionDasbord"
+                                styleClass="nav-btn-active"
+                                text="Dashboard">
                             <graphic><SVGPath content="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" fill="WHITE" scaleX="1.2" scaleY="1.2" /></graphic>
                             <padding><Insets bottom="16.0" left="24.0" right="24.0" top="16.0" /></padding>
                         </Button>
 
-                        <!-- ===================== KELOLA DATA (EXPANDABLE) ===================== -->
+                        <!-- ===== KELOLA DATA (EXPANDABLE) ===== -->
                         <VBox spacing="4.0">
                             <children>
                                 <StackPane>
                                     <children>
-                                        <Button fx:id="btKelolaData" alignment="BASELINE_LEFT" graphicTextGap="16.0" maxWidth="1.1797693134862315E308" mnemonicParsing="false" onAction="#OnActionToggleKelolaData" styleClass="nav-btn" text="Kelola Data">
+                                        <Button fx:id="btKelolaData"
+                                                alignment="BASELINE_LEFT"
+                                                graphicTextGap="16.0"
+                                                maxWidth="1.7976931348623157E308"
+                                                mnemonicParsing="false"
+                                                onAction="#OnActionToggleKelolaData"
+                                                styleClass="nav-btn"
+                                                text="Kelola Data">
                                             <graphic><SVGPath content="M6 2c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6H6zm7 7V3.5L18.5 9H13z" fill="#434751" scaleX="1.2" scaleY="1.2" /></graphic>
                                             <padding><Insets bottom="16.0" left="24.0" right="24.0" top="16.0" /></padding>
                                         </Button>
-                                        <SVGPath fx:id="chevronKelolaData" content="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" fill="#434751" mouseTransparent="true" scaleX="1.0" scaleY="1.0" StackPane.alignment="CENTER_RIGHT">
+                                        <SVGPath fx:id="chevronKelolaData"
+                                                 content="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"
+                                                 fill="#434751"
+                                                 mouseTransparent="true"
+                                                 scaleX="1.0" scaleY="1.0"
+                                                 StackPane.alignment="CENTER_RIGHT">
                                             <StackPane.margin><Insets right="24.0" /></StackPane.margin>
                                         </SVGPath>
                                     </children>
                                 </StackPane>
 
+                                <!-- Submenu Kelola Data -->
                                 <VBox fx:id="submenuKelolaData" managed="false" spacing="2.0" styleClass="submenu-box" visible="false">
                                     <padding><Insets bottom="8.0" left="56.0" right="16.0" top="4.0" /></padding>
                                     <children>
-                                        <Button alignment="BASELINE_LEFT" maxWidth="1.1797693134862315E308" mnemonicParsing="false" onAction="#OnActionDataPegawai" styleClass="submenu-btn" text="Data Pegawai">
+                                        <Button alignment="BASELINE_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#OnActionDataPegawai" styleClass="submenu-btn" text="Data Pegawai">
                                             <padding><Insets bottom="9.0" left="10.0" right="10.0" top="9.0" /></padding>
                                         </Button>
-                                        <Button alignment="BASELINE_LEFT" maxWidth="1.1797693134862315E308" mnemonicParsing="false" onAction="#OnActionDataProduk" styleClass="submenu-btn" text="Data Produk">
+                                        <Button alignment="BASELINE_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#OnActionDataProduk" styleClass="submenu-btn" text="Data Produk">
                                             <padding><Insets bottom="9.0" left="10.0" right="10.0" top="9.0" /></padding>
                                         </Button>
-                                        <Button alignment="BASELINE_LEFT" maxWidth="1.1797693134862315E308" mnemonicParsing="false" onAction="#OnActionDataMesin" styleClass="submenu-btn" text="Data Mesin">
+                                        <Button alignment="BASELINE_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#OnActionDataMesin" styleClass="submenu-btn" text="Data Mesin">
                                             <padding><Insets bottom="9.0" left="10.0" right="10.0" top="9.0" /></padding>
                                         </Button>
-                                        <Button alignment="BASELINE_LEFT" maxWidth="1.1797693134862315E308" mnemonicParsing="false" onAction="#OnActionDataSupplier" styleClass="submenu-btn" text="Data Supplier">
+                                        <Button alignment="BASELINE_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#OnActionDataSupplier" styleClass="submenu-btn" text="Data Supplier">
                                             <padding><Insets bottom="9.0" left="10.0" right="10.0" top="9.0" /></padding>
                                         </Button>
-                                        <Button alignment="BASELINE_LEFT" maxWidth="1.1797693134862315E308" mnemonicParsing="false" onAction="#OnActionMaintenanceMesin" styleClass="submenu-btn" text="Maintenance Mesin">
+                                        <Button alignment="BASELINE_LEFT" maxWidth="1.7976931348623157E308" mnemonicParsing="false" onAction="#OnActionMaintenanceMesin" styleClass="submenu-btn" text="Maintenance Mesin">
                                             <padding><Insets bottom="9.0" left="10.0" right="10.0" top="9.0" /></padding>
                                         </Button>
                                     </children>
@@ -78,52 +142,49 @@
                             </children>
                         </VBox>
 
-                        <Button fx:id="btPembelianStock" alignment="BASELINE_LEFT" graphicTextGap="16.0" maxWidth="1.1797693134862315E308" mnemonicParsing="false" onAction="#OnActionPembelianStock" styleClass="nav-btn" text="Pembelian stock">
+                        <!-- Pembelian Stock -->
+                        <Button fx:id="btPembelianStock"
+                                alignment="BASELINE_LEFT"
+                                graphicTextGap="16.0"
+                                maxWidth="1.7976931348623157E308"
+                                mnemonicParsing="false"
+                                onAction="#OnActionPembelianStock"
+                                styleClass="nav-btn"
+                                text="Pembelian Stock">
                             <graphic><SVGPath content="M19 6h-2c0-2.76-2.24-5-5-5S7 3.24 7 6H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7-3c1.66 0 3 1.34 3 3H9c0-1.66 1.34-3 3-3zm0 10c-2.76 0-5-2.24-5-5h2c0 1.66 1.34 3 3 3s3-1.34 3-3h2c0 2.76-2.24 5-5 5z" fill="#434751" scaleX="1.2" scaleY="1.2" /></graphic>
                             <padding><Insets bottom="16.0" left="24.0" right="24.0" top="16.0" /></padding>
                         </Button>
 
-                        <Button fx:id="btKembali" alignment="BASELINE_LEFT" graphicTextGap="16.0" maxWidth="1.1797693134862315E308" mnemonicParsing="false" onAction="#OnActionKembali" styleClass="nav-btn-danger" text="Kembali">
+                        <!-- Kembali -->
+                        <Button fx:id="btKembali"
+                                alignment="BASELINE_LEFT"
+                                graphicTextGap="16.0"
+                                maxWidth="1.7976931348623157E308"
+                                mnemonicParsing="false"
+                                onAction="#OnActionKembali"
+                                styleClass="nav-btn-danger"
+                                text="Kembali">
                             <graphic><SVGPath content="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" fill="#BA1A1A" scaleX="1.2" scaleY="1.2" /></graphic>
                             <padding><Insets bottom="16.0" left="24.0" right="24.0" top="16.0" /></padding>
                         </Button>
                     </children>
                 </VBox>
 
-                <Button alignment="BASELINE_LEFT" graphicTextGap="16.0" maxWidth="1.1797693134862315E308" mnemonicParsing="false" styleClass="nav-btn" text="Settings">
+                <!-- Settings (di bawah) -->
+                <Button alignment="BASELINE_LEFT" graphicTextGap="16.0" maxWidth="1.7976931348623157E308" mnemonicParsing="false" styleClass="nav-btn" text="Settings">
                     <graphic><SVGPath content="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58z" fill="#434751" scaleX="1.2" scaleY="1.2" /></graphic>
                     <padding><Insets bottom="16.0" left="24.0" right="24.0" top="16.0" /></padding>
                 </Button>
             </children>
         </VBox>
 
-        <BorderPane AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="288.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
-            <top>
-                <HBox alignment="CENTER_LEFT" prefHeight="64.0" styleClass="header-bar" BorderPane.alignment="CENTER">
-                    <padding><Insets left="24.0" right="24.0" /></padding>
-                    <children>
-                        <HBox alignment="CENTER_LEFT" spacing="12.0">
-                            <children>
-                                <SVGPath fx:id="IconNavigasi" content="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" fill="#002F6B" onMouseClicked="#OnMouseKlikNavigasi" scaleX="1.2" scaleY="1.2" />
-                                <Label styleClass="header-title" text="Dashboard Admin" />
-                            </children>
-                        </HBox>
-                        <Region HBox.hgrow="ALWAYS" />
-                        <HBox alignment="CENTER" spacing="24.0">
-                            <children>
-                                <SVGPath fx:id="IconPesan" content="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z" fill="#002F6B" onMouseClicked="#OnMouseKlikPesan" scaleX="1.2" scaleY="1.2" />
-                                <VBox alignment="CENTER_RIGHT" spacing="2.0">
-                                    <children>
-                                        <Label styleClass="admin-name" text="Alexander Pierce" />
-                                        <Label styleClass="admin-role" text="ADMINISTRATOR" />
-                                    </children>
-                                </VBox>
-                                <SVGPath content="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" fill="#151C27" scaleX="2.0" scaleY="2.0" />
-                            </children>
-                        </HBox>
-                    </children>
-                </HBox>
-            </top>
+        <!-- ===================== AREA KONTEN UTAMA ===================== -->
+        <!-- leftAnchor=288 agar konten mulai setelah sidebar (lebar sidebar 288px) -->
+        <!-- topAnchor=64 agar konten mulai di bawah header -->
+        <BorderPane AnchorPane.topAnchor="64.0"
+                    AnchorPane.bottomAnchor="0.0"
+                    AnchorPane.leftAnchor="288.0"
+                    AnchorPane.rightAnchor="0.0">
 
             <center>
                 <StackPane fx:id="contentArea" BorderPane.alignment="CENTER" />
@@ -131,7 +192,7 @@
 
             <bottom>
                 <HBox alignment="CENTER_LEFT" styleClass="footer-bar" BorderPane.alignment="CENTER">
-                    <padding><Insets bottom="32.0" left="24.0" right="24.0" top="32.0" /></padding>
+                    <padding><Insets bottom="20.0" left="24.0" right="24.0" top="20.0" /></padding>
                     <children>
                         <Label styleClass="text-muted-mono" text="© 2025 COPYSTREAM PROFESSIONAL SERVICES | ENTERPRISE BUILD V4.2.1" />
                         <Region HBox.hgrow="ALWAYS" />
@@ -146,5 +207,6 @@
                 </HBox>
             </bottom>
         </BorderPane>
+
     </children>
 </AnchorPane>
