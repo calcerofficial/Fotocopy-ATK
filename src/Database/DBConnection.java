@@ -10,12 +10,13 @@ public class DBConnection {
     public PreparedStatement pstat;
 
     public DBConnection(){
-        try{
+        try {
             String url = "jdbc:sqlserver://kelompok-5.database.windows.net:1433;database=FotoCopyATK;user=hilmi;password=Kelompok5;trustServerCertificate=true;";
             conn = DriverManager.getConnection(url);
             stat = conn.createStatement();
-        } catch (Exception e) {
-            System.out.println("Eror saat connect database : "+e);
+        } catch (SQLException e) {
+            System.out.println("Eror saat connect database : " + e);
+            throw new RuntimeException("Gagal konek ke database. Cek driver JDBC ada di classpath atau tidak!", e);
         }
     }
 
