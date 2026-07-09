@@ -2,11 +2,11 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
-<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.layout.BorderPane?>
@@ -17,7 +17,7 @@
 <?import javafx.scene.layout.RowConstraints?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane fx:id="rootPane" prefHeight="1355.0" prefWidth="1280.0" styleClass="root-bg" stylesheets="@../css/DataProduk.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="SistemFotocopy.DataProduk">
+<BorderPane fx:id="rootPane" prefHeight="1355.0" prefWidth="1280.0" styleClass="root-bg" stylesheets="@../css/DataSupplier.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="SistemFotocopy.DataSupplier">
 
     <center>
         <ScrollPane fitToWidth="true" styleClass="main-scroll">
@@ -29,37 +29,37 @@
 
                     <!-- ===================== HEADER + STAT CARDS ===================== -->
                     <VBox spacing="32.0" styleClass="card-panel">
-                        <Label styleClass="page-title" text="Data Produk" />
+                        <Label styleClass="page-title" text="Data Supplier" />
 
                         <HBox spacing="24.0">
-                            <!-- Total Produk -->
+                            <!-- Total Supplier -->
                             <HBox styleClass="stat-card" HBox.hgrow="ALWAYS">
                                 <VBox spacing="4.0" HBox.hgrow="ALWAYS">
-                                    <Label styleClass="stat-label" text="TOTAL PRODUK" />
-                                    <Label fx:id="lblTotalProduk" styleClass="stat-value" text="0" />
+                                    <Label styleClass="stat-label" text="TOTAL SUPPLIER" />
+                                    <Label fx:id="lblTotalSupplier" styleClass="stat-value" text="0" />
                                 </VBox>
                                 <Region HBox.hgrow="ALWAYS" />
-                                <Label styleClass="stat-icon" text="📦" />
+                                <Label styleClass="stat-icon" text="🤝" />
                             </HBox>
 
-                            <!-- Produk Tersedia -->
+                            <!-- Supplier Aktif -->
                             <HBox styleClass="stat-card" HBox.hgrow="ALWAYS">
                                 <VBox spacing="4.0" HBox.hgrow="ALWAYS">
-                                    <Label styleClass="stat-label" text="PRODUK TERSEDIA" />
-                                    <Label fx:id="lblProdukTersedia" styleClass="stat-value" text="0" />
+                                    <Label styleClass="stat-label" text="SUPPLIER AKTIF" />
+                                    <Label fx:id="lblSupplierAktif" styleClass="stat-value" text="0" />
                                 </VBox>
                                 <Region HBox.hgrow="ALWAYS" />
-                                <Label styleClass="stat-icon" text="📚" />
+                                <Label styleClass="stat-icon" text="🏢" />
                             </HBox>
 
-                            <!-- Produk Tidak Tersedia -->
+                            <!-- Supplier Nonaktif -->
                             <HBox styleClass="stat-card" HBox.hgrow="ALWAYS">
                                 <VBox spacing="4.0" HBox.hgrow="ALWAYS">
-                                    <Label styleClass="stat-label" text="PRODUK TIDAK TERSEDIA" />
-                                    <Label fx:id="lblProdukTidakTersedia" styleClass="stat-value-dark" text="0" />
+                                    <Label styleClass="stat-label" text="SUPPLIER NONAKTIF" />
+                                    <Label fx:id="lblSupplierNonaktif" styleClass="stat-value-dark" text="0" />
                                 </VBox>
                                 <Region HBox.hgrow="ALWAYS" />
-                                <Label styleClass="stat-icon-warning" text="⚠" />
+                                <Label styleClass="stat-icon-muted" text="🏢" />
                             </HBox>
                         </HBox>
                     </VBox>
@@ -84,40 +84,35 @@
 
                             <!-- ===== KOLOM KIRI ===== -->
                             <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="0">
-                                <Label styleClass="field-label" text="ID BARANG" />
-                                <TextField fx:id="txtIdBarang" disable="true" styleClass="text-field-disabled" />
+                                <Label styleClass="field-label" text="ID SUPPLIER" />
+                                <TextField fx:id="txtIdSupplier" disable="true" styleClass="text-field-disabled" />
                                 <Label styleClass="field-hint" text="ID di-isi otomatis oleh sistem" />
                             </VBox>
 
                             <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
-                                <Label styleClass="field-label" text="KATEGORI PRODUK" />
-                                <ComboBox fx:id="cmbKategoriProduk" maxWidth="1.7976931348623157E308" promptText="pilih kategori Produk..." styleClass="combo-status" />
+                                <Label styleClass="field-label" text="NAMA SUPPLIER" />
+                                <TextField fx:id="txtNamaSupplier" promptText="Masukan Nama lengkap..." styleClass="text-field" />
                             </VBox>
 
                             <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="2">
-                                <Label styleClass="field-label" text="NAMA BARANG" />
-                                <TextField fx:id="txtNamaBarang" promptText="Masukan nama barang..." styleClass="text-field" />
+                                <Label styleClass="field-label" text="EMAIL" />
+                                <TextField fx:id="txtEmail" promptText="Masukan Email...." styleClass="text-field" />
                             </VBox>
 
                             <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="3">
-                                <Label styleClass="field-label" text="HARGA BARANG" />
-                                <TextField fx:id="txtHargaBarang" promptText="Masukan harga barang....." styleClass="text-field" />
+                                <Label styleClass="field-label" text="NOMOR TELEPON" />
+                                <TextField fx:id="txtNomorTelepon" promptText="Masukan Nomer telepon..." styleClass="text-field" />
                             </VBox>
 
                             <!-- ===== KOLOM KANAN ===== -->
                             <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
-                                <Label styleClass="field-label" text="STOCK BARANG" />
-                                <TextField fx:id="txtStockBarang" promptText="Masukkan jumlah stok barang" styleClass="text-field" />
+                                <Label styleClass="field-label" text="ALAMAT LENGKAP" />
+                                <TextArea fx:id="txtAlamatLengkap" prefRowCount="3" promptText="Masukkan alamat domisili..." styleClass="text-area" wrapText="true" />
                             </VBox>
 
                             <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
-                                <Label styleClass="field-label" text="MERK" />
-                                <TextField fx:id="txtMerk" promptText="Masukkan merk barang" styleClass="text-field" />
-                            </VBox>
-
-                            <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
                                 <Label styleClass="field-label" text="STATUS" />
-                                <ComboBox fx:id="cmbStatus" disable="true" maxWidth="1.7976931348623157E308" promptText="pilih status..." styleClass="combo-status" />
+                                <TextField fx:id="txtStatus" disable="true" promptText="Aktif" styleClass="text-field-disabled" />
                             </VBox>
                         </GridPane>
                     </VBox>
@@ -134,15 +129,14 @@
 
                     <!-- ===================== TABEL DATA ===================== -->
                     <VBox styleClass="table-panel">
-                        <TableView fx:id="tblProduk" styleClass="table-pegawai" VBox.vgrow="ALWAYS">
+                        <TableView fx:id="tblSupplier" styleClass="table-pegawai" VBox.vgrow="ALWAYS">
                             <columns>
-                                <TableColumn fx:id="colIdBarang" prefWidth="120.0" text="ID BARANG" />
-                                <TableColumn fx:id="colNamaBarang" prefWidth="150.0" text="NAMA BARANG" />
-                                <TableColumn fx:id="colKategoriProduk" prefWidth="150.0" text="KATEGORI PRODUK" />
-                                <TableColumn fx:id="colHarga" prefWidth="110.0" text="HARGA" />
-                                <TableColumn fx:id="colStock" prefWidth="90.0" text="STOCK" />
-                                <TableColumn fx:id="colMerkProduk" prefWidth="130.0" text="MERK PRODUK" />
-                                <TableColumn fx:id="colStatusProduk" prefWidth="120.0" text="STATUS PRODUK" />
+                                <TableColumn fx:id="colIdSupplier" prefWidth="130.0" text="ID SUPPLIER" />
+                                <TableColumn fx:id="colNamaSupplier" prefWidth="160.0" text="NAMA SUPPLIER" />
+                                <TableColumn fx:id="colAlamat" prefWidth="170.0" text="ALAMAT" />
+                                <TableColumn fx:id="colNoTelepon" prefWidth="140.0" text="NO_TELEPON" />
+                                <TableColumn fx:id="colEmail" prefWidth="170.0" text="EMAIL" />
+                                <TableColumn fx:id="colStatus" prefWidth="110.0" text="STATUS" />
                             </columns>
                             <columnResizePolicy>
                                 <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />

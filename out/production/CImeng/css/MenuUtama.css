@@ -1,0 +1,154 @@
+/* --- GLOBAL STYLES & VARIABLE FALLBACKS --- */
+.root {
+    -fx-font-family: "Hanken Grotesk", "Segoe UI", sans-serif;
+}
+
+.main-bg {
+    -fx-background-color: #F8F9FB;
+}
+
+/* --- SIDEBAR LEFT & NAV COMPONENT BUTTONS --- */
+.sidebar-bg {
+    -fx-background-color: #F9F9FF;
+    -fx-border-color: #C3C6D3;
+    -fx-border-width: 0 1px 0 0;
+}
+
+.logo-text {
+    -fx-font-family: "Hanken Grotesk", sans-serif;
+    -fx-font-size: 32px;
+    -fx-font-weight: 800;
+    -fx-text-fill: #002F6B;
+}
+
+/* Base Style Global Button Navigasi */
+.button {
+    -fx-cursor: hand;
+    -fx-background-radius: 6px;
+    -fx-font-family: "Hanken Grotesk", sans-serif;
+    -fx-font-size: 14px;
+    -fx-font-weight: 600;
+    -fx-transition: 0.2s;
+}
+
+/* ==========================================================================
+   KONTROL WARNA TOMBOL & IKON SIDEBAR (DASHBOARD & PEMBELIAN STOK)
+   ========================================================================== */
+
+/* Style untuk tombol navigasi AKTIF (biru solid) */
+.nav-btn-active {
+    -fx-background-color: #004596 !important;
+    -fx-text-fill: #FFFFFF !important;
+    -fx-background-radius: 8px;
+}
+.nav-btn-active:hover {
+    -fx-background-color: #002F6B !important;
+}
+.nav-btn-active .graphic SVGPath {
+    -fx-fill: #FFFFFF !important;
+}
+.nav-btn-active:hover .graphic SVGPath {
+    -fx-fill: #FFFFFF !important;
+}
+
+/* Style untuk tombol navigasi DEFAULT (transparan) */
+.nav-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #434751;
+    -fx-background-radius: 8px;
+}
+.nav-btn .graphic SVGPath {
+    -fx-fill: #434751 !important;
+}
+.nav-btn:hover {
+    -fx-background-color: #EBF0FA;
+    -fx-text-fill: #004596;
+}
+.nav-btn:hover .graphic SVGPath {
+    -fx-fill: #004596 !important;
+}
+
+/* Tombol Kembali - Merah */
+.nav-btn-danger {
+    -fx-background-color: transparent;
+    -fx-text-fill: #BA1A1A;
+}
+.nav-btn-danger .graphic SVGPath {
+    -fx-fill: #BA1A1A !important;
+}
+.nav-btn-danger:hover {
+    -fx-background-color: #FFDAD6;
+    -fx-text-fill: #BA1A1A;
+}
+
+/* ==========================================================================
+   SUBMENU KELOLA DATA
+   ========================================================================== */
+.submenu-box {
+    -fx-background-color: transparent;
+}
+
+.submenu-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #6B7280;
+    -fx-font-family: "Hanken Grotesk", sans-serif;
+    -fx-font-size: 13px;
+    -fx-font-weight: 500;
+    -fx-cursor: hand;
+    -fx-background-radius: 4px;
+}
+
+.submenu-btn:hover {
+    -fx-background-color: #EBF0FA;
+    -fx-text-fill: #004596;
+}
+
+/* ==========================================================================
+   HEADER CONTAINER (di atas sidebar)
+   ========================================================================== */
+.header-container {
+    -fx-padding: 10px 20px;
+    -fx-background-color: white;
+    -fx-border-color: #e0e0e0;
+    -fx-border-width: 0 0 1px 0;
+    -fx-alignment: CENTER_LEFT;
+    -fx-spacing: 12px;
+}
+
+/* --- TOP HEADER BAR --- */
+.header-bar {
+    -fx-background-color: rgba(249, 249, 255, 0.8);
+    -fx-border-color: #C3C6D3;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.header-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #002F6B;
+}
+
+.admin-name {
+    -fx-font-size: 16px;
+    -fx-text-fill: #002F6B;
+    -fx-font-weight: bold;
+}
+
+.admin-role {
+    -fx-font-family: "JetBrains Mono", monospace;
+    -fx-font-size: 10px;
+    -fx-text-fill: #737783;
+    -fx-font-weight: bold;
+}
+
+/* --- FOOTER BAR --- */
+.footer-bar {
+    -fx-border-color: #C3C6D3;
+    -fx-border-width: 1px 0 0 0;
+}
+
+.text-muted-mono {
+    -fx-font-family: "JetBrains Mono", monospace;
+    -fx-font-size: 10px;
+    -fx-text-fill: #737783;
+}

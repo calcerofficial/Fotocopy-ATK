@@ -117,7 +117,7 @@
 
                             <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
                                 <Label styleClass="field-label" text="STATUS" />
-                                <ComboBox fx:id="cmbStatus" disable="true" maxWidth="1.7976931348623157E308" promptText="pilih status..." styleClass="combo-status" />
+                                <TextField fx:id="txtStatus" disable="true" promptText="Tersedia" styleClass="text-field-disabled" />
                             </VBox>
                         </GridPane>
                     </VBox>
