@@ -16,7 +16,8 @@ public class MainApp extends Application {
 
         stage.setTitle("Sistem Fotocopy - Login");
         stage.setScene(scene);
-        stage.setMaximized(true);
+        stage.setFullScreen(true);
+        stage.setFullScreenExitHint("");
         stage.show();
     }
 
