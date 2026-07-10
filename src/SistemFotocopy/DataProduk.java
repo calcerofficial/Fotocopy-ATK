@@ -6,13 +6,14 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
-import javafx.beans.property.SimpleStringProperty;
 
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.text.NumberFormat;
+import java.util.Locale;
 
 public class DataProduk {
 
@@ -31,8 +32,9 @@ public class DataProduk {
     @FXML private TableColumn<Produk, String> colNamaBarang;
     @FXML private TableColumn<Produk, String> colMerkProduk;
     @FXML private TableColumn<Produk, String> colKategoriProduk;
-    @FXML private TableColumn<Produk, String> colHarga;  // Diubah ke String untuk format "RP "
-    @FXML private TableColumn<Produk, String> colStock;  // Diubah ke String untuk format "-"
+    @FXML private TableColumn<Produk, String> colHarga;
+    @FXML private TableColumn<Produk, String> colStock;
+    @FXML private TableColumn<Produk, String> colStatusProduk; // Pastikan ini terhubung ke FXML
 
     @FXML private Label lblInfoData;
     @FXML private Label lblProdukTersedia;
@@ -48,12 +50,12 @@ public class DataProduk {
     @FXML private TextField txtStockBarang;
 
     private ObservableList<Produk> listProduk = FXCollections.observableArrayList();
-    private ObservableList<Produk> filteredProduk = FXCollections.observableArrayList();
+    private ObservableList<Produk> filteredList = FXCollections.observableArrayList();
     private Connection conn;
 
-    // Variabel Pagination (Maks 10 data per tabel)
+    // Variabel Pagination
     private int currentPage = 1;
-    private final int limitPerPage = 10;
+    private final int rowsPerPage = 10;
 
     private void koneksi() {
         try {
@@ -68,56 +70,67 @@ public class DataProduk {
     public void initialize() {
         koneksi();
 
-        txtIdBarang.setDisable(true);
-        cmbStatus.setDisable(true);
-
-        // Kondisi Awal: Tombol Simpan aktif, sedangkan Ubah & Hapus mati (Kondisi Tambah Data Baru)
+        // Kondisi Awal Tombol Form
         btnSimpan.setDisable(false);
         btnUbah.setDisable(true);
         btnHapus.setDisable(true);
 
-        // Mapping Kolom Tabel
+        txtIdBarang.setDisable(true);
+        cmbStatus.setDisable(true);
+
+        // --- BINDING KOLOM TABEL ---
         colIdBarang.setCellValueFactory(cellData -> cellData.getValue().idProdukProperty());
         colNamaBarang.setCellValueFactory(cellData -> cellData.getValue().namaProdukProperty());
         colMerkProduk.setCellValueFactory(cellData -> cellData.getValue().merkProperty());
         colKategoriProduk.setCellValueFactory(cellData -> cellData.getValue().kategoriProperty());
 
-        // Kustomisasi Tampilan Harga (Otomatis "RP " di depan angka)
+        // Kembalikan mapping kolom status asli bawaan properti model Produk agar nilainya langsung keluar
+        colStatusProduk.setCellValueFactory(cellData -> cellData.getValue().statusProperty());
+
+        // Kustomisasi Kolom Harga (Format Rp.)
         colHarga.setCellValueFactory(cellData -> {
             double harga = cellData.getValue().getHarga();
-            return new SimpleStringProperty(formatRupiah(harga));
+            return new javafx.beans.property.SimpleStringProperty(formatRupiah(harga));
         });
 
-        // Kustomisasi Tampilan Stok (Jika bernilai <= 0 atau kategori Layanan, tampilkan "-")
+        // Kustomisasi Kolom Stok (Jika layanan otomatis jadi '-')
         colStock.setCellValueFactory(cellData -> {
-            if ("Layanan".equalsIgnoreCase(cellData.getValue().getKategori())) {
-                return new SimpleStringProperty("-");
+            String kat = cellData.getValue().getKategori();
+            if ("layanan".equalsIgnoreCase(kat)) {
+                return new javafx.beans.property.SimpleStringProperty("-");
+            } else {
+                return new javafx.beans.property.SimpleStringProperty(String.valueOf(cellData.getValue().getStok()));
             }
-            int stok = cellData.getValue().getStok();
-            return new SimpleStringProperty(stok <= 0 ? "-" : String.valueOf(stok));
         });
 
+        // --- SET ITEMS DROPDOWN ---
         cmbKategoriProduk.setItems(FXCollections.observableArrayList("Barang", "Layanan"));
+
+        // PERBAIKAN UTAMA: Huruf T diganti kapital ("Tersedia") agar singkron dengan database!
         cmbStatus.setItems(FXCollections.observableArrayList("Tersedia", "NonTersedia"));
 
-        // Format Otomatis Inputan Harga saat mengetik (Menambahkan "RP " di textfield)
+        // --- FORMAT RUPIAH INPUT HARGA ---
         txtHargaBarang.textProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue == null || newValue.isEmpty()) return;
 
-            String cleanString = newValue.replaceAll("[^\\d]", "");
-            if (!cleanString.isEmpty()) {
+            String cleanString = newValue.replaceAll("[^0-9]", "");
+            if (cleanString.isEmpty()) {
+                txtHargaBarang.setText("");
+                return;
+            }
+
+            try {
                 double parsed = Double.parseDouble(cleanString);
                 String formatted = formatRupiah(parsed);
 
-                // Mencegah infinite loop listener
                 javafx.application.Platform.runLater(() -> {
                     txtHargaBarang.setText(formatted);
-                    txtHargaBarang.end();
+                    txtHargaBarang.positionCaret(formatted.length());
                 });
-            }
+            } catch (Exception ignored) {}
         });
 
-        // Listener Pilihan Kategori
+        // --- LISTENER COMBOBOX KATEGORI ---
         cmbKategoriProduk.getSelectionModel().selectedItemProperty().addListener((options, oldValue, newValue) -> {
             if (newValue != null && tblProduk.getSelectionModel().getSelectedItem() == null) {
                 generateIdOtomatis();
@@ -140,10 +153,9 @@ public class DataProduk {
 
         loadDataProduk();
 
-        // Listener Klik Baris Tabel (Mode Update / Hapus)
+        // --- LISTENER KLIK TABEL (EDIT MODE) ---
         tblProduk.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
             if (newSelection != null) {
-                // Ketika baris diklik: Tombol Simpan dinonaktifkan, Ubah & Hapus diaktifkan
                 btnSimpan.setDisable(true);
                 btnUbah.setDisable(false);
                 btnHapus.setDisable(false);
@@ -154,7 +166,10 @@ public class DataProduk {
                 cmbKategoriProduk.setValue(newSelection.getKategori());
                 txtHargaBarang.setText(formatRupiah(newSelection.getHarga()));
 
-                if ("Layanan".equalsIgnoreCase(newSelection.getKategori())) {
+                cmbStatus.setValue(newSelection.getStatus());
+                cmbStatus.setDisable(false);
+
+                if ("layanan".equalsIgnoreCase(newSelection.getKategori())) {
                     txtStockBarang.setText("-");
                     txtStockBarang.setDisable(true);
                     txtMerk.setDisable(true);
@@ -163,25 +178,12 @@ public class DataProduk {
                     txtStockBarang.setDisable(false);
                     txtMerk.setDisable(false);
                 }
-
-                cmbStatus.setValue(newSelection.getStatus());
-                cmbStatus.setDisable(false);
             }
         });
 
         txtCari.textProperty().addListener((observable, oldValue, newValue) -> {
             cariDataProduk(newValue);
         });
-    }
-
-    private String formatRupiah(double nilai) {
-        return String.format("RP %,.0f", nilai).replace(',', '.');
-    }
-
-    private double dapatkanAngkaMurni(String teksRupiah) {
-        if (teksRupiah == null || teksRupiah.isEmpty()) return 0;
-        String clean = teksRupiah.replaceAll("[^\\d]", "");
-        return clean.isEmpty() ? 0 : Double.parseDouble(clean);
     }
 
     private void generateIdOtomatis() {
@@ -233,12 +235,13 @@ public class DataProduk {
                     listProduk.add(new Produk(id, nama, merk, kategori, harga, stok, status));
 
                     total++;
-                    if ("Tersedia".equalsIgnoreCase(status)) tersedia++;
+                    if ("Tersedia".equalsIgnoreCase(status) || "tersedia".equalsIgnoreCase(status)) tersedia++;
                     else tidakTersedia++;
                 }
 
-                filteredProduk.setAll(listProduk);
-                updateTableContent();
+                filteredList.setAll(listProduk);
+                currentPage = 1;
+                updateTableAndPagination();
 
                 lblTotalProduk.setText(String.valueOf(total));
                 lblProdukTersedia.setText(String.valueOf(tersedia));
@@ -249,60 +252,44 @@ public class DataProduk {
         }
     }
 
-    // Fungsi Utama Logika Pagination (Maksimal 10 Data per Tabel)
-    private void updateTableContent() {
-        int totalData = filteredProduk.size();
+    private void updateTableAndPagination() {
+        int totalRows = filteredList.size();
+        int maxPage = (int) Math.ceil((double) totalRows / rowsPerPage);
+        if (maxPage == 0) maxPage = 1;
 
-        if (totalData == 0) {
-            tblProduk.setItems(FXCollections.observableArrayList());
-            lblInfoData.setText("Menampilkan 0 dari 0 data");
-            btnPrevPage.setDisable(true);
-            btnNextPage.setDisable(true);
-            btnPage1.setText("1");
-            return;
-        }
-
-        // Hitung total halaman yang tersedia
-        int totalPages = (int) Math.ceil((double) totalData / limitPerPage);
-        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage > maxPage) currentPage = maxPage;
         if (currentPage < 1) currentPage = 1;
 
-        // Hitung indeks subList data
-        int fromIndex = (currentPage - 1) * limitPerPage;
-        int toIndex = Math.min(fromIndex + limitPerPage, totalData);
+        int fromIndex = (currentPage - 1) * rowsPerPage;
+        int toIndex = Math.min(fromIndex + rowsPerPage, totalRows);
 
-        // Ambil data untuk halaman aktif saat ini
-        ObservableList<Produk> pageItems = FXCollections.observableArrayList(filteredProduk.subList(fromIndex, toIndex));
+        ObservableList<Produk> pageItems = FXCollections.observableArrayList();
+        if (totalRows > 0) {
+            pageItems.setAll(filteredList.subList(fromIndex, toIndex));
+        }
         tblProduk.setItems(pageItems);
 
-        // --- PERUBAHAN FORMAT TEKS DI SINI ---
-        // Menghitung berapa banyak data yang tampil di halaman aktif tersebut
-        int dataTampilDiHalamanIni = toIndex - fromIndex;
-        lblInfoData.setText("Menampilkan " + dataTampilDiHalamanIni + " dari " + totalData + " data");
-
-        // Update nomor tombol halaman tengah
-        btnPage1.setText(String.valueOf(currentPage));
-
-        // Atur kondisi aktif/mati tombol panah < dan >
-        btnPrevPage.setDisable(currentPage == 1);
-        btnNextPage.setDisable(currentPage == totalPages || totalPages == 0);
-    }
-
-    @FXML
-    void handlePrevPage(ActionEvent event) {
-        if (currentPage > 1) {
-            currentPage--;
-            updateTableContent();
+        if (totalRows == 0) {
+            lblInfoData.setText("Menampilkan 0 dari 0 data");
+        } else {
+            lblInfoData.setText("Menampilkan " + (fromIndex + 1) + "-" + toIndex + " dari " + totalRows + " data");
         }
+
+        btnPage1.setText(String.valueOf(currentPage));
+        btnPrevPage.setDisable(currentPage == 1);
+        btnNextPage.setDisable(currentPage == maxPage || totalRows == 0);
     }
 
     @FXML
     void handleNextPage(ActionEvent event) {
-        int totalPages = (int) Math.ceil((double) filteredProduk.size() / limitPerPage);
-        if (currentPage < totalPages) {
-            currentPage++;
-            updateTableContent();
-        }
+        currentPage++;
+        updateTableAndPagination();
+    }
+
+    @FXML
+    void handlePrevPage(ActionEvent event) {
+        currentPage--;
+        updateTableAndPagination();
     }
 
     @FXML
@@ -314,10 +301,8 @@ public class DataProduk {
             try (CallableStatement cs = conn.prepareCall(sqlProcedure)) {
                 cs.setString(1, txtNamaBarang.getText());
                 cs.setString(2, cmbKategoriProduk.getValue());
-                cs.setDouble(3, dapatkanAngkaMurni(txtHargaBarang.getText()));
-
-                String stok = txtStockBarang.getText();
-                cs.setString(4, "-".equals(stok) ? "0" : stok);
+                cs.setDouble(3, hilangkanFormatRupiah(txtHargaBarang.getText()));
+                cs.setString(4, txtStockBarang.getText());
                 cs.setString(5, txtMerk.getText());
 
                 cs.execute();
@@ -341,9 +326,9 @@ public class DataProduk {
         String statusLama = produkTerpilih.getStatus();
         String statusBaru = cmbStatus.getValue();
 
-        if ("Tersedia".equalsIgnoreCase(statusLama) && "NonTersedia".equalsIgnoreCase(statusBaru)) {
-            showAlert(Alert.AlertType.WARNING, "Peringatan",
-                    "Untuk mengubah status menjadi 'NonTersedia', silahkan gunakan tombol 'Hapus Data'!");
+        if (("Tersedia".equalsIgnoreCase(statusLama) || "tersedia".equalsIgnoreCase(statusLama))
+                && "NonTersedia".equalsIgnoreCase(statusBaru)) {
+            showAlert(Alert.AlertType.WARNING, "Peringatan", "Untuk menonaktifkan produk, silakan pakai tombol 'Hapus Data'!");
             cmbStatus.setValue(statusLama);
             return;
         }
@@ -355,10 +340,8 @@ public class DataProduk {
             try (CallableStatement cs = conn.prepareCall(sqlProcedure)) {
                 cs.setString(1, txtIdBarang.getText());
                 cs.setString(2, txtNamaBarang.getText());
-                cs.setDouble(3, dapatkanAngkaMurni(txtHargaBarang.getText()));
-
-                String stok = txtStockBarang.getText();
-                cs.setString(4, "-".equals(stok) ? "0" : stok);
+                cs.setDouble(3, hilangkanFormatRupiah(txtHargaBarang.getText()));
+                cs.setString(4, txtStockBarang.getText());
                 cs.setString(5, txtMerk.getText());
                 cs.setString(6, statusBaru);
 
@@ -376,7 +359,7 @@ public class DataProduk {
     void handleHapusData(ActionEvent event) {
         Produk produkTerpilih = tblProduk.getSelectionModel().getSelectedItem();
         if (produkTerpilih == null) {
-            showAlert(Alert.AlertType.WARNING, "Peringatan", "Pilih data produk di tabel yang ingin dinonaktifkan!");
+            showAlert(Alert.AlertType.WARNING, "Peringatan", "Pilih data produk di tabel!");
             return;
         }
 
@@ -412,31 +395,37 @@ public class DataProduk {
         txtMerk.setDisable(false);
         cmbStatus.setDisable(true);
 
-        // Mengembalikan kondisi tombol ke mode Tambah Baru
         btnSimpan.setDisable(false);
         btnUbah.setDisable(true);
         btnHapus.setDisable(true);
-
-        currentPage = 1;
-        updateTableContent();
     }
 
     private void cariDataProduk(String keyword) {
         if (keyword == null || keyword.isEmpty()) {
-            filteredProduk.setAll(listProduk);
+            filteredList.setAll(listProduk);
         } else {
-            ObservableList<Produk> temp = FXCollections.observableArrayList();
+            filteredList.clear();
             for (Produk p : listProduk) {
                 if (p.getNamaProduk().toLowerCase().contains(keyword.toLowerCase()) ||
                         p.getIdProduk().toLowerCase().contains(keyword.toLowerCase()) ||
                         p.getMerk().toLowerCase().contains(keyword.toLowerCase())) {
-                    temp.add(p);
+                    filteredList.add(p);
                 }
             }
-            filteredProduk.setAll(temp);
         }
-        currentPage = 1; // Reset ke halaman pertama saat melakukan pencarian
-        updateTableContent();
+        currentPage = 1;
+        updateTableAndPagination();
+    }
+
+    private String formatRupiah(double nilai) {
+        NumberFormat nf = NumberFormat.getCurrencyInstance(new Locale("id", "ID"));
+        return nf.format(nilai).replaceAll(",00", "");
+    }
+
+    private double hilangkanFormatRupiah(String textRupiah) {
+        if (textRupiah == null || textRupiah.isEmpty()) return 0;
+        String clean = textRupiah.replaceAll("[^0-9]", "");
+        return clean.isEmpty() ? 0 : Double.parseDouble(clean);
     }
 
     private void showAlert(Alert.AlertType type, String title, String content) {
