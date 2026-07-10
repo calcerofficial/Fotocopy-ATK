@@ -30,8 +30,11 @@ public class DataPegawai {
     @FXML private TextField txtUsername;
     @FXML private PasswordField txtPassword;
     @FXML private TextField txtPasswordVisible;
+    @FXML private ComboBox<String> cmbRole;
+    @FXML private ComboBox<String> cmbFilterStatus;
+    @FXML private Label lblPreviewId;
     @FXML private Button btnTogglePassword;
-    @FXML private TextField txtStatus;
+
 
     @FXML
     void handlePrevPage(ActionEvent event) {
@@ -87,8 +90,13 @@ public class DataPegawai {
         setupTableColumns();
         setupSearchListener();
         setupRowSelectionListener();
+        setupFilterStatusListener();
+        setupPreviewIdListener();
 
         cmbStatus.setItems(FXCollections.observableArrayList("aktif", "NonAktif"));
+        cmbRole.setItems(FXCollections.observableArrayList("PGW - Pegawai", "ADM - Admin"));
+        cmbFilterStatus.setItems(FXCollections.observableArrayList("Semua Status", "aktif", "NonAktif"));
+        cmbFilterStatus.setValue("Semua Status");
 
         tampilkanData();
         hitungDashboard();
@@ -103,17 +111,16 @@ public class DataPegawai {
         colEmail.setCellValueFactory(data -> data.getValue().emailProperty());
         colUsername.setCellValueFactory(data -> data.getValue().usernameProperty());
         colStatus.setCellValueFactory(data -> data.getValue().statusProperty());
+
+        // Comparator custom: "aktif" selalu tampil di atas "NonAktif" saat sorting ascending
+        colStatus.setComparator((s1, s2) -> {
+            if (s1.equalsIgnoreCase(s2)) return 0;
+            return s1.equalsIgnoreCase("aktif") ? -1 : 1;
+        });
     }
 
     private void setupSearchListener() {
-        txtCari.textProperty().addListener((obs, oldVal, newVal) -> {
-            if (filteredData == null) return;
-            String keyword = newVal == null ? "" : newVal.trim().toLowerCase();
-            filteredData.setPredicate(pegawai ->
-                    keyword.isEmpty() || pegawai.getNamaPegawai().toLowerCase().contains(keyword)
-            );
-            updateInfoData();
-        });
+        txtCari.textProperty().addListener((obs, oldVal, newVal) -> terapkanFilter());
     }
 
     private void setupRowSelectionListener() {
@@ -191,9 +198,12 @@ public class DataPegawai {
         txtEmail.setText(pegawai.getEmail());
         txtUsername.setText(pegawai.getUsername());
 
+        cmbRole.setValue(pegawai.getIdPegawai().startsWith("ADM") ? "ADM - Admin" : "PGW - Pegawai");
+        cmbRole.setDisable(true);
+        lblPreviewId.setText("ID sudah ditetapkan, tidak berubah");
+
         cmbStatus.setDisable(false);
         cmbStatus.setValue(pegawai.getStatus());
-
 
         txtPassword.clear();
         txtPasswordVisible.clear();
@@ -219,7 +229,7 @@ public class DataPegawai {
             cs.setString(4, txtEmail.getText().trim());
             cs.setString(5, txtUsername.getText().trim());
             cs.setString(6, getPasswordText());
-            cs.setString(7, "PGW"); // default role Pegawai biasa
+            cs.setString(7, ambilKodeRole());
 
             try (ResultSet rs = cs.executeQuery()) {
                 if (rs.next()) {
@@ -236,6 +246,14 @@ public class DataPegawai {
         } catch (SQLException e) {
             tampilkanAlert(Alert.AlertType.ERROR, "Gagal menyimpan data", e.getMessage());
         }
+    }
+
+    private String ambilKodeRole() {
+        String pilihan = cmbRole.getValue();
+        if (pilihan != null && pilihan.startsWith("ADM")) {
+            return "ADM";
+        }
+        return "PGW";
     }
 
     // =========================================================
@@ -357,6 +375,10 @@ public class DataPegawai {
         txtPassword.setPromptText("Masukan Password...");
         txtPasswordVisible.setPromptText("Masukan Password...");
 
+        cmbRole.setValue("PGW - Pegawai");
+        cmbRole.setDisable(false);
+        previewIdBaru();
+
         cmbStatus.setValue("aktif");
         cmbStatus.setDisable(true);
 
@@ -424,6 +446,55 @@ public class DataPegawai {
         alert.setHeaderText(null);
         alert.setContentText(pesan);
         alert.showAndWait();
+    }
+
+    // LIHAT ID TERBARU
+    private void setupFilterStatusListener() {
+        cmbFilterStatus.valueProperty().addListener((obs, oldVal, newVal) -> terapkanFilter());
+    }
+
+    private void terapkanFilter() {
+        if (filteredData == null) return;
+
+        String keyword = txtCari.getText() == null ? "" : txtCari.getText().trim().toLowerCase();
+        String statusPilihan = cmbFilterStatus.getValue();
+
+        filteredData.setPredicate(pegawai -> {
+            boolean cocokNama = keyword.isEmpty() || pegawai.getNamaPegawai().toLowerCase().contains(keyword);
+            boolean cocokStatus = statusPilihan == null
+                    || statusPilihan.equals("Semua Status")
+                    || pegawai.getStatus().equalsIgnoreCase(statusPilihan);
+            return cocokNama && cocokStatus;
+        });
+
+        updateInfoData();
+    }
+
+    private void setupPreviewIdListener() {
+        cmbRole.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (mode == Mode.TAMBAH) {
+                previewIdBaru();
+            }
+        });
+    }
+
+    private void previewIdBaru() {
+        String kodeRole = ambilKodeRole();
+        String query = "SELECT COALESCE(MAX(CAST(SUBSTRING(ID_Pegawai, 4, LEN(ID_Pegawai)) AS INT)), 0) AS MaxUrut " +
+                "FROM Pegawai WHERE ID_Pegawai LIKE ?";
+
+        try (PreparedStatement ps = dbConnection.getConnection().prepareStatement(query)) {
+            ps.setString(1, kodeRole + "%");
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    int urutBerikutnya = rs.getInt("MaxUrut") + 1;
+                    String idPrediksi = kodeRole + String.format("%03d", urutBerikutnya);
+                    lblPreviewId.setText("Perkiraan ID: " + idPrediksi);
+                }
+            }
+        } catch (SQLException e) {
+            lblPreviewId.setText("Gagal memuat perkiraan ID");
+        }
     }
 
     // =========================================================
