@@ -124,7 +124,8 @@ public class DataSupplier {
                 ));
             }
             tblSupplier.setItems(list); // memasukin data ke tabel
-            lblTotalSupplier.setText(String.valueOf(list.size())); // Update total
+            int totalData = TotalData();
+            lblInfoData.setText("Menampilkan " + list.size() + " dari " + totalData + " data");
         } catch (SQLException e) {
             System.out.println("Gagal load data: " + e);
         }
@@ -425,6 +426,19 @@ public class DataSupplier {
         } catch (SQLException e) {
             System.out.println("Gagal mencari data: " + e.getMessage());
         }
+    }
+
+    private int TotalData() {
+        String query = "SELECT COUNT(*) FROM Supplier";
+        try (Statement statement = db.conn.createStatement();
+             ResultSet result = statement.executeQuery(query)) {
+            if (result.next()) {
+                return result.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.out.println("Gagal menghitung total data: " + e.getMessage());
+        }
+        return 0;
     }
 
     private void showAlert(Alert.AlertType type, String title, String message) {
