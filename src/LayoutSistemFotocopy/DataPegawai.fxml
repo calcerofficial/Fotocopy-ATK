@@ -86,11 +86,12 @@
 
                             <!-- ===== KOLOM KIRI ===== -->
                             <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                                <Label styleClass="field-label" text="ROLE" />
+                                <ComboBox fx:id="cmbRole" maxWidth="Infinity" styleClass="text-field" />
                                 <Label styleClass="field-label" text="ID PEGAWAI" />
                                 <TextField fx:id="txtIdPegawai" disable="true" styleClass="text-field-disabled" />
-                                <Label styleClass="field-hint" text="ID di-isi otomatis oleh sistem" />
+                                <Label fx:id="lblPreviewId" styleClass="field-hint" text="ID di-isi otomatis sesuai Role yang dipilih" />
                             </VBox>
-
                             <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
                                 <Label styleClass="field-label" text="NAMA LENGKAP" />
                                 <TextField fx:id="txtNamaLengkap" promptText="Masukan Nama lengkap..." styleClass="text-field" />
@@ -140,9 +141,9 @@
                         <Button fx:id="btnHapus" onAction="#handleHapusData" styleClass="btn-danger" text="🗑 Hapus Data" />
                         <Button fx:id="btnBatal" onAction="#handleBatal" styleClass="btn-primary" text="Batal" />
                         <Region HBox.hgrow="ALWAYS" />
+                        <ComboBox fx:id="cmbFilterStatus" promptText="Filter Status" styleClass="text-field" />
                         <TextField fx:id="txtCari" promptText="🔍 Cari Berdasarkan nama......" styleClass="search-field" />
                     </HBox>
-
                     <!-- ===================== TABEL DATA ===================== -->
                     <VBox styleClass="table-panel">
                         <TableView fx:id="tblPegawai" styleClass="table-pegawai" VBox.vgrow="ALWAYS">
