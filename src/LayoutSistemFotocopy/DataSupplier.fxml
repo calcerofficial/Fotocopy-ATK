@@ -1,23 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
-<?import javafx.scene.control.Button?>
-<?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ScrollPane?>
-<?import javafx.scene.control.TableColumn?>
-<?import javafx.scene.control.TableView?>
-<?import javafx.scene.control.TextArea?>
-<?import javafx.scene.control.TextField?>
-<?import javafx.scene.layout.AnchorPane?>
-<?import javafx.scene.layout.BorderPane?>
-<?import javafx.scene.layout.ColumnConstraints?>
-<?import javafx.scene.layout.GridPane?>
-<?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.Region?>
-<?import javafx.scene.layout.RowConstraints?>
-<?import javafx.scene.layout.VBox?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
 
-<BorderPane fx:id="rootPane" prefHeight="1355.0" prefWidth="1280.0" styleClass="root-bg" stylesheets="@../css/DataSupplier.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="SistemFotocopy.DataSupplier">
+<BorderPane fx:id="rootPane" prefHeight="1355.0" prefWidth="1280.0" styleClass="root-bg" stylesheets="@../css/DataSupplier.css" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="SistemFotocopy.DataSupplier">
 
     <center>
         <ScrollPane fitToWidth="true" styleClass="main-scroll">
@@ -112,7 +99,7 @@
 
                             <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
                                 <Label styleClass="field-label" text="STATUS" />
-                                <TextField fx:id="txtStatus" disable="true" promptText="Aktif" styleClass="text-field-disabled" />
+                                <ComboBox fx:id="cbStatus" disable="true" maxHeight="45.0" prefHeight="45.0" prefWidth="539.0" styleClass="text-field-disabled" />
                             </VBox>
                         </GridPane>
                     </VBox>

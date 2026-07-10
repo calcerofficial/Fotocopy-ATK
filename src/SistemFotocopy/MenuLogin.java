@@ -58,6 +58,7 @@ public class MenuLogin {
                 IconMata.setStyle("-fx-fill: #003D9B;");
             }
         });
+
     }
 
     @FXML
@@ -111,10 +112,10 @@ public class MenuLogin {
                 if (status.equalsIgnoreCase("aktif")) {
                     if (idPegawai.startsWith("ADM")) {
                         System.out.println("Login sebagai ADMIN!");
-                        pindahKeHalaman("/LayoutSistemFotocopy/MenuUtama.fxml", "Dashboard Admin");
+                        pindahHalaman("/LayoutSistemFotocopy/MenuUtama.fxml", "Dashboard Admin");
                     } else {
                         System.out.println("Login sebagai PEGAWAI!");
-                        pindahKeHalaman("/LayoutSistemFotocopy/MenuUtamaKaryawan.fxml", "Dashboard Pegawai");
+                        pindahHalaman("/LayoutSistemFotocopy/MenuUtamaKaryawan.fxml", "Dashboard Pegawai");
                     }
                 } else {
                     showError(emailErrorLabel, "Akun tidak aktif! Status: " + status);
@@ -129,7 +130,7 @@ public class MenuLogin {
         }
     }
 
-    private void pindahKeHalaman(String pathFXML, String judul) {
+    private void pindahHalaman(String pathFXML, String judul) {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource(pathFXML));
             Parent root = loader.load();

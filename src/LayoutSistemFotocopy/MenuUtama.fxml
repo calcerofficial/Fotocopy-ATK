@@ -154,21 +154,21 @@
                             <graphic><SVGPath content="M19 6h-2c0-2.76-2.24-5-5-5S7 3.24 7 6H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7-3c1.66 0 3 1.34 3 3H9c0-1.66 1.34-3 3-3zm0 10c-2.76 0-5-2.24-5-5h2c0 1.66 1.34 3 3 3s3-1.34 3-3h2c0 2.76-2.24 5-5 5z" fill="#434751" scaleX="1.2" scaleY="1.2" /></graphic>
                             <padding><Insets bottom="16.0" left="24.0" right="24.0" top="16.0" /></padding>
                         </Button>
-
-                        <!-- Kembali -->
-                        <Button fx:id="btKembali"
-                                alignment="BASELINE_LEFT"
-                                graphicTextGap="16.0"
-                                maxWidth="1.7976931348623157E308"
-                                mnemonicParsing="false"
-                                onAction="#OnActionKembali"
-                                styleClass="nav-btn-danger"
-                                text="Kembali">
-                            <graphic><SVGPath content="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" fill="#BA1A1A" scaleX="1.2" scaleY="1.2" /></graphic>
-                            <padding><Insets bottom="16.0" left="24.0" right="24.0" top="16.0" /></padding>
-                        </Button>
                     </children>
                 </VBox>
+
+                <!-- Kembali -->
+                <Button fx:id="btKembali"
+                        alignment="BASELINE_LEFT"
+                        graphicTextGap="16.0"
+                        maxWidth="1.7976931348623157E308"
+                        mnemonicParsing="false"
+                        onAction="#OnActionKembali"
+                        styleClass="nav-btn-danger"
+                        text="Kembali">
+                    <graphic><SVGPath content="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z" fill="#BA1A1A" scaleX="1.2" scaleY="1.2" /></graphic>
+                    <padding><Insets bottom="16.0" left="24.0" right="24.0" top="16.0" /></padding>
+                </Button>
 
                 <!-- Settings (di bawah) -->
                 <Button alignment="BASELINE_LEFT" graphicTextGap="16.0" maxWidth="1.7976931348623157E308" mnemonicParsing="false" styleClass="nav-btn" text="Settings">

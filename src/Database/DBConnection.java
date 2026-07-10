@@ -16,7 +16,6 @@ public class DBConnection {
             stat = conn.createStatement();
         } catch (SQLException e) {
             System.out.println("Eror saat connect database : " + e);
-            throw new RuntimeException("Gagal konek ke database. Cek driver JDBC ada di classpath atau tidak!", e);
         }
     }
 

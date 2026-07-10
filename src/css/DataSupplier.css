@@ -325,3 +325,43 @@
     -fx-underline: true;
     -fx-text-fill: #002F6B;
 }
+
+/* ===================== COMBOBOX STYLING ===================== */
+.combo-box {
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-background-color: white; /* Default background putih */
+    -fx-border-color: #C3C6D1;
+    -fx-border-width: 1;
+}
+
+/* Mengatur warna teks normal saat tidak di-disable */
+.combo-box .list-cell {
+    -fx-text-fill: #191C1D;
+    -fx-font-family: "Hanken Grotesk";
+    -fx-font-size: 14px;
+    -fx-padding: 3 0 3 5; /* Sesuaikan agar pas */
+}
+
+/* Styling saat ComboBox di-disable (JADI ABU-ABU) */
+.combo-box:disabled {
+    -fx-opacity: 1;
+    -fx-background-color: #EDEEEF; /* <-- INI WARNA ABU-ABUnya */
+    -fx-border-color: #C3C6D1;
+}
+
+/* Memaksa warna teks tetap hitam meski komponen di-disable */
+.combo-box:disabled > .list-cell {
+    -fx-text-fill: #191C1D !important;
+    -fx-opacity: 1 !important;
+    -fx-background-color: transparent; /* Biar background dari parent yang tampil */
+}
+
+/* Styling arrow button agar tidak ikut terlihat pudar */
+.combo-box:disabled .arrow-button {
+    -fx-background-color: transparent;
+}
+
+.combo-box:disabled .arrow-button .arrow {
+    -fx-background-color: #43474F;
+}
