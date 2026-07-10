@@ -361,3 +361,31 @@
     -fx-underline: true;
     -fx-text-fill: #002F6B;
 }
+
+/* Error field styling */
+.error-field {
+    -fx-border-color: #ff4444 !important;
+    -fx-border-width: 2px !important;
+    -fx-border-radius: 3px !important;
+    -fx-background-color: #fff0f0 !important;
+}
+
+.error-field:focused {
+    -fx-border-color: #ff0000 !important;
+    -fx-border-width: 2px !important;
+}
+
+/* Tooltip styling */
+.tooltip {
+    -fx-background-color: #ff4444;
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-padding: 5px 10px;
+    -fx-border-radius: 3px;
+}
+
+/* Success field styling (optional) */
+.success-field {
+    -fx-border-color: #4CAF50 !important;
+    -fx-border-width: 2px !important;
+}
