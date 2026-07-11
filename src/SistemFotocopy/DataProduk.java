@@ -27,6 +27,12 @@ public class DataProduk {
     @FXML private ComboBox<String> cmbKategoriProduk;
     @FXML private ComboBox<String> cmbStatus;
 
+    // ERROR LABELS
+    @FXML private Label lblErrorNama;
+    @FXML private Label lblErrorHarga;
+    @FXML private Label lblErrorStock;
+    @FXML private Label lblErrorMerk;
+
     @FXML private TableView<Produk> tblProduk;
     @FXML private TableColumn<Produk, String> colIdBarang;
     @FXML private TableColumn<Produk, String> colNamaBarang;
@@ -34,7 +40,7 @@ public class DataProduk {
     @FXML private TableColumn<Produk, String> colKategoriProduk;
     @FXML private TableColumn<Produk, String> colHarga;
     @FXML private TableColumn<Produk, String> colStock;
-    @FXML private TableColumn<Produk, String> colStatusProduk; // Pastikan ini terhubung ke FXML
+    @FXML private TableColumn<Produk, String> colStatusProduk;
 
     @FXML private Label lblInfoData;
     @FXML private Label lblProdukTersedia;
@@ -53,9 +59,11 @@ public class DataProduk {
     private ObservableList<Produk> filteredList = FXCollections.observableArrayList();
     private Connection conn;
 
-    // Variabel Pagination
     private int currentPage = 1;
     private final int rowsPerPage = 10;
+
+    // Flag untuk mencegah loop saat update text
+    private boolean isUpdatingHarga = false;
 
     private void koneksi() {
         try {
@@ -70,7 +78,6 @@ public class DataProduk {
     public void initialize() {
         koneksi();
 
-        // Kondisi Awal Tombol Form
         btnSimpan.setDisable(false);
         btnUbah.setDisable(true);
         btnHapus.setDisable(true);
@@ -78,22 +85,18 @@ public class DataProduk {
         txtIdBarang.setDisable(true);
         cmbStatus.setDisable(true);
 
-        // --- BINDING KOLOM TABEL ---
+        // BINDING KOLOM TABEL
         colIdBarang.setCellValueFactory(cellData -> cellData.getValue().idProdukProperty());
         colNamaBarang.setCellValueFactory(cellData -> cellData.getValue().namaProdukProperty());
         colMerkProduk.setCellValueFactory(cellData -> cellData.getValue().merkProperty());
         colKategoriProduk.setCellValueFactory(cellData -> cellData.getValue().kategoriProperty());
-
-        // Kembalikan mapping kolom status asli bawaan properti model Produk agar nilainya langsung keluar
         colStatusProduk.setCellValueFactory(cellData -> cellData.getValue().statusProperty());
 
-        // Kustomisasi Kolom Harga (Format Rp.)
         colHarga.setCellValueFactory(cellData -> {
             double harga = cellData.getValue().getHarga();
             return new javafx.beans.property.SimpleStringProperty(formatRupiah(harga));
         });
 
-        // Kustomisasi Kolom Stok (Jika layanan otomatis jadi '-')
         colStock.setCellValueFactory(cellData -> {
             String kat = cellData.getValue().getKategori();
             if ("layanan".equalsIgnoreCase(kat)) {
@@ -103,34 +106,15 @@ public class DataProduk {
             }
         });
 
-        // --- SET ITEMS DROPDOWN ---
         cmbKategoriProduk.setItems(FXCollections.observableArrayList("Barang", "Layanan"));
-
-        // PERBAIKAN UTAMA: Huruf T diganti kapital ("Tersedia") agar singkron dengan database!
         cmbStatus.setItems(FXCollections.observableArrayList("Tersedia", "NonTersedia"));
 
-        // --- FORMAT RUPIAH INPUT HARGA ---
-        txtHargaBarang.textProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue == null || newValue.isEmpty()) return;
+        // =========================================================
+        // VALIDASI INPUT
+        // =========================================================
+        setupInputValidation();
 
-            String cleanString = newValue.replaceAll("[^0-9]", "");
-            if (cleanString.isEmpty()) {
-                txtHargaBarang.setText("");
-                return;
-            }
-
-            try {
-                double parsed = Double.parseDouble(cleanString);
-                String formatted = formatRupiah(parsed);
-
-                javafx.application.Platform.runLater(() -> {
-                    txtHargaBarang.setText(formatted);
-                    txtHargaBarang.positionCaret(formatted.length());
-                });
-            } catch (Exception ignored) {}
-        });
-
-        // --- LISTENER COMBOBOX KATEGORI ---
+        // LISTENER KATEGORI
         cmbKategoriProduk.getSelectionModel().selectedItemProperty().addListener((options, oldValue, newValue) -> {
             if (newValue != null && tblProduk.getSelectionModel().getSelectedItem() == null) {
                 generateIdOtomatis();
@@ -153,7 +137,7 @@ public class DataProduk {
 
         loadDataProduk();
 
-        // --- LISTENER KLIK TABEL (EDIT MODE) ---
+        // LISTENER KLIK TABEL
         tblProduk.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
             if (newSelection != null) {
                 btnSimpan.setDisable(true);
@@ -164,8 +148,13 @@ public class DataProduk {
                 txtNamaBarang.setText(newSelection.getNamaProduk());
                 txtMerk.setText(newSelection.getMerk());
                 cmbKategoriProduk.setValue(newSelection.getKategori());
-                txtHargaBarang.setText(formatRupiah(newSelection.getHarga()));
 
+                // Set harga dengan format Rupiah
+                isUpdatingHarga = true;
+                txtHargaBarang.setText(formatRupiah(newSelection.getHarga()));
+                isUpdatingHarga = false;
+
+                // STATUS MUNCUL SAAT UBAH
                 cmbStatus.setValue(newSelection.getStatus());
                 cmbStatus.setDisable(false);
 
@@ -178,12 +167,270 @@ public class DataProduk {
                     txtStockBarang.setDisable(false);
                     txtMerk.setDisable(false);
                 }
+
+                hideAllErrorLabels();
             }
         });
 
         txtCari.textProperty().addListener((observable, oldValue, newValue) -> {
             cariDataProduk(newValue);
         });
+    }
+
+    // =========================================================
+    // VALIDASI INPUT - FINAL
+    // =========================================================
+    private void setupInputValidation() {
+        // 1. NAMA PRODUK - Hanya huruf, spasi, dan angka (TIDAK BOLEH SIMBOL)
+        TextFormatter<String> namaFormatter = new TextFormatter<>(change -> {
+            String newText = change.getControlNewText();
+            if (newText.isEmpty()) {
+                txtNamaBarang.setStyle(null);
+                return change;
+            }
+            if (!newText.matches("^[a-zA-Z0-9\\s]*$")) {
+                txtNamaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                return null;
+            }
+            txtNamaBarang.setStyle(null);
+            return change;
+        });
+        txtNamaBarang.setTextFormatter(namaFormatter);
+
+        // 2. HARGA - Format Rupiah otomatis
+        // 2. HARGA - Format Rupiah otomatis, minimal 1000, TIDAK BISA 0 DI AWAL
+        txtHargaBarang.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (isUpdatingHarga) return;
+
+            // Jika kosong, reset
+            if (newValue == null || newValue.isEmpty()) {
+                txtHargaBarang.setStyle(null);
+                hideErrorLabel(lblErrorHarga);
+                return;
+            }
+
+            // Hanya ambil angka
+            String cleanString = newValue.replaceAll("[^0-9]", "");
+
+            // Jika tidak ada angka, clear
+            if (cleanString.isEmpty()) {
+                isUpdatingHarga = true;
+                txtHargaBarang.setText("");
+                isUpdatingHarga = false;
+                txtHargaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                showErrorLabel(lblErrorHarga, "Harga harus diisi angka");
+                return;
+            }
+
+            // CEK APAKAH DIAWALI 0 - LANGSUNG TOLAK/TIDAK BISA DIKETIK
+            if (cleanString.startsWith("0")) {
+                // Kembalikan ke nilai sebelumnya (oldValue)
+                isUpdatingHarga = true;
+                txtHargaBarang.setText(oldValue != null ? oldValue : "");
+                isUpdatingHarga = false;
+                txtHargaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                showErrorLabel(lblErrorHarga, "Harga tidak boleh diawali 0");
+                return;
+            }
+
+            try {
+                int value = Integer.parseInt(cleanString);
+
+                // Validasi minimal 1000
+                if (value < 1000) {
+                    txtHargaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                    showErrorLabel(lblErrorHarga, "Harga minimal Rp1.000");
+                    return;
+                }
+
+                // Validasi maksimal 100000
+                if (value > 100000) {
+                    txtHargaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                    showErrorLabel(lblErrorHarga, "Harga maksimal Rp100.000");
+                    return;
+                }
+
+                // Format Rupiah
+                isUpdatingHarga = true;
+                String formatted = formatRupiah(value);
+                txtHargaBarang.setText(formatted);
+                txtHargaBarang.positionCaret(formatted.length());
+                isUpdatingHarga = false;
+
+                txtHargaBarang.setStyle(null);
+                hideErrorLabel(lblErrorHarga);
+
+            } catch (NumberFormatException e) {
+                txtHargaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                showErrorLabel(lblErrorHarga, "Harga harus berupa angka");
+            }
+        });
+
+        // 3. STOCK - Hanya angka, minimal 10
+        txtStockBarang.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue == null || newValue.isEmpty()) {
+                txtStockBarang.setStyle(null);
+                hideErrorLabel(lblErrorStock);
+                return;
+            }
+
+            // Hanya ambil angka
+            String cleanString = newValue.replaceAll("[^0-9]", "");
+
+            // Jika tidak ada angka, clear
+            if (cleanString.isEmpty()) {
+                txtStockBarang.setText("");
+                txtStockBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                showErrorLabel(lblErrorStock, "Stock harus diisi angka");
+                return;
+            }
+
+            // CEK APAKAH DIAWALI 0 - LANGSUNG TOLAK
+            if (cleanString.startsWith("0")) {
+                txtStockBarang.setText(oldValue != null ? oldValue : "");
+                txtStockBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                showErrorLabel(lblErrorStock, "Stock tidak boleh diawali 0");
+                return;
+            }
+
+            try {
+                int value = Integer.parseInt(cleanString);
+
+                // Validasi minimal 10
+                if (value < 10) {
+                    txtStockBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                    showErrorLabel(lblErrorStock, "Stock minimal 10");
+                    return;
+                }
+
+                txtStockBarang.setStyle(null);
+                hideErrorLabel(lblErrorStock);
+
+            } catch (NumberFormatException e) {
+                txtStockBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                showErrorLabel(lblErrorStock, "Stock harus berupa angka");
+            }
+        });
+
+        // 4. MERK - Hanya huruf, angka, dan spasi (TIDAK BOLEH SIMBOL)
+        TextFormatter<String> merkFormatter = new TextFormatter<>(change -> {
+            String newText = change.getControlNewText();
+            if (newText.isEmpty()) {
+                txtMerk.setStyle(null);
+                return change;
+            }
+            // Hanya huruf, angka, dan spasi
+            if (!newText.matches("^[a-zA-Z0-9\\s]*$")) {
+                txtMerk.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                return null;
+            }
+            txtMerk.setStyle(null);
+            return change;
+        });
+        txtMerk.setTextFormatter(merkFormatter);
+    }
+
+    // =========================================================
+    // CHECK INPUT ERRORS
+    // =========================================================
+    private boolean checkInputErrors() {
+        boolean hasError = false;
+
+        // Cek Nama Produk
+        String nama = txtNamaBarang.getText();
+        if (!nama.isEmpty() && !nama.matches("^[a-zA-Z0-9\\s]+$")) {
+            txtNamaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+            showErrorLabel(lblErrorNama, "Nama hanya boleh huruf, angka, dan spasi");
+            hasError = true;
+        } else {
+            txtNamaBarang.setStyle(null);
+            hideErrorLabel(lblErrorNama);
+        }
+
+        // Cek Harga
+        String hargaText = txtHargaBarang.getText();
+        if (!hargaText.isEmpty()) {
+            try {
+                int harga = Integer.parseInt(hargaText.replaceAll("[^0-9]", ""));
+                if (harga < 1000 || harga > 100000) {
+                    txtHargaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                    showErrorLabel(lblErrorHarga, "Harga harus 1000 - 100000");
+                    hasError = true;
+                } else {
+                    txtHargaBarang.setStyle(null);
+                    hideErrorLabel(lblErrorHarga);
+                }
+            } catch (NumberFormatException e) {
+                txtHargaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                showErrorLabel(lblErrorHarga, "Harga harus berupa angka");
+                hasError = true;
+            }
+        }
+
+        // Cek Stock (hanya jika kategori Barang)
+        String kategori = cmbKategoriProduk.getValue();
+        if ("Barang".equalsIgnoreCase(kategori)) {
+            String stockText = txtStockBarang.getText();
+            if (!stockText.isEmpty() && !stockText.equals("-")) {
+                try {
+                    int stock = Integer.parseInt(stockText);
+                    if (stock < 10) {
+                        txtStockBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                        showErrorLabel(lblErrorStock, "Stock minimal 10");
+                        hasError = true;
+                    } else {
+                        txtStockBarang.setStyle(null);
+                        hideErrorLabel(lblErrorStock);
+                    }
+                } catch (NumberFormatException e) {
+                    txtStockBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                    showErrorLabel(lblErrorStock, "Stock harus berupa angka");
+                    hasError = true;
+                }
+            }
+        }
+
+        // Cek Merk (hanya jika kategori Barang)
+        if ("Barang".equalsIgnoreCase(kategori)) {
+            String merk = txtMerk.getText();
+            if (!merk.isEmpty() && !merk.matches("^[a-zA-Z0-9]+$")) {
+                txtMerk.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                showErrorLabel(lblErrorMerk, "Merk hanya boleh huruf dan angka");
+                hasError = true;
+            } else {
+                txtMerk.setStyle(null);
+                hideErrorLabel(lblErrorMerk);
+            }
+        }
+
+        return hasError;
+    }
+
+    // =========================================================
+    // ERROR LABEL HELPERS
+    // =========================================================
+    private void hideAllErrorLabels() {
+        if (lblErrorNama != null) { lblErrorNama.setVisible(false); lblErrorNama.setText(""); }
+        if (lblErrorHarga != null) { lblErrorHarga.setVisible(false); lblErrorHarga.setText(""); }
+        if (lblErrorStock != null) { lblErrorStock.setVisible(false); lblErrorStock.setText(""); }
+        if (lblErrorMerk != null) { lblErrorMerk.setVisible(false); lblErrorMerk.setText(""); }
+    }
+
+    private void showErrorLabel(Label errorLabel, String message) {
+        if (errorLabel != null) {
+            errorLabel.setText("⚠ " + message);
+            errorLabel.setVisible(true);
+            errorLabel.setManaged(true);
+            errorLabel.setStyle("-fx-text-fill: #ff4444; -fx-font-size: 11px; -fx-padding: 2 0 0 5; -fx-font-weight: bold;");
+        }
+    }
+
+    private void hideErrorLabel(Label errorLabel) {
+        if (errorLabel != null) {
+            errorLabel.setVisible(false);
+            errorLabel.setManaged(false);
+            errorLabel.setText("");
+        }
     }
 
     private void generateIdOtomatis() {
@@ -294,6 +541,44 @@ public class DataProduk {
 
     @FXML
     void handleSimpanData(ActionEvent event) {
+        // Validasi input
+        if (checkInputErrors()) {
+            showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Mohon perbaiki input yang ditandai merah");
+            return;
+        }
+
+        // Validasi wajib isi
+        if (txtNamaBarang.getText().isEmpty()) {
+            showErrorLabel(lblErrorNama, "Nama produk wajib diisi");
+            showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Nama produk wajib diisi");
+            return;
+        }
+
+        if (txtHargaBarang.getText().isEmpty()) {
+            showErrorLabel(lblErrorHarga, "Harga wajib diisi");
+            showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Harga wajib diisi");
+            return;
+        }
+
+        String kategori = cmbKategoriProduk.getValue();
+        if (kategori == null) {
+            showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Kategori wajib dipilih");
+            return;
+        }
+
+        if ("Barang".equalsIgnoreCase(kategori)) {
+            if (txtStockBarang.getText().isEmpty()) {
+                showErrorLabel(lblErrorStock, "Stock wajib diisi");
+                showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Stock wajib diisi");
+                return;
+            }
+            if (txtMerk.getText().isEmpty()) {
+                showErrorLabel(lblErrorMerk, "Merk wajib diisi");
+                showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Merk wajib diisi");
+                return;
+            }
+        }
+
         String sqlProcedure = "{CALL sp_TambahProduk(?, ?, ?, ?, ?)}";
         try {
             if (conn == null || conn.isClosed()) koneksi();
@@ -302,8 +587,20 @@ public class DataProduk {
                 cs.setString(1, txtNamaBarang.getText());
                 cs.setString(2, cmbKategoriProduk.getValue());
                 cs.setDouble(3, hilangkanFormatRupiah(txtHargaBarang.getText()));
-                cs.setString(4, txtStockBarang.getText());
-                cs.setString(5, txtMerk.getText());
+
+                String stok = txtStockBarang.getText();
+                if ("Layanan".equalsIgnoreCase(kategori)) {
+                    cs.setString(4, "0");
+                } else {
+                    cs.setString(4, stok);
+                }
+
+                String merk = txtMerk.getText();
+                if ("Layanan".equalsIgnoreCase(kategori)) {
+                    cs.setString(5, "-");
+                } else {
+                    cs.setString(5, merk);
+                }
 
                 cs.execute();
                 showAlert(Alert.AlertType.INFORMATION, "Sukses", "Produk baru berhasil ditambahkan!");
@@ -320,6 +617,12 @@ public class DataProduk {
         Produk produkTerpilih = tblProduk.getSelectionModel().getSelectedItem();
         if (produkTerpilih == null) {
             showAlert(Alert.AlertType.WARNING, "Peringatan", "Pilih data produk di tabel yang ingin diubah!");
+            return;
+        }
+
+        // Validasi input
+        if (checkInputErrors()) {
+            showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Mohon perbaiki input yang ditandai merah");
             return;
         }
 
@@ -341,8 +644,22 @@ public class DataProduk {
                 cs.setString(1, txtIdBarang.getText());
                 cs.setString(2, txtNamaBarang.getText());
                 cs.setDouble(3, hilangkanFormatRupiah(txtHargaBarang.getText()));
-                cs.setString(4, txtStockBarang.getText());
-                cs.setString(5, txtMerk.getText());
+
+                String kategori = cmbKategoriProduk.getValue();
+                String stok = txtStockBarang.getText();
+                if ("Layanan".equalsIgnoreCase(kategori)) {
+                    cs.setString(4, "0");
+                } else {
+                    cs.setString(4, stok);
+                }
+
+                String merk = txtMerk.getText();
+                if ("Layanan".equalsIgnoreCase(kategori)) {
+                    cs.setString(5, "-");
+                } else {
+                    cs.setString(5, merk);
+                }
+
                 cs.setString(6, statusBaru);
 
                 cs.execute();
@@ -390,14 +707,22 @@ public class DataProduk {
         txtHargaBarang.clear();
         txtStockBarang.clear();
         cmbStatus.setValue(null);
+        cmbStatus.setDisable(true);
 
         txtStockBarang.setDisable(false);
         txtMerk.setDisable(false);
-        cmbStatus.setDisable(true);
 
         btnSimpan.setDisable(false);
         btnUbah.setDisable(true);
         btnHapus.setDisable(true);
+
+        hideAllErrorLabels();
+
+        // Reset style
+        txtNamaBarang.setStyle(null);
+        txtHargaBarang.setStyle(null);
+        txtStockBarang.setStyle(null);
+        txtMerk.setStyle(null);
     }
 
     private void cariDataProduk(String keyword) {

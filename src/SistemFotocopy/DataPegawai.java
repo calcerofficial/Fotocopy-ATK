@@ -10,12 +10,12 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
-import java.sql.PreparedStatement;
 
+import java.sql.PreparedStatement;
 import java.sql.CallableStatement;
-import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Comparator;
 
 public class DataPegawai {
 
@@ -33,21 +33,22 @@ public class DataPegawai {
     @FXML private Button btnTogglePassword;
     @FXML private TextField txtStatus;
 
-    @FXML
-    void handlePrevPage(ActionEvent event) {
-        // TODO: logika pagination halaman sebelumnya
-    }
+    // ===================== COMBOBOX ROLE =====================
+    @FXML private ComboBox<String> cmbRole;
 
-    @FXML
-    void handleNextPage(ActionEvent event) {
-        // TODO: logika pagination halaman selanjutnya
-    }
+    // ===================== ERROR LABELS =====================
+    @FXML private Label lblErrorNama;
+    @FXML private Label lblErrorEmail;
+    @FXML private Label lblErrorTelepon;
+    @FXML private Label lblErrorAlamat;
+    @FXML private Label lblErrorUsername;
+    @FXML private Label lblErrorPassword;
+
     // ===================== BUTTONS =====================
     @FXML private Button btnSimpan;
     @FXML private Button btnUbah;
     @FXML private Button btnHapus;
     @FXML private Button btnBatal;
-    @FXML private ComboBox<String> cmbStatus;
 
     // ===================== TABLE & SEARCH =====================
     @FXML private TableView<PegawaiModel> tblPegawai;
@@ -63,10 +64,15 @@ public class DataPegawai {
     private enum Mode { TAMBAH, UBAH }
     private Mode mode = Mode.TAMBAH;
 
-    // ===================== PAGINATION (placeholder, belum dipakai) =====================
+    // ===================== PAGINATION =====================
     @FXML private Button btnPrevPage;
     @FXML private Button btnPage1;
     @FXML private Button btnNextPage;
+
+    // Pagination variables
+    private int currentPage = 1;
+    private final int ITEMS_PER_PAGE = 10;
+    private int totalPages = 1;
 
     // ===================== DASHBOARD CARDS =====================
     @FXML private Label lblTotalPegawai;
@@ -87,14 +93,283 @@ public class DataPegawai {
         setupTableColumns();
         setupSearchListener();
         setupRowSelectionListener();
-
-        cmbStatus.setItems(FXCollections.observableArrayList("aktif", "NonAktif"));
-
+        setupButtonListeners();
+        setupRoleComboBox();
+        setupInputValidation();
         tampilkanData();
         hitungDashboard();
         resetForm();
+        updatePaginationButtons();
+
+        // Set default button states
+        btnUbah.setDisable(true);
+        btnHapus.setDisable(true);
+
+        // Enable sorting on status column
+        setupStatusSorting();
     }
 
+    // =========================================================
+    // INPUT VALIDATION SETUP - FINAL
+    // =========================================================
+    private void setupInputValidation() {
+        // 1. NAMA LENGKAP - Hanya huruf dan spasi, minimal 4 karakter
+        TextFormatter<String> namaFormatter = new TextFormatter<>(change -> {
+            String newText = change.getControlNewText();
+            if (newText.isEmpty()) {
+                txtNamaLengkap.setStyle(null);
+                return change;
+            }
+            if (!newText.matches("^[a-zA-Z\\s]*$")) {
+                txtNamaLengkap.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                return null;
+            }
+            txtNamaLengkap.setStyle(null);
+            return change;
+        });
+        txtNamaLengkap.setTextFormatter(namaFormatter);
+
+        // 2. EMAIL - Hanya huruf kecil, angka, @, ., _, -
+        TextFormatter<String> emailFormatter = new TextFormatter<>(change -> {
+            String newText = change.getControlNewText();
+            if (newText.isEmpty()) {
+                txtEmail.setStyle(null);
+                return change;
+            }
+            if (!newText.matches("^[a-z0-9@._-]*$")) {
+                txtEmail.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                return null;
+            }
+            txtEmail.setStyle(null);
+            return change;
+        });
+        txtEmail.setTextFormatter(emailFormatter);
+
+        // 3. NOMOR TELEPON - HARUS diawali 08, hanya angka, min 10 max 13
+        TextFormatter<String> telpFormatter = new TextFormatter<>(change -> {
+            String newText = change.getControlNewText();
+
+            if (newText.isEmpty()) {
+                txtNomorTelepon.setStyle(null);
+                return change;
+            }
+
+            // Cek panjang maksimal 13
+            if (newText.length() > 13) {
+                return null;
+            }
+
+            // HARUS diawali "08" - cek 2 karakter pertama
+            if (newText.length() >= 2) {
+                if (!newText.substring(0, 2).equals("08")) {
+                    txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                    return null;
+                }
+            } else {
+                // Jika panjang kurang dari 2, hanya boleh angka '0'
+                if (!newText.matches("^0$")) {
+                    txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                    return null;
+                }
+            }
+
+            // Cek apakah hanya angka
+            if (!newText.matches("^[0-9]*$")) {
+                txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                return null;
+            }
+
+            // Reset style jika valid
+            if (newText.startsWith("08")) {
+                txtNomorTelepon.setStyle(null);
+            }
+
+            return change;
+        });
+        txtNomorTelepon.setTextFormatter(telpFormatter);
+
+        // 4. ALAMAT - Hanya huruf, angka, spasi, dan titik
+        TextFormatter<String> alamatFormatter = new TextFormatter<>(change -> {
+            String newText = change.getControlNewText();
+            if (newText.isEmpty()) {
+                txtAlamatLengkap.setStyle(null);
+                return change;
+            }
+            if (!newText.matches("^[a-zA-Z0-9\\s.]*$")) {
+                txtAlamatLengkap.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                return null;
+            }
+            txtAlamatLengkap.setStyle(null);
+            return change;
+        });
+        txtAlamatLengkap.setTextFormatter(alamatFormatter);
+
+        // 5. USERNAME - Hanya huruf, angka, underscore, dash, minimal 4 max 10
+        // 5. USERNAME - HANYA HURUF (huruf besar dan kecil), minimal 4 max 10
+        TextFormatter<String> usernameFormatter = new TextFormatter<>(change -> {
+            String newText = change.getControlNewText();
+            if (newText.isEmpty()) {
+                txtUsername.setStyle(null);
+                return change;
+            }
+
+            // Cek panjang maksimal 10
+            if (newText.length() > 10) {
+                return null;
+            }
+
+            // HANYA HURUF (a-z, A-Z) - TIDAK BOLEH ANGKA ATAU SIMBOL
+            if (!newText.matches("^[a-zA-Z]*$")) {
+                txtUsername.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                return null;
+            }
+
+            txtUsername.setStyle(null);
+            return change;
+        });
+        txtUsername.setTextFormatter(usernameFormatter);
+    }
+
+    // =========================================================
+    // CHECK INPUT ERRORS
+    // =========================================================
+    private boolean checkInputErrors() {
+        boolean hasError = false;
+
+        // Cek Nama Lengkap
+        String nama = txtNamaLengkap.getText();
+        if (!nama.isEmpty() && nama.length() < 4) {
+            txtNamaLengkap.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+            showErrorLabel(lblErrorNama, "Nama lengkap minimal 4 karakter");
+            hasError = true;
+        } else if (!nama.isEmpty() && !nama.matches("^[a-zA-Z\\s]+$")) {
+            txtNamaLengkap.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+            showErrorLabel(lblErrorNama, "Nama hanya boleh berisi huruf dan spasi");
+            hasError = true;
+        } else {
+            txtNamaLengkap.setStyle(null);
+            hideErrorLabel(lblErrorNama);
+        }
+
+        // Cek Email
+        String email = txtEmail.getText();
+        if (!email.isEmpty() && !email.matches("^[a-z0-9@._-]+$")) {
+            txtEmail.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+            showErrorLabel(lblErrorEmail, "Email hanya boleh huruf kecil, angka, @, ., _, -");
+            hasError = true;
+        } else {
+            txtEmail.setStyle(null);
+            hideErrorLabel(lblErrorEmail);
+        }
+
+        // Cek Telepon
+        String telp = txtNomorTelepon.getText();
+        if (!telp.isEmpty()) {
+            if (!telp.startsWith("08")) {
+                txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                showErrorLabel(lblErrorTelepon, "Nomor telepon HARUS diawali 08");
+                hasError = true;
+            } else if (telp.length() < 10 || telp.length() > 13) {
+                txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                showErrorLabel(lblErrorTelepon, "Nomor telepon harus 10-13 digit");
+                hasError = true;
+            } else if (!telp.matches("^[0-9]+$")) {
+                txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                showErrorLabel(lblErrorTelepon, "Nomor telepon hanya boleh berisi angka");
+                hasError = true;
+            } else {
+                txtNomorTelepon.setStyle(null);
+                hideErrorLabel(lblErrorTelepon);
+            }
+        }
+
+        // Cek Alamat
+        String alamat = txtAlamatLengkap.getText();
+        if (!alamat.isEmpty() && !alamat.matches("^[a-zA-Z0-9\\s.]+$")) {
+            txtAlamatLengkap.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+            showErrorLabel(lblErrorAlamat, "Alamat hanya boleh huruf, angka, spasi, dan titik");
+            hasError = true;
+        } else {
+            txtAlamatLengkap.setStyle(null);
+            hideErrorLabel(lblErrorAlamat);
+        }
+
+        // Cek Username
+        // Cek Username - HANYA HURUF
+        String username = txtUsername.getText();
+        if (!username.isEmpty()) {
+            if (username.length() < 4 || username.length() > 10) {
+                txtUsername.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                showErrorLabel(lblErrorUsername, "Username harus 4-10 karakter");
+                hasError = true;
+            } else if (!username.matches("^[a-zA-Z]+$")) {
+                txtUsername.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                showErrorLabel(lblErrorUsername, "Username HANYA boleh huruf (tanpa angka/simbol)");
+                hasError = true;
+            } else {
+                txtUsername.setStyle(null);
+                hideErrorLabel(lblErrorUsername);
+            }
+        }
+
+        return hasError;
+    }
+
+    // =========================================================
+    // SETUP ROLE COMBOBOX
+    // =========================================================
+    private void setupRoleComboBox() {
+        cmbRole.setItems(FXCollections.observableArrayList("Pegawai", "Admin"));
+        cmbRole.setValue("Pegawai");
+
+        cmbRole.setOnAction(event -> {
+            if (mode == Mode.TAMBAH) {
+                generateIdOtomatis();
+            }
+        });
+    }
+
+    private void generateIdOtomatis() {
+        String role = cmbRole.getValue();
+        String prefix = "";
+
+        if ("Admin".equals(role)) {
+            prefix = "ADM";
+        } else if ("Pegawai".equals(role)) {
+            prefix = "PGW";
+        } else {
+            return;
+        }
+
+        try {
+            String query = "SELECT COALESCE(MAX(CAST(SUBSTRING(ID_Pegawai, 4, LEN(ID_Pegawai)) AS INT)), 0) AS MaxID " +
+                    "FROM Pegawai WHERE ID_Pegawai LIKE ?";
+
+            try (PreparedStatement ps = dbConnection.getConnection().prepareStatement(query)) {
+                ps.setString(1, prefix + "%");
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        int maxId = rs.getInt("MaxID");
+                        int newId = maxId + 1;
+                        String idBaru = prefix + String.format("%03d", newId);
+                        txtIdPegawai.setText(idBaru);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            if ("Admin".equals(role)) {
+                txtIdPegawai.setText("ADM001");
+            } else {
+                txtIdPegawai.setText("PGW001");
+            }
+            tampilkanAlert(Alert.AlertType.WARNING, "Peringatan",
+                    "Gagal generate ID otomatis: " + e.getMessage() + "\nMenggunakan ID default.");
+        }
+    }
+
+    // =========================================================
+    // TABLE SETUP METHODS
+    // =========================================================
     private void setupTableColumns() {
         colIdPegawai.setCellValueFactory(data -> data.getValue().idPegawaiProperty());
         colNamaPegawai.setCellValueFactory(data -> data.getValue().namaPegawaiProperty());
@@ -112,6 +387,8 @@ public class DataPegawai {
             filteredData.setPredicate(pegawai ->
                     keyword.isEmpty() || pegawai.getNamaPegawai().toLowerCase().contains(keyword)
             );
+            currentPage = 1;
+            updatePaginationData();
             updateInfoData();
         });
     }
@@ -120,17 +397,145 @@ public class DataPegawai {
         tblPegawai.getSelectionModel().selectedItemProperty().addListener((obs, oldSel, newSel) -> {
             if (newSel != null) {
                 isiFormDariTabel(newSel);
+                btnUbah.setDisable(false);
+                btnHapus.setDisable(false);
+            } else {
+                btnUbah.setDisable(true);
+                btnHapus.setDisable(true);
             }
         });
     }
 
+    private void setupButtonListeners() {
+        btnUbah.setOnAction(this::handleUbahData);
+        btnHapus.setOnAction(this::handleHapusData);
+        btnBatal.setOnAction(event -> {
+            resetForm();
+            btnUbah.setDisable(true);
+            btnHapus.setDisable(true);
+        });
+    }
+
     // =========================================================
-    // TAMPILKAN DATA (READ)
+    // STATUS SORTING
+    // =========================================================
+    private void setupStatusSorting() {
+        Comparator<PegawaiModel> statusComparator = (p1, p2) -> {
+            String status1 = p1.getStatus();
+            String status2 = p2.getStatus();
+
+            if (status1 == null) status1 = "";
+            if (status2 == null) status2 = "";
+
+            int priority1 = getStatusPriority(status1);
+            int priority2 = getStatusPriority(status2);
+
+            int result = Integer.compare(priority1, priority2);
+
+            if (result == 0) {
+                result = status1.compareTo(status2);
+            }
+
+            return result;
+        };
+
+        if (filteredData != null) {
+            filteredData.sorted(statusComparator);
+        }
+        masterData.sort(statusComparator);
+    }
+
+    private int getStatusPriority(String status) {
+        if ("aktif".equalsIgnoreCase(status)) {
+            return 0;
+        } else if ("NonAktif".equalsIgnoreCase(status)) {
+            return 1;
+        } else {
+            return 2;
+        }
+    }
+
+    // =========================================================
+    // PAGINATION METHODS
+    // =========================================================
+    private void updatePaginationData() {
+        if (filteredData == null) return;
+
+        Comparator<PegawaiModel> statusComparator = (p1, p2) -> {
+            String status1 = p1.getStatus();
+            String status2 = p2.getStatus();
+
+            if (status1 == null) status1 = "";
+            if (status2 == null) status2 = "";
+
+            int priority1 = getStatusPriority(status1);
+            int priority2 = getStatusPriority(status2);
+
+            int result = Integer.compare(priority1, priority2);
+            if (result == 0) {
+                result = status1.compareTo(status2);
+            }
+            return result;
+        };
+
+        ObservableList<PegawaiModel> sortedList = FXCollections.observableArrayList(filteredData);
+        sortedList.sort(statusComparator);
+
+        int totalItems = sortedList.size();
+        totalPages = (int) Math.ceil((double) totalItems / ITEMS_PER_PAGE);
+        if (totalPages == 0) totalPages = 1;
+
+        if (currentPage < 1) currentPage = 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        int fromIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        int toIndex = Math.min(fromIndex + ITEMS_PER_PAGE, totalItems);
+
+        if (totalItems == 0) {
+            tblPegawai.setItems(FXCollections.observableArrayList());
+        } else {
+            ObservableList<PegawaiModel> pageData = FXCollections.observableArrayList(
+                    sortedList.subList(fromIndex, toIndex)
+            );
+            tblPegawai.setItems(pageData);
+        }
+
+        updatePaginationButtons();
+        updateInfoData();
+    }
+
+    private void updatePaginationButtons() {
+        btnPage1.setText("Halaman " + currentPage + " dari " + totalPages);
+        btnPrevPage.setDisable(currentPage <= 1);
+        btnNextPage.setDisable(currentPage >= totalPages);
+    }
+
+    @FXML
+    void handlePrevPage(ActionEvent event) {
+        if (currentPage > 1) {
+            currentPage--;
+            updatePaginationData();
+        }
+    }
+
+    @FXML
+    void handleNextPage(ActionEvent event) {
+        if (currentPage < totalPages) {
+            currentPage++;
+            updatePaginationData();
+        }
+    }
+
+    // =========================================================
+    // TAMPILKAN DATA
     // =========================================================
     private void tampilkanData() {
         masterData.clear();
         String query = "SELECT ID_Pegawai, Nama_Pegawai, Alamat, No_Telepon, Email, Username, Status_Pegawai " +
-                "FROM v_TampilSemuaPegawai ORDER BY ID_Pegawai";
+                "FROM v_TampilSemuaPegawai ORDER BY " +
+                "CASE WHEN Status_Pegawai = 'aktif' THEN 0 " +
+                "     WHEN Status_Pegawai = 'NonAktif' THEN 1 " +
+                "     ELSE 2 END, Status_Pegawai, ID_Pegawai";
 
         try (ResultSet rs = dbConnection.stat.executeQuery(query)) {
             while (rs.next()) {
@@ -144,8 +549,28 @@ public class DataPegawai {
                         rs.getString("Status_Pegawai")
                 ));
             }
+
+            Comparator<PegawaiModel> statusComparator = (p1, p2) -> {
+                String status1 = p1.getStatus();
+                String status2 = p2.getStatus();
+
+                if (status1 == null) status1 = "";
+                if (status2 == null) status2 = "";
+
+                int priority1 = getStatusPriority(status1);
+                int priority2 = getStatusPriority(status2);
+
+                int result = Integer.compare(priority1, priority2);
+                if (result == 0) {
+                    result = status1.compareTo(status2);
+                }
+                return result;
+            };
+            masterData.sort(statusComparator);
+
             filteredData = new FilteredList<>(masterData, p -> true);
-            tblPegawai.setItems(filteredData);
+            currentPage = 1;
+            updatePaginationData();
             updateInfoData();
         } catch (SQLException e) {
             tampilkanAlert(Alert.AlertType.ERROR, "Gagal memuat data", e.getMessage());
@@ -154,7 +579,10 @@ public class DataPegawai {
 
     private void updateInfoData() {
         int total = filteredData == null ? 0 : filteredData.size();
-        lblInfoData.setText("Menampilkan " + total + " dari " + masterData.size() + " data");
+        int start = (currentPage - 1) * ITEMS_PER_PAGE + 1;
+        int end = Math.min(start + ITEMS_PER_PAGE - 1, total);
+        String displayRange = total == 0 ? "0" : start + "-" + end;
+        lblInfoData.setText("Menampilkan " + displayRange + " dari " + total + " data");
     }
 
     // =========================================================
@@ -179,7 +607,7 @@ public class DataPegawai {
     }
 
     // =========================================================
-    // ISI FORM DARI BARIS TABEL YANG DIKLIK
+    // ISI FORM DARI TABEL
     // =========================================================
     private void isiFormDariTabel(PegawaiModel pegawai) {
         mode = Mode.UBAH;
@@ -191,9 +619,13 @@ public class DataPegawai {
         txtEmail.setText(pegawai.getEmail());
         txtUsername.setText(pegawai.getUsername());
 
-        cmbStatus.setDisable(false);
-        cmbStatus.setValue(pegawai.getStatus());
-
+        String id = pegawai.getIdPegawai();
+        if (id != null && id.startsWith("ADM")) {
+            cmbRole.setValue("Admin");
+        } else {
+            cmbRole.setValue("Pegawai");
+        }
+        cmbRole.setDisable(true);
 
         txtPassword.clear();
         txtPasswordVisible.clear();
@@ -201,14 +633,27 @@ public class DataPegawai {
         txtPasswordVisible.setPromptText("Kosongkan jika tidak ganti password");
 
         btnSimpan.setDisable(true);
+
+        hideAllErrorLabels();
     }
 
     // =========================================================
-    // SIMPAN DATA (CREATE)
+    // SIMPAN DATA
     // =========================================================
     @FXML
     void handleSimpanData(ActionEvent event) {
+        if (checkInputErrors()) {
+            tampilkanAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Mohon perbaiki input yang ditandai merah");
+            return;
+        }
+
         if (!validasiInput(true)) return;
+
+        String role = cmbRole.getValue();
+        String roleCode = "PGW";
+        if ("Admin".equals(role)) {
+            roleCode = "ADM";
+        }
 
         String query = "{call sp_TambahPegawai(?,?,?,?,?,?,?)}";
 
@@ -219,7 +664,7 @@ public class DataPegawai {
             cs.setString(4, txtEmail.getText().trim());
             cs.setString(5, txtUsername.getText().trim());
             cs.setString(6, getPasswordText());
-            cs.setString(7, "PGW"); // default role Pegawai biasa
+            cs.setString(7, roleCode);
 
             try (ResultSet rs = cs.executeQuery()) {
                 if (rs.next()) {
@@ -232,6 +677,8 @@ public class DataPegawai {
             tampilkanData();
             hitungDashboard();
             resetForm();
+            btnUbah.setDisable(true);
+            btnHapus.setDisable(true);
 
         } catch (SQLException e) {
             tampilkanAlert(Alert.AlertType.ERROR, "Gagal menyimpan data", e.getMessage());
@@ -239,7 +686,7 @@ public class DataPegawai {
     }
 
     // =========================================================
-    // UBAH DATA (UPDATE)
+    // UBAH DATA
     // =========================================================
     @FXML
     void handleUbahData(ActionEvent event) {
@@ -247,7 +694,13 @@ public class DataPegawai {
             tampilkanAlert(Alert.AlertType.WARNING, "Peringatan", "Pilih dulu data pegawai dari tabel yang mau diubah!");
             return;
         }
-        if (!validasiInput(false)) return; // password tidak wajib saat update
+
+        if (checkInputErrors()) {
+            tampilkanAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Mohon perbaiki input yang ditandai merah");
+            return;
+        }
+
+        if (!validasiInput(false)) return;
 
         String query = "{call sp_UpdatePegawai(?,?,?,?,?,?,?,?)}";
 
@@ -265,7 +718,7 @@ public class DataPegawai {
                 cs.setString(5, txtEmail.getText().trim());
                 cs.setString(6, txtUsername.getText().trim());
                 cs.setString(7, passwordFinal);
-                cs.setString(8, cmbStatus.getValue() == null ? "aktif" : cmbStatus.getValue());
+                cs.setString(8, "aktif");
 
                 cs.execute();
             }
@@ -275,13 +728,14 @@ public class DataPegawai {
             tampilkanData();
             hitungDashboard();
             resetForm();
+            btnUbah.setDisable(true);
+            btnHapus.setDisable(true);
 
         } catch (SQLException e) {
             tampilkanAlert(Alert.AlertType.ERROR, "Gagal mengubah data", e.getMessage());
         }
     }
 
-    // Ambil password lama langsung dari tabel Pegawai (bukan dari view, karena view sengaja tidak expose password)
     private String ambilPasswordLama(String idPegawai) throws SQLException {
         String query = "SELECT Password FROM Pegawai WHERE ID_Pegawai = ?";
         try (PreparedStatement ps = dbConnection.getConnection().prepareStatement(query)) {
@@ -296,7 +750,7 @@ public class DataPegawai {
     }
 
     // =========================================================
-    // HAPUS DATA (SOFT DELETE)
+    // HAPUS DATA
     // =========================================================
     @FXML
     void handleHapusData(ActionEvent event) {
@@ -329,6 +783,8 @@ public class DataPegawai {
             tampilkanData();
             hitungDashboard();
             resetForm();
+            btnUbah.setDisable(true);
+            btnHapus.setDisable(true);
 
         } catch (SQLException e) {
             tampilkanAlert(Alert.AlertType.ERROR, "Gagal menghapus data", e.getMessage());
@@ -341,6 +797,8 @@ public class DataPegawai {
     @FXML
     void handleBatal(ActionEvent event) {
         resetForm();
+        btnUbah.setDisable(true);
+        btnHapus.setDisable(true);
     }
 
     private void resetForm() {
@@ -357,16 +815,54 @@ public class DataPegawai {
         txtPassword.setPromptText("Masukan Password...");
         txtPasswordVisible.setPromptText("Masukan Password...");
 
-        cmbStatus.setValue("aktif");
-        cmbStatus.setDisable(true);
+        cmbRole.setDisable(false);
+        cmbRole.setValue("Pegawai");
+        generateIdOtomatis();
 
         btnSimpan.setDisable(false);
 
         tblPegawai.getSelectionModel().clearSelection();
+
+        hideAllErrorLabels();
+
+        txtNamaLengkap.setStyle(null);
+        txtEmail.setStyle(null);
+        txtNomorTelepon.setStyle(null);
+        txtAlamatLengkap.setStyle(null);
+        txtUsername.setStyle(null);
     }
 
     // =========================================================
-    // TOGGLE PASSWORD (mata icon)
+    // ERROR LABEL HELPERS
+    // =========================================================
+    private void hideAllErrorLabels() {
+        if (lblErrorNama != null) { lblErrorNama.setVisible(false); lblErrorNama.setText(""); }
+        if (lblErrorEmail != null) { lblErrorEmail.setVisible(false); lblErrorEmail.setText(""); }
+        if (lblErrorTelepon != null) { lblErrorTelepon.setVisible(false); lblErrorTelepon.setText(""); }
+        if (lblErrorAlamat != null) { lblErrorAlamat.setVisible(false); lblErrorAlamat.setText(""); }
+        if (lblErrorUsername != null) { lblErrorUsername.setVisible(false); lblErrorUsername.setText(""); }
+        if (lblErrorPassword != null) { lblErrorPassword.setVisible(false); lblErrorPassword.setText(""); }
+    }
+
+    private void showErrorLabel(Label errorLabel, String message) {
+        if (errorLabel != null) {
+            errorLabel.setText("⚠ " + message);
+            errorLabel.setVisible(true);
+            errorLabel.setManaged(true);
+            errorLabel.setStyle("-fx-text-fill: #ff4444; -fx-font-size: 11px; -fx-padding: 2 0 0 5; -fx-font-weight: bold;");
+        }
+    }
+
+    private void hideErrorLabel(Label errorLabel) {
+        if (errorLabel != null) {
+            errorLabel.setVisible(false);
+            errorLabel.setManaged(false);
+            errorLabel.setText("");
+        }
+    }
+
+    // =========================================================
+    // TOGGLE PASSWORD
     // =========================================================
     @FXML
     void handleTogglePassword(ActionEvent event) {
@@ -397,15 +893,120 @@ public class DataPegawai {
     private boolean validasiInput(boolean wajibPassword) {
         StringBuilder pesan = new StringBuilder();
 
-        if (isKosong(txtNamaLengkap.getText())) pesan.append("- Nama lengkap wajib diisi.\n");
-        if (isKosong(txtEmail.getText())) pesan.append("- Email wajib diisi.\n");
-        if (isKosong(txtNomorTelepon.getText())) pesan.append("- Nomor telepon wajib diisi.\n");
-        if (isKosong(txtAlamatLengkap.getText())) pesan.append("- Alamat wajib diisi.\n");
-        if (isKosong(txtUsername.getText())) pesan.append("- Username wajib diisi.\n");
-        if (wajibPassword && isKosong(getPasswordText())) pesan.append("- Password wajib diisi.\n");
+        if (cmbRole.getValue() == null) {
+            pesan.append("- Role wajib dipilih.\n");
+        }
+
+        // Validasi Nama Lengkap
+        if (isKosong(txtNamaLengkap.getText())) {
+            pesan.append("- Nama lengkap wajib diisi.\n");
+            showErrorLabel(lblErrorNama, "Nama lengkap wajib diisi");
+        } else {
+            String nama = txtNamaLengkap.getText().trim();
+            if (nama.length() < 4) {
+                pesan.append("- Nama lengkap minimal 4 karakter.\n");
+                showErrorLabel(lblErrorNama, "Nama lengkap minimal 4 karakter");
+            } else if (!nama.matches("^[a-zA-Z\\s]+$")) {
+                pesan.append("- Nama hanya boleh berisi huruf dan spasi.\n");
+                showErrorLabel(lblErrorNama, "Nama hanya boleh berisi huruf dan spasi");
+            } else {
+                hideErrorLabel(lblErrorNama);
+            }
+        }
+
+        // Validasi Email
+        if (isKosong(txtEmail.getText())) {
+            pesan.append("- Email wajib diisi.\n");
+            showErrorLabel(lblErrorEmail, "Email wajib diisi");
+        } else {
+            String email = txtEmail.getText().trim();
+            if (!email.matches("^[a-z0-9@._-]+$")) {
+                pesan.append("- Format email tidak valid (hanya huruf kecil, angka, @, ., _, -).\n");
+                showErrorLabel(lblErrorEmail, "Format email tidak valid");
+            } else {
+                hideErrorLabel(lblErrorEmail);
+            }
+        }
+
+        // Validasi Nomor Telepon
+        if (isKosong(txtNomorTelepon.getText())) {
+            pesan.append("- Nomor telepon wajib diisi.\n");
+            showErrorLabel(lblErrorTelepon, "Nomor telepon wajib diisi");
+        } else {
+            String telepon = txtNomorTelepon.getText().trim();
+            if (!telepon.startsWith("08")) {
+                pesan.append("- Nomor telepon HARUS diawali '08'.\n");
+                showErrorLabel(lblErrorTelepon, "Nomor telepon HARUS diawali '08'");
+            } else if (telepon.length() < 10 || telepon.length() > 13) {
+                pesan.append("- Nomor telepon harus 10-13 digit.\n");
+                showErrorLabel(lblErrorTelepon, "Nomor telepon harus 10-13 digit");
+            } else if (!telepon.matches("^[0-9]+$")) {
+                pesan.append("- Nomor telepon hanya boleh berisi angka.\n");
+                showErrorLabel(lblErrorTelepon, "Nomor telepon hanya boleh berisi angka");
+            } else {
+                hideErrorLabel(lblErrorTelepon);
+            }
+        }
+
+        // Validasi Username
+        // Validasi Username - HANYA HURUF
+        if (isKosong(txtUsername.getText())) {
+            pesan.append("- Username wajib diisi.\n");
+            showErrorLabel(lblErrorUsername, "Username wajib diisi");
+        } else {
+            String username = txtUsername.getText().trim();
+            if (username.length() < 4) {
+                pesan.append("- Username minimal 4 karakter.\n");
+                showErrorLabel(lblErrorUsername, "Username minimal 4 karakter");
+            } else if (username.length() > 10) {
+                pesan.append("- Username maksimal 10 karakter.\n");
+                showErrorLabel(lblErrorUsername, "Username maksimal 10 karakter");
+            } else if (!username.matches("^[a-zA-Z]+$")) {
+                pesan.append("- Username HANYA boleh huruf (tanpa angka/simbol).\n");
+                showErrorLabel(lblErrorUsername, "Username HANYA boleh huruf");
+            } else {
+                hideErrorLabel(lblErrorUsername);
+            }
+        }
+
+        // Validasi Alamat
+        if (isKosong(txtAlamatLengkap.getText())) {
+            pesan.append("- Alamat wajib diisi.\n");
+            showErrorLabel(lblErrorAlamat, "Alamat wajib diisi");
+        } else {
+            String alamat = txtAlamatLengkap.getText().trim();
+            if (!alamat.matches("^[a-zA-Z0-9\\s.]+$")) {
+                pesan.append("- Alamat hanya boleh huruf, angka, spasi, dan titik (.).\n");
+                showErrorLabel(lblErrorAlamat, "Alamat hanya boleh huruf, angka, spasi, dan titik (.)");
+            } else {
+                hideErrorLabel(lblErrorAlamat);
+            }
+        }
+
+        // Validasi Password
+        if (wajibPassword) {
+            String password = getPasswordText();
+            if (isKosong(password)) {
+                pesan.append("- Password wajib diisi.\n");
+                showErrorLabel(lblErrorPassword, "Password wajib diisi");
+            } else if (password.trim().length() < 4) {
+                pesan.append("- Password minimal 4 karakter.\n");
+                showErrorLabel(lblErrorPassword, "Password minimal 4 karakter");
+            } else {
+                hideErrorLabel(lblErrorPassword);
+            }
+        } else {
+            String password = getPasswordText();
+            if (!isKosong(password) && password.trim().length() < 4) {
+                pesan.append("- Password minimal 4 karakter.\n");
+                showErrorLabel(lblErrorPassword, "Password minimal 4 karakter");
+            } else {
+                hideErrorLabel(lblErrorPassword);
+            }
+        }
 
         if (pesan.length() > 0) {
-            tampilkanAlert(Alert.AlertType.WARNING, "Data belum lengkap", pesan.toString());
+            tampilkanAlert(Alert.AlertType.WARNING, "Data belum lengkap atau tidak valid", pesan.toString());
             return false;
         }
         return true;
@@ -427,7 +1028,7 @@ public class DataPegawai {
     }
 
     // =========================================================
-    // MODEL DATA PEGAWAI (untuk TableView)
+    // MODEL DATA PEGAWAI
     // =========================================================
     public static class PegawaiModel {
         private final StringProperty idPegawai;

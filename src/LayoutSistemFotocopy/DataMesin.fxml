@@ -137,6 +137,8 @@
                                                         </children>
                                                     </HBox>
                                                     <TextField fx:id="txtNamaMesin" promptText="Masukkan nama mesin..." styleClass="form-field" />
+                                                    <!-- ERROR LABEL NAMA MESIN -->
+                                                    <Label fx:id="lblErrorNama" styleClass="error-label" managed="false" text="" visible="false" />
                                                 </children>
                                             </VBox>
 
@@ -150,6 +152,8 @@
                                                         </children>
                                                     </HBox>
                                                     <TextField fx:id="txtMerkMesin" promptText="Masukkan merk mesin..." styleClass="form-field" />
+                                                    <!-- ERROR LABEL MERK MESIN -->
+                                                    <Label fx:id="lblErrorMerk" styleClass="error-label" managed="false" text="" visible="false" />
                                                 </children>
                                             </VBox>
 

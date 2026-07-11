@@ -29,6 +29,10 @@ public class DataMesin {
     @FXML private TextField txtNamaMesin;
     @FXML private TextField txtMerkMesin;
 
+    // ERROR LABELS
+    @FXML private Label lblErrorNama;
+    @FXML private Label lblErrorMerk;
+
     // Buttons
     @FXML private Button BrtSimpan;
     @FXML private Button BtUbah;
@@ -74,7 +78,7 @@ public class DataMesin {
     private SortedList<MesinModel>           sortedData;
 
     // Pagination - 5 ITEMS PER PAGE
-    private static final int ITEMS_PER_PAGE = 5;  // <-- DIUBAH JADI 5
+    private static final int ITEMS_PER_PAGE = 5;
     private int currentPage = 1;
     private List<MesinModel> halamanSaatIni = new ArrayList<>();
 
@@ -88,6 +92,7 @@ public class DataMesin {
         setupTableRiwayat();
         setupSearch();
         setupRowSelection();
+        setupInputValidation();
 
         loadDataMesin();
         hitungStatCard();
@@ -131,6 +136,104 @@ public class DataMesin {
     }
 
     // =====================================================================
+    // INPUT VALIDATION - Nama & Merk: Huruf, angka, spasi (TIDAK BOLEH SIMBOL)
+    // =====================================================================
+
+    private void setupInputValidation() {
+        // 1. NAMA MESIN - Hanya huruf, spasi, dan angka (TIDAK BOLEH SIMBOL)
+        TextFormatter<String> namaFormatter = new TextFormatter<>(change -> {
+            String newText = change.getControlNewText();
+            if (newText.isEmpty()) {
+                txtNamaMesin.setStyle(null);
+                return change;
+            }
+            // Hanya huruf, angka, dan spasi - TIDAK BOLEH SIMBOL
+            if (!newText.matches("^[a-zA-Z0-9\\s]*$")) {
+                txtNamaMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                return null;
+            }
+            txtNamaMesin.setStyle(null);
+            return change;
+        });
+        txtNamaMesin.setTextFormatter(namaFormatter);
+
+        // 2. MERK MESIN - Hanya huruf, spasi, dan angka (TIDAK BOLEH SIMBOL)
+        TextFormatter<String> merkFormatter = new TextFormatter<>(change -> {
+            String newText = change.getControlNewText();
+            if (newText.isEmpty()) {
+                txtMerkMesin.setStyle(null);
+                return change;
+            }
+            // Hanya huruf, angka, dan spasi - TIDAK BOLEH SIMBOL
+            if (!newText.matches("^[a-zA-Z0-9\\s]*$")) {
+                txtMerkMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                return null;
+            }
+            txtMerkMesin.setStyle(null);
+            return change;
+        });
+        txtMerkMesin.setTextFormatter(merkFormatter);
+    }
+
+    // =====================================================================
+    // CHECK INPUT ERRORS
+    // =====================================================================
+
+    private boolean checkInputErrors() {
+        boolean hasError = false;
+
+        // Cek Nama Mesin
+        String nama = txtNamaMesin.getText();
+        if (!nama.isEmpty() && !nama.matches("^[a-zA-Z0-9\\s]+$")) {
+            txtNamaMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+            showErrorLabel(lblErrorNama, "Nama hanya boleh huruf, angka, dan spasi");
+            hasError = true;
+        } else {
+            txtNamaMesin.setStyle(null);
+            hideErrorLabel(lblErrorNama);
+        }
+
+        // Cek Merk Mesin
+        String merk = txtMerkMesin.getText();
+        if (!merk.isEmpty() && !merk.matches("^[a-zA-Z0-9\\s]+$")) {
+            txtMerkMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+            showErrorLabel(lblErrorMerk, "Merk hanya boleh huruf, angka, dan spasi");
+            hasError = true;
+        } else {
+            txtMerkMesin.setStyle(null);
+            hideErrorLabel(lblErrorMerk);
+        }
+
+        return hasError;
+    }
+
+    // =====================================================================
+    // ERROR LABEL HELPERS
+    // =====================================================================
+
+    private void hideAllErrorLabels() {
+        if (lblErrorNama != null) { lblErrorNama.setVisible(false); lblErrorNama.setText(""); }
+        if (lblErrorMerk != null) { lblErrorMerk.setVisible(false); lblErrorMerk.setText(""); }
+    }
+
+    private void showErrorLabel(Label errorLabel, String message) {
+        if (errorLabel != null) {
+            errorLabel.setText("⚠ " + message);
+            errorLabel.setVisible(true);
+            errorLabel.setManaged(true);
+            errorLabel.setStyle("-fx-text-fill: #ff4444; -fx-font-size: 11px; -fx-padding: 2 0 0 5; -fx-font-weight: bold;");
+        }
+    }
+
+    private void hideErrorLabel(Label errorLabel) {
+        if (errorLabel != null) {
+            errorLabel.setVisible(false);
+            errorLabel.setManaged(false);
+            errorLabel.setText("");
+        }
+    }
+
+    // =====================================================================
     // SEARCH LISTENER
     // =====================================================================
 
@@ -155,7 +258,10 @@ public class DataMesin {
 
     private void setupRowSelection() {
         tableMesin.getSelectionModel().selectedItemProperty().addListener((obs, lama, baru) -> {
-            if (baru != null) isiFormDariTabel(baru);
+            if (baru != null) {
+                isiFormDariTabel(baru);
+                hideAllErrorLabels();
+            }
         });
     }
 
@@ -163,6 +269,10 @@ public class DataMesin {
         txtIdMesin.setText(m.getIdMesin());
         txtNamaMesin.setText(m.getNamaMesin());
         txtMerkMesin.setText(m.getMerkMesin());
+
+        // Reset style
+        txtNamaMesin.setStyle(null);
+        txtMerkMesin.setStyle(null);
 
         // Aktifkan Ubah & Hapus, matikan Simpan
         BrtSimpan.setDisable(true);
@@ -289,7 +399,6 @@ public class DataMesin {
         int total      = semuaData.size();
         int totalPages = Math.max(1, (int) Math.ceil((double) total / ITEMS_PER_PAGE));
 
-        // Pastikan currentPage tidak melebihi totalPages
         if (currentPage > totalPages) currentPage = totalPages;
         if (currentPage < 1)          currentPage = 1;
 
@@ -304,7 +413,6 @@ public class DataMesin {
         lblInfoData.setText("Menampilkan " + halamanSaatIni.size() + " dari " + total + " data");
         lblPageInfo.setText("Hal " + currentPage + " / " + totalPages);
 
-        // Aktifkan / nonaktifkan tombol
         btnPrev.setDisable(currentPage <= 1);
         btnNext.setDisable(currentPage >= totalPages);
     }
@@ -333,6 +441,11 @@ public class DataMesin {
 
     @FXML
     void OnSimpan(ActionEvent event) {
+        if (checkInputErrors()) {
+            tampilAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Mohon perbaiki input yang ditandai merah");
+            return;
+        }
+
         if (!validasiForm()) return;
 
         String sql = "{call sp_TambahMesin(?, ?)}";
@@ -368,6 +481,12 @@ public class DataMesin {
             tampilAlert(Alert.AlertType.WARNING, "Peringatan", "Pilih mesin dari tabel terlebih dahulu!");
             return;
         }
+
+        if (checkInputErrors()) {
+            tampilAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Mohon perbaiki input yang ditandai merah");
+            return;
+        }
+
         if (!validasiForm()) return;
 
         // Tanya status baru via dialog pilihan
@@ -451,12 +570,17 @@ public class DataMesin {
         txtNamaMesin.clear();
         txtMerkMesin.clear();
 
+        txtNamaMesin.setStyle(null);
+        txtMerkMesin.setStyle(null);
+
         BrtSimpan.setDisable(false);
         BtUbah.setDisable(true);
         BtHapus.setDisable(true);
 
         tableRiwayat.setItems(FXCollections.observableArrayList());
         tableMesin.getSelectionModel().clearSelection();
+
+        hideAllErrorLabels();
     }
 
     // =====================================================================
@@ -465,11 +589,35 @@ public class DataMesin {
 
     private boolean validasiForm() {
         StringBuilder sb = new StringBuilder();
-        if (isKosong(txtNamaMesin.getText())) sb.append("- Nama Mesin wajib diisi.\n");
-        if (isKosong(txtMerkMesin.getText()))  sb.append("- Merk Mesin wajib diisi.\n");
+
+        if (isKosong(txtNamaMesin.getText())) {
+            sb.append("- Nama Mesin wajib diisi.\n");
+            showErrorLabel(lblErrorNama, "Nama Mesin wajib diisi");
+        } else {
+            String nama = txtNamaMesin.getText().trim();
+            if (!nama.matches("^[a-zA-Z0-9\\s]+$")) {
+                sb.append("- Nama Mesin hanya boleh huruf, angka, dan spasi.\n");
+                showErrorLabel(lblErrorNama, "Nama hanya boleh huruf, angka, dan spasi");
+            } else {
+                hideErrorLabel(lblErrorNama);
+            }
+        }
+
+        if (isKosong(txtMerkMesin.getText())) {
+            sb.append("- Merk Mesin wajib diisi.\n");
+            showErrorLabel(lblErrorMerk, "Merk Mesin wajib diisi");
+        } else {
+            String merk = txtMerkMesin.getText().trim();
+            if (!merk.matches("^[a-zA-Z0-9\\s]+$")) {
+                sb.append("- Merk Mesin hanya boleh huruf, angka, dan spasi.\n");
+                showErrorLabel(lblErrorMerk, "Merk hanya boleh huruf, angka, dan spasi");
+            } else {
+                hideErrorLabel(lblErrorMerk);
+            }
+        }
 
         if (sb.length() > 0) {
-            tampilAlert(Alert.AlertType.WARNING, "Data belum lengkap", sb.toString());
+            tampilAlert(Alert.AlertType.WARNING, "Data belum lengkap atau tidak valid", sb.toString());
             return false;
         }
         return true;

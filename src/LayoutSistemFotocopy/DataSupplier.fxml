@@ -14,12 +14,11 @@
                         <Insets bottom="32.0" left="32.0" right="32.0" top="32.0" />
                     </padding>
 
-                    <!-- ===================== HEADER + STAT CARDS ===================== -->
+                    <!-- HEADER + STAT CARDS -->
                     <VBox spacing="32.0" styleClass="card-panel">
                         <Label styleClass="page-title" text="Data Supplier" />
 
                         <HBox spacing="24.0">
-                            <!-- Total Supplier -->
                             <HBox styleClass="stat-card" HBox.hgrow="ALWAYS">
                                 <VBox spacing="4.0" HBox.hgrow="ALWAYS">
                                     <Label styleClass="stat-label" text="TOTAL SUPPLIER" />
@@ -29,7 +28,6 @@
                                 <Label styleClass="stat-icon" text="🤝" />
                             </HBox>
 
-                            <!-- Supplier Aktif -->
                             <HBox styleClass="stat-card" HBox.hgrow="ALWAYS">
                                 <VBox spacing="4.0" HBox.hgrow="ALWAYS">
                                     <Label styleClass="stat-label" text="SUPPLIER AKTIF" />
@@ -39,7 +37,6 @@
                                 <Label styleClass="stat-icon" text="🏢" />
                             </HBox>
 
-                            <!-- Supplier Nonaktif -->
                             <HBox styleClass="stat-card" HBox.hgrow="ALWAYS">
                                 <VBox spacing="4.0" HBox.hgrow="ALWAYS">
                                     <Label styleClass="stat-label" text="SUPPLIER NONAKTIF" />
@@ -51,7 +48,7 @@
                         </HBox>
                     </VBox>
 
-                    <!-- ===================== FORM PANEL ===================== -->
+                    <!-- FORM PANEL -->
                     <VBox spacing="0.0" styleClass="form-panel">
                         <padding>
                             <Insets bottom="32.0" left="40.0" right="40.0" top="32.0" />
@@ -69,7 +66,7 @@
                                 <RowConstraints />
                             </rowConstraints>
 
-                            <!-- ===== KOLOM KIRI ===== -->
+                            <!-- KOLOM KIRI -->
                             <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="0">
                                 <Label styleClass="field-label" text="ID SUPPLIER" />
                                 <TextField fx:id="txtIdSupplier" disable="true" styleClass="text-field-disabled" />
@@ -79,32 +76,33 @@
                             <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
                                 <Label styleClass="field-label" text="NAMA SUPPLIER" />
                                 <TextField fx:id="txtNamaSupplier" promptText="Masukan Nama lengkap..." styleClass="text-field" />
+                                <Label fx:id="lblErrorNama" styleClass="error-label" managed="false" text="" visible="false" />
                             </VBox>
 
                             <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="2">
                                 <Label styleClass="field-label" text="EMAIL" />
                                 <TextField fx:id="txtEmail" promptText="Masukan Email...." styleClass="text-field" />
+                                <Label fx:id="lblErrorEmail" styleClass="error-label" managed="false" text="" visible="false" />
                             </VBox>
 
                             <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="3">
                                 <Label styleClass="field-label" text="NOMOR TELEPON" />
                                 <TextField fx:id="txtNomorTelepon" promptText="Masukan Nomer telepon..." styleClass="text-field" />
+                                <Label fx:id="lblErrorTelepon" styleClass="error-label" managed="false" text="" visible="false" />
                             </VBox>
 
-                            <!-- ===== KOLOM KANAN ===== -->
+                            <!-- KOLOM KANAN -->
                             <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
                                 <Label styleClass="field-label" text="ALAMAT LENGKAP" />
                                 <TextArea fx:id="txtAlamatLengkap" prefRowCount="3" promptText="Masukkan alamat domisili..." styleClass="text-area" wrapText="true" />
+                                <Label fx:id="lblErrorAlamat" styleClass="error-label" managed="false" text="" visible="false" />
                             </VBox>
 
-                            <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
-                                <Label styleClass="field-label" text="STATUS" />
-                                <ComboBox fx:id="cbStatus" disable="true" maxHeight="45.0" prefHeight="45.0" prefWidth="539.0" styleClass="text-field-disabled" />
-                            </VBox>
+                            <!-- STATUS DIHAPUS DARI SINI -->
                         </GridPane>
                     </VBox>
 
-                    <!-- ===================== TOMBOL AKSI + PENCARIAN ===================== -->
+                    <!-- TOMBOL AKSI + PENCARIAN -->
                     <HBox alignment="CENTER_LEFT" spacing="12.0">
                         <Button fx:id="btnSimpan" onAction="#handleSimpanData" styleClass="btn-primary" text="💾 Simpan Data" />
                         <Button fx:id="btnUbah" onAction="#handleUbahData" styleClass="btn-primary" text="✏ Ubah Data" />
@@ -114,7 +112,7 @@
                         <TextField fx:id="txtCari" promptText="🔍 Cari Berdasarkan nama......" styleClass="search-field" />
                     </HBox>
 
-                    <!-- ===================== TABEL DATA ===================== -->
+                    <!-- TABEL DATA -->
                     <VBox styleClass="table-panel">
                         <TableView fx:id="tblSupplier" styleClass="table-pegawai" VBox.vgrow="ALWAYS">
                             <columns>
@@ -141,7 +139,7 @@
                         </HBox>
                     </VBox>
 
-                    <!-- ===================== FOOTER ===================== -->
+                    <!-- FOOTER -->
                     <AnchorPane styleClass="footer-panel">
                         <HBox alignment="CENTER_LEFT" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0">
                             <Label styleClass="footer-copyright" text="© 2025 COPYSTREAM PROFESSIONAL SERVICES | ENTERPRISE BUILD V4.2.1" />

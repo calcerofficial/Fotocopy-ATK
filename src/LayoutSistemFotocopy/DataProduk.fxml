@@ -97,22 +97,26 @@
                             <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="2">
                                 <Label styleClass="field-label" text="NAMA BARANG" />
                                 <TextField fx:id="txtNamaBarang" promptText="Masukan nama barang..." styleClass="text-field" />
+                                <Label fx:id="lblErrorNama" styleClass="error-label" managed="false" text="" visible="false" />
                             </VBox>
 
                             <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="3">
                                 <Label styleClass="field-label" text="HARGA BARANG" />
                                 <TextField fx:id="txtHargaBarang" promptText="Masukan harga barang....." styleClass="text-field" />
+                                <Label fx:id="lblErrorHarga" styleClass="error-label" managed="false" text="" visible="false" />
                             </VBox>
 
                             <!-- ===== KOLOM KANAN ===== -->
                             <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
                                 <Label styleClass="field-label" text="STOCK BARANG" />
                                 <TextField fx:id="txtStockBarang" promptText="Masukkan jumlah stok barang" styleClass="text-field" />
+                                <Label fx:id="lblErrorStock" styleClass="error-label" managed="false" text="" visible="false" />
                             </VBox>
 
                             <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
                                 <Label styleClass="field-label" text="MERK" />
                                 <TextField fx:id="txtMerk" promptText="Masukkan merk barang" styleClass="text-field" />
+                                <Label fx:id="lblErrorMerk" styleClass="error-label" managed="false" text="" visible="false" />
                             </VBox>
 
                             <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="2">
