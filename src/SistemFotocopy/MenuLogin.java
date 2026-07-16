@@ -109,6 +109,9 @@ public class MenuLogin {
                 preparedStatement.close();
 
                 if (status.equalsIgnoreCase("aktif")) {
+                    // Simpan session user yang login
+                    UserSession.getInstance().setSession(idPegawai, username);
+
                     if (idPegawai.startsWith("ADM")) {
                         System.out.println("Login sebagai ADMIN!");
                         pindahKeHalaman("/LayoutSistemFotocopy/MenuUtama.fxml", "Dashboard Admin");

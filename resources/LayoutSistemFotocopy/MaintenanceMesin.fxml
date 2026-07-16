@@ -112,7 +112,7 @@
                         <VBox prefWidth="550" spacing="16" HBox.hgrow="ALWAYS">
                             <VBox spacing="4">
                                 <Label styleClass="form-label" text="Status" />
-                                <TextField editable="false" styleClass="text-field-disabled" text="rusak (otomatis)" />
+                                <TextField editable="false" styleClass="text-field-disabled" text="rusak " />
                                 <Label styleClass="form-hint" text="Status otomatis 'rusak' saat ditambahkan" />
                             </VBox>
                         </VBox>
