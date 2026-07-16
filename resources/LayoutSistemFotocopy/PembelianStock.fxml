@@ -2,6 +2,7 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TableColumn?>
@@ -13,7 +14,9 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane fx:id="rootPane" prefHeight="1024.0" prefWidth="1280.0" styleClass="root-bg" stylesheets="@../css/PembelianStock.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="SistemFotocopy.PembelianStock">
+<!-- JANGAN LUPA: stylesheets harus mengarah ke path yang benar sesuai struktur folder -->
+
+<BorderPane fx:id="rootPane" prefHeight="1024.0" prefWidth="1280.0" stylesheets="@../css/PembelianStock.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="SistemFotocopy.PembelianStock">
 
     <center>
         <ScrollPane fitToWidth="true" styleClass="main-scroll">
@@ -23,26 +26,55 @@
                         <Insets bottom="32.0" left="32.0" right="32.0" top="24.0" />
                     </padding>
 
+                    <!-- ===================== TOP INFO BAR (SUDAH DIPERBAIKI) ===================== -->
+                    <!-- Tambahkan styleClass="top-info-bar" di HBox ini -->
+                    <HBox alignment="CENTER_LEFT" spacing="20.0" styleClass="top-info-bar">
+                        <children>
+                            <!-- ID Pembelian -->
+                            <VBox spacing="4.0">
+                                <Label styleClass="info-label" text="ID PEMBELIAN" />
+                                <TextField fx:id="txtIdPembelian" editable="false" styleClass="info-field-disabled" />
+                            </VBox>
+
+                            <!-- ID Pegawai -->
+                            <VBox spacing="4.0">
+                                <Label styleClass="info-label" text="ID PEGAWAI" />
+                                <TextField fx:id="txtIdPegawai" editable="false" styleClass="info-field-disabled" />
+                            </VBox>
+
+                            <!-- Tanggal -->
+                            <VBox spacing="4.0">
+                                <Label styleClass="info-label" text="TANGGAL" />
+                                <TextField fx:id="txtTanggal" editable="false" styleClass="info-field-disabled" />
+                            </VBox>
+                     <VBox spacing="4.0">
+                        <children>
+                           <Label styleClass="info-label" text="Supplier" />
+                           <ComboBox fx:id="cbSupplier" prefWidth="150.0" />
+                        </children>
+                     </VBox>
+
+                            <Region HBox.hgrow="ALWAYS" />
+                        </children>
+                    </HBox>
+
                     <!-- ===================== MAIN CONTENT - 2 COLUMN LAYOUT ===================== -->
                     <HBox spacing="24.0" styleClass="main-content" VBox.vgrow="ALWAYS">
 
                         <!-- ===== LEFT PANEL: DAFTAR KATALOG STOK ===== -->
                         <VBox styleClass="table-panel" HBox.hgrow="ALWAYS">
 
-                            <!-- Header Table -->
                             <HBox alignment="CENTER_LEFT" spacing="12.0" styleClass="table-header">
                                 <Label styleClass="table-title" text="DAFTAR KATALOG STOK" />
                             </HBox>
 
-                            <!-- Filter Buttons Row -->
                             <HBox alignment="CENTER_LEFT" spacing="8.0" styleClass="filter-bar">
-                        <children>
-                              <Label styleClass="search-icon" text="🔍" />
-                             <!-- ===================== TOP SEARCH BAR ===================== -->
-                             <HBox alignment="CENTER_LEFT" prefHeight="57.0" prefWidth="725.0" styleClass="topbar">
-                                 <TextField fx:id="txtCari" prefWidth="981.0" promptText="Cari...." styleClass="topbar-search" HBox.hgrow="ALWAYS" />
-                             </HBox>
-                        </children>
+                                <children>
+                                    <Label styleClass="search-icon" text="🔍" />
+                                    <HBox alignment="CENTER_LEFT" prefHeight="57.0" prefWidth="725.0" styleClass="topbar">
+                                        <TextField fx:id="txtCari" prefWidth="981.0" promptText="Cari...." styleClass="topbar-search" HBox.hgrow="ALWAYS" />
+                                    </HBox>
+                                </children>
                             </HBox>
 
                             <!-- Table -->
@@ -51,7 +83,6 @@
                                     <TableColumn fx:id="colNamaBarang" prefWidth="220.0" text="NAMA BARANG" />
                                     <TableColumn fx:id="colMerkBarang" prefWidth="160.0" text="MERK BARANG" />
                                     <TableColumn fx:id="colHarga" prefWidth="140.0" text="HARGA" />
-                                    <TableColumn fx:id="colStok" prefWidth="100.0" text="STOK" />
                                     <TableColumn fx:id="colAksi" prefWidth="80.0" text="AKSI" />
                                 </columns>
                                 <columnResizePolicy>
@@ -59,7 +90,6 @@
                                 </columnResizePolicy>
                             </TableView>
 
-                            <!-- Pagination Row -->
                             <HBox alignment="CENTER_LEFT" styleClass="pagination-bar">
                                 <Label fx:id="lblInfoData" styleClass="pagination-info" text="Menampilkan 0 dari 0 data" />
                                 <Region HBox.hgrow="ALWAYS" />
@@ -75,33 +105,28 @@
                         <!-- ===== RIGHT PANEL: DETAIL PEMBELIAN ===== -->
                         <VBox prefWidth="370.0" styleClass="detail-panel">
 
-                            <!-- Header Detail -->
                             <VBox spacing="4.0" styleClass="detail-header">
                                 <Label styleClass="detail-title" text="Detail Pembelian Stock" />
                                 <Label styleClass="detail-subtitle" text="DAFTAR PEMBELIAN" />
                             </VBox>
 
-                            <!-- Daftar Item Pembelian (Scrollable) -->
                             <ScrollPane fitToWidth="true" styleClass="items-scroll" VBox.vgrow="ALWAYS">
                                 <content>
                                     <VBox fx:id="vboxItems" spacing="0.0" styleClass="items-list" />
                                 </content>
                             </ScrollPane>
 
-                            <!-- Tombol Tambah Item -->
-                            <HBox alignment="CENTER_RIGHT" styleClass="add-btn-row" />
 
-                            <!-- Total Harga -->
+
+
                             <HBox alignment="CENTER_LEFT" spacing="16.0" styleClass="total-row">
                                 <Label styleClass="total-label" text="Total Harga" />
                                 <Region HBox.hgrow="ALWAYS" />
                                 <Label fx:id="lblTotalHarga" styleClass="total-value" text="Rp. 0" />
                             </HBox>
 
-                            <!-- Note to Admin -->
                             <VBox spacing="6.0" styleClass="note-section" />
 
-                            <!-- Tombol Bayar -->
                             <VBox styleClass="pay-section">
                                 <Button fx:id="btnBayar" maxWidth="Infinity" onAction="#handleBayar" styleClass="btn-pay" text="Bayar" />
                             </VBox>
