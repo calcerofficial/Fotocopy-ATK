@@ -76,26 +76,26 @@
                             <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="1">
                                 <Label styleClass="field-label" text="NAMA SUPPLIER" />
                                 <TextField fx:id="txtNamaSupplier" promptText="Masukan Nama lengkap..." styleClass="text-field" />
-                                <Label fx:id="lblErrorNama" styleClass="error-label" managed="false" text="" visible="false" />
+                                <Label fx:id="lblErrorNama" managed="false" styleClass="error-label" text="" visible="false" />
                             </VBox>
 
                             <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="2">
                                 <Label styleClass="field-label" text="EMAIL" />
                                 <TextField fx:id="txtEmail" promptText="Masukan Email...." styleClass="text-field" />
-                                <Label fx:id="lblErrorEmail" styleClass="error-label" managed="false" text="" visible="false" />
+                                <Label fx:id="lblErrorEmail" managed="false" styleClass="error-label" text="" visible="false" />
                             </VBox>
 
                             <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="3">
                                 <Label styleClass="field-label" text="NOMOR TELEPON" />
                                 <TextField fx:id="txtNomorTelepon" promptText="Masukan Nomer telepon..." styleClass="text-field" />
-                                <Label fx:id="lblErrorTelepon" styleClass="error-label" managed="false" text="" visible="false" />
+                                <Label fx:id="lblErrorTelepon" managed="false" styleClass="error-label" text="" visible="false" />
                             </VBox>
 
                             <!-- KOLOM KANAN -->
                             <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="0">
                                 <Label styleClass="field-label" text="ALAMAT LENGKAP" />
                                 <TextArea fx:id="txtAlamatLengkap" prefRowCount="3" promptText="Masukkan alamat domisili..." styleClass="text-area" wrapText="true" />
-                                <Label fx:id="lblErrorAlamat" styleClass="error-label" managed="false" text="" visible="false" />
+                                <Label fx:id="lblErrorAlamat" managed="false" styleClass="error-label" text="" visible="false" />
                             </VBox>
 
                             <!-- STATUS DIHAPUS DARI SINI -->
@@ -118,10 +118,10 @@
                             <columns>
                                 <TableColumn fx:id="colIdSupplier" prefWidth="130.0" text="ID SUPPLIER" />
                                 <TableColumn fx:id="colNamaSupplier" prefWidth="160.0" text="NAMA SUPPLIER" />
-                                <TableColumn fx:id="colAlamat" prefWidth="170.0" text="ALAMAT" />
-                                <TableColumn fx:id="colNoTelepon" prefWidth="140.0" text="NO_TELEPON" />
-                                <TableColumn fx:id="colEmail" prefWidth="170.0" text="EMAIL" />
-                                <TableColumn fx:id="colStatus" prefWidth="110.0" text="STATUS" />
+                                <TableColumn fx:id="colAlamat" prefWidth="170.0" text="          ALAMAT" />
+                                <TableColumn fx:id="colNoTelepon" prefWidth="140.0" text="        NO_TELEPON" />
+                                <TableColumn fx:id="colEmail" prefWidth="170.0" text="           EMAIL" />
+                                <TableColumn fx:id="colStatus" prefWidth="110.0" text="           STATUS" />
                             </columns>
                             <columnResizePolicy>
                                 <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />

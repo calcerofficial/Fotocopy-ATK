@@ -130,7 +130,7 @@ public class MenuUtama {
     @FXML
     void OnActionKembali(ActionEvent event) {
         try {
-            URL resource = getClass().getResource("/css/LayoutSistemFotocopy/MenuLogin.fxml");
+            URL resource = getClass().getResource("/LayoutSistemFotocopy/MenuLogin.fxml");
             if (resource == null) {
                 throw new IOException("File MenuLogin.fxml tidak ditemukan");
             }
@@ -144,6 +144,8 @@ public class MenuUtama {
             stage.setTitle("Login");
             stage.setMaximized(true);
             stage.setResizable(false);
+            stage.setFullScreenExitHint("");
+            stage.setFullScreen(true);
             stage.show();
 
         } catch (IOException e) {

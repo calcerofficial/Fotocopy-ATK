@@ -365,3 +365,51 @@
 .combo-box:disabled .arrow-button .arrow {
     -fx-background-color: #43474F;
 }
+
+/* Error field styling */
+.error-field {
+    -fx-border-color: #ff4444 !important;
+    -fx-border-width: 2px !important;
+    -fx-border-radius: 3px !important;
+    -fx-background-color: #fff0f0 !important;
+}
+
+.error-field:focused {
+    -fx-border-color: #ff0000 !important;
+    -fx-border-width: 2px !important;
+}
+
+/* Tooltip styling */
+.tooltip {
+    -fx-background-color: #ff4444;
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-padding: 5px 10px;
+    -fx-border-radius: 3px;
+}
+
+/* Success field styling (optional) */
+.success-field {
+    -fx-border-color: #4CAF50 !important;
+    -fx-border-width: 2px !important;
+}
+
+.error-label {
+    -fx-text-fill: #ff4444;
+    -fx-font-size: 11px;
+    -fx-padding: 2 0 0 5;
+    -fx-font-weight: bold;
+    -fx-wrap-text: true;
+}
+
+.text-field-error {
+    -fx-border-color: #ff4444;
+    -fx-border-width: 2px;
+    -fx-border-radius: 4px;
+}
+
+.text-area-error {
+    -fx-border-color: #ff4444;
+    -fx-border-width: 2px;
+    -fx-border-radius: 4px;
+}

@@ -51,7 +51,7 @@
     <center>
         <StackPane BorderPane.alignment="CENTER">
             <children>
-                <VBox alignment="TOP_CENTER" maxHeight="500.0" maxWidth="360.0" prefHeight="500.0" prefWidth="360.0" spacing="18.0" style="-fx-background-color: white; -fx-background-radius: 8px; -fx-border-color: #E1E4E8; -fx-border-width: 1px; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 10, 0, 0, 4);">
+                <VBox alignment="TOP_CENTER" maxHeight="500.0" maxWidth="360.0" prefHeight="500.0" prefWidth="360.0" spacing="18.0" style="-fx-background-color: white; -fx-background-radius: 8px; -fx-border-color: #E1E4E8; -fx-border-width: 1px; -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.03), 10, 0, 0, 4);">
                     <padding>
                         <Insets bottom="28.0" left="28.0" right="28.0" top="28.0" />
                     </padding>

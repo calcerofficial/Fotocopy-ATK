@@ -89,9 +89,17 @@ public class DataSupplier {
     @FXML
     private TextField txtNomorTelepon;
 
-    // HAPUS atau COMMENT deklarasi ini karena tidak ada di FXML
-    // @FXML
-    // private ComboBox<String> cbStatus;
+    @FXML
+    private Label lblErrorNama;
+
+    @FXML
+    private Label lblErrorEmail;
+
+    @FXML
+    private Label lblErrorTelepon;
+
+    @FXML
+    private Label lblErrorAlamat;
 
     private DBConnection db = new DBConnection();
 
@@ -99,6 +107,7 @@ public class DataSupplier {
 
     private final int rowsPerPage = 10;
 
+    // tampilan data di table
     private void loadData() {
         ObservableList<Supplier> list = FXCollections.observableArrayList();
 
@@ -123,12 +132,13 @@ public class DataSupplier {
                 ));
             }
             tblSupplier.setItems(list);
-            lblTotalSupplier.setText(String.valueOf(list.size()));
+            lblInfoData.setText("Menampilkan " + list.size() + " data pada halaman " + currentPage);
         } catch (SQLException e) {
             System.out.println("Gagal load data: " + e);
         }
     }
 
+    // menampilkan pembaruan data di table
     private void updateDashboard() {
         String query = "SELECT " +
                 "(SELECT COUNT(*) FROM Supplier) AS Total, " +
@@ -168,6 +178,7 @@ public class DataSupplier {
         public String getStatus() { return status; }
     }
 
+    // id otomatis
     private void generateIdOtomatis() {
         String query = "SELECT TOP 1 ID_Supplier FROM Supplier ORDER BY ID_Supplier DESC";
 
@@ -202,10 +213,7 @@ public class DataSupplier {
         generateIdOtomatis();
         updateDashboard();
 
-        // HAPUS semua kode yang berkaitan dengan cbStatus
-        // cbStatus.getItems().addAll("aktif", "NonAktif");
-        // cbStatus.setValue("aktif");
-        // cbStatus.setDisable(true);
+        setupInputValidation();
 
         txtCari.textProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue == null || newValue.isEmpty()) {
@@ -226,13 +234,11 @@ public class DataSupplier {
 
                 btnSimpan.setDisable(true);
 
-                // HAPUS setting cbStatus
-                // cbStatus.setValue(newValue.getStatus());
-                // cbStatus.setDisable(false);
             }
         });
     }
 
+    // halaman kanan
     @FXML
     void handleNextPage(ActionEvent event) {
         currentPage++;
@@ -244,6 +250,7 @@ public class DataSupplier {
         }
     }
 
+    //halaman kiri
     @FXML
     void handlePrevPage(ActionEvent event) {
         if (currentPage > 1) {
@@ -261,10 +268,6 @@ public class DataSupplier {
         txtAlamatLengkap.clear();
 
         btnSimpan.setDisable(false);
-
-        // HAPUS setting cbStatus
-        // cbStatus.setValue("aktif");
-        // cbStatus.setDisable(true);
 
         generateIdOtomatis();
         loadData();
@@ -313,6 +316,8 @@ public class DataSupplier {
             return;
         }
 
+        if (!validasiInput()) return;
+
         String query = "{call sp_TambahSupplier(?,?,?,?)}";
 
         try (java.sql.CallableStatement cs = db.getConnection().prepareCall(query)) {
@@ -337,6 +342,14 @@ public class DataSupplier {
 
     @FXML
     void handleUbahData(ActionEvent event) {
+        // validasi duplikat dengan membawa ID saat ini
+        if (isDataDuplicate(txtNamaSupplier.getText().trim(), txtEmail.getText().trim(), txtNomorTelepon.getText().trim(), txtIdSupplier.getText())) {
+            showAlert(Alert.AlertType.WARNING, "Data Duplikat", "Data yang Anda masukkan sudah digunakan oleh supplier lain!");
+            return;
+        }
+
+        if (!validasiInput()) return;
+
         String query = "{call sp_UpdateSupplier(?,?,?,?,?,?)}";
 
         try (java.sql.CallableStatement cs = db.getConnection().prepareCall(query)) {
@@ -394,11 +407,210 @@ public class DataSupplier {
         }
     }
 
+    // validasi duplicat data
+    private boolean isDataDuplicate(String nama, String email, String telp, String currentId) {
+        // Jika ada isinya, berarti mode Ubah (cek selain ID yang sedang diedit)
+        String query = (currentId == null)
+                ? "SELECT COUNT(*) FROM Supplier WHERE Nama_Supplier = ? OR Email = ? OR No_Telepon = ?"
+                : "SELECT COUNT(*) FROM Supplier WHERE (Nama_Supplier = ? OR Email = ? OR No_Telepon = ?) AND ID_Supplier != ?";
+
+        try (java.sql.PreparedStatement ps = db.getConnection().prepareStatement(query)) {
+            ps.setString(1, nama);
+            ps.setString(2, email);
+            ps.setString(3, telp);
+
+            if (currentId != null) {
+                ps.setString(4, currentId);
+            }
+
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt(1) > 0; // Mengembalikan true jika ada data duplikat
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    // validasi input
+    private boolean validasiInput() {
+        StringBuilder pesan = new StringBuilder();
+
+        // 1. Validasi Nama
+        if (isKosong(txtNamaSupplier.getText())) {
+            pesan.append("- Nama supplier wajib diisi.\n");
+            showErrorLabel(lblErrorNama, "Wajib diisi");
+        } else if (txtNamaSupplier.getText().trim().length() < 4) {
+            pesan.append("- Nama supplier minimal 4 karakter.\n");
+            showErrorLabel(lblErrorNama, "Min 4 karakter");
+        } else if (!txtNamaSupplier.getText().trim().matches("^[a-zA-Z\\s]+$")) {
+            pesan.append("- Nama hanya boleh huruf.\n");
+            showErrorLabel(lblErrorNama, "Hanya huruf");
+        } else {
+            hideErrorLabel(lblErrorNama);
+        }
+
+        // 2. Validasi Email
+        if (isKosong(txtEmail.getText())) {
+            pesan.append("- Email wajib diisi.\n");
+            showErrorLabel(lblErrorEmail, "Wajib diisi");
+        } else if (!txtEmail.getText().trim().matches("^[a-z0-9@._-]+$")) {
+            pesan.append("- Format email tidak valid.\n");
+            showErrorLabel(lblErrorEmail, "Format salah");
+        } else {
+            hideErrorLabel(lblErrorEmail);
+        }
+
+        // 3. Validasi Telepon
+        String telp = txtNomorTelepon.getText().trim();
+        if (isKosong(telp)) {
+            pesan.append("- Nomor telepon wajib diisi.\n");
+            showErrorLabel(lblErrorTelepon, "Wajib diisi");
+        } else if (!telp.startsWith("08") || telp.length() < 10 || telp.length() > 13 || !telp.matches("^[0-9]+$")) {
+            pesan.append("- Nomor telepon harus diawali 08 dan 10-13 digit angka.\n");
+            showErrorLabel(lblErrorTelepon, "Format salah");
+        } else {
+            hideErrorLabel(lblErrorTelepon);
+        }
+
+        // 4. Validasi Alamat
+        if (isKosong(txtAlamatLengkap.getText())) {
+            pesan.append("- Alamat wajib diisi.\n");
+            showErrorLabel(lblErrorAlamat, "Wajib diisi");
+        } else {
+            hideErrorLabel(lblErrorAlamat);
+        }
+
+        // Cek apakah ada pesan error
+        if (pesan.length() > 0) {
+            showAlert(Alert.AlertType.WARNING, "Data Belum Lengkap", pesan.toString());
+            return false;
+        }
+        return true;
+    }
+
+    // validasi input
+    private void setupInputValidation() {
+        // 1. NAMA LENGKAP - Hanya huruf dan spasi, minimal 4 karakter
+        TextFormatter<String> namaFormatter = new TextFormatter<>(change -> {
+            String newText = change.getControlNewText();
+            if (newText.isEmpty()) {
+                txtNamaSupplier.setStyle(null);
+                return change;
+            }
+            if (!newText.matches("^[a-zA-Z\\s]*$")) {
+                txtNamaSupplier.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                return null;
+            }
+            txtNamaSupplier.setStyle(null);
+            return change;
+        });
+        txtNamaSupplier.setTextFormatter(namaFormatter);
+
+        // 2. EMAIL - Hanya huruf kecil, angka, @, ., _, -
+        TextFormatter<String> emailFormatter = new TextFormatter<>(change -> {
+            String newText = change.getControlNewText();
+            if (newText.isEmpty()) {
+                txtEmail.setStyle(null);
+                return change;
+            }
+            if (!newText.matches("^[a-z0-9@._-]*$")) {
+                txtEmail.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                return null;
+            }
+            txtEmail.setStyle(null);
+            return change;
+        });
+        txtEmail.setTextFormatter(emailFormatter);
+
+        // 3. NOMOR TELEPON - HARUS diawali 08, hanya angka, min 10 max 13
+        TextFormatter<String> telpFormatter = new TextFormatter<>(change -> {
+            String newText = change.getControlNewText();
+
+            if (newText.isEmpty()) {
+                txtNomorTelepon.setStyle(null);
+                return change;
+            }
+
+            // Cek panjang maksimal 13
+            if (newText.length() > 13) {
+                return null;
+            }
+
+            // HARUS diawali "08" - cek 2 karakter pertama
+            if (newText.length() >= 2) {
+                if (!newText.substring(0, 2).equals("08")) {
+                    txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                    return null;
+                }
+            } else {
+                // Jika panjang kurang dari 2, hanya boleh angka '0'
+                if (!newText.matches("^0$")) {
+                    txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                    return null;
+                }
+            }
+
+            // Cek apakah hanya angka
+            if (!newText.matches("^[0-9]*$")) {
+                txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                return null;
+            }
+
+            // Reset style jika valid
+            if (newText.startsWith("08")) {
+                txtNomorTelepon.setStyle(null);
+            }
+
+            return change;
+        });
+        txtNomorTelepon.setTextFormatter(telpFormatter);
+
+        // 4. ALAMAT - Hanya huruf, angka, spasi, dan titik
+        TextFormatter<String> alamatFormatter = new TextFormatter<>(change -> {
+            String newText = change.getControlNewText();
+            if (newText.isEmpty()) {
+                txtAlamatLengkap.setStyle(null);
+                return change;
+            }
+            if (!newText.matches("^[a-zA-Z0-9\\s.]*$")) {
+                txtAlamatLengkap.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                return null;
+            }
+            txtAlamatLengkap.setStyle(null);
+            return change;
+        });
+        txtAlamatLengkap.setTextFormatter(alamatFormatter);
+    }
+
+    // validasi eror
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
         alert.showAndWait();
+    }
+
+    // untuk cek apakah input kosong
+    private boolean isKosong(String text) {
+        return text == null || text.trim().isEmpty();
+    }
+
+    //untuk menampilkan pesan error di Label
+    private void showErrorLabel(Label label, String pesan) {
+        if (label != null) {
+            label.setText(pesan);
+            label.setVisible(true);
+            label.setStyle("-fx-text-fill: red; -fx-font-size: 10px;");
+        }
+    }
+
+    // untuk menyembunyikan label error saat input benar
+    private void hideErrorLabel(Label label) {
+        if (label != null) {
+            label.setVisible(false);
+        }
     }
 }

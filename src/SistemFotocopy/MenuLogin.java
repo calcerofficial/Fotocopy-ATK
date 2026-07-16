@@ -143,6 +143,8 @@ public class MenuLogin {
             stage.setTitle(judul);
             stage.setMaximized(true);
             stage.setResizable(false);
+            stage.setFullScreenExitHint("");
+            stage.setFullScreen(true);
             stage.show();
 
         } catch (IOException e) {
@@ -151,6 +153,7 @@ public class MenuLogin {
             showError(emailErrorLabel, "Gagal membuka halaman!");
         }
     }
+
 
     @FXML
     void togglePasswordVisibility(MouseEvent event) {
