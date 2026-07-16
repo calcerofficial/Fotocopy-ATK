@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<AnchorPane prefHeight="1118.0" prefWidth="1280.0" styleClass="root" stylesheets="@../css/MaintenanceMesin.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="SistemFotocopy.MaintenanceMesin">
+
+    <ScrollPane fitToWidth="true" style="-fx-background: transparent; -fx-background-color: transparent; -fx-border-color: transparent;" AnchorPane.bottomAnchor="32.0" AnchorPane.leftAnchor="32.0" AnchorPane.rightAnchor="32.0" AnchorPane.topAnchor="32.0">
+        <content>
+            <VBox spacing="24" style="-fx-padding: 0;">
+
+                <!-- Top Panel (Title & Cards) -->
+                <VBox spacing="20" styleClass="panel-container">
+                    <Label styleClass="main-title" text="Maintenance Mesin" />
+
+                    <HBox spacing="24">
+                        <!-- Card 1: Total Mesin -->
+                        <VBox prefWidth="250" styleClass="card" HBox.hgrow="ALWAYS">
+                            <HBox alignment="CENTER_LEFT">
+                                <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                    <Label styleClass="card-label" text="TOTAL MESIN" />
+                                    <Label fx:id="lblTotalMesin" styleClass="card-value-blue" text="0" />
+                                </VBox>
+                                <Label styleClass="card-icon" text="⚙️" />
+                            </HBox>
+                        </VBox>
+
+                        <!-- Card 2: Mesin Aktif -->
+                        <VBox prefWidth="250" styleClass="card" HBox.hgrow="ALWAYS">
+                            <HBox alignment="CENTER_LEFT">
+                                <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                    <Label styleClass="card-label" text="MESIN AKTIF" />
+                                    <Label fx:id="lblMesinAktif" styleClass="card-value-blue" text="0" />
+                                </VBox>
+                                <Label styleClass="card-icon" text="⚙️" />
+                            </HBox>
+                        </VBox>
+
+                        <!-- Card 3: Mesin Rusak -->
+                        <VBox prefWidth="250" styleClass="card" HBox.hgrow="ALWAYS">
+                            <HBox alignment="CENTER_LEFT">
+                                <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                    <Label styleClass="card-label" text="MESIN RUSAK" />
+                                    <Label fx:id="lblMesinRusak" styleClass="card-value-dark" text="0" />
+                                </VBox>
+                                <Label styleClass="card-icon" text="⚠️" />
+                            </HBox>
+                        </VBox>
+
+                        <!-- Card 4: Mesin Selesai Diperbaiki -->
+                        <VBox prefWidth="250" styleClass="card" HBox.hgrow="ALWAYS">
+                            <HBox alignment="CENTER_LEFT">
+                                <VBox spacing="8" HBox.hgrow="ALWAYS">
+                                    <Label styleClass="card-label" text="MESIN SELESAI" />
+                                    <Label fx:id="lblMesinSelesai" styleClass="card-value-dark" text="0" />
+                                </VBox>
+                                <Label styleClass="card-icon" text="✅" />
+                            </HBox>
+                        </VBox>
+                    </HBox>
+                </VBox>
+
+                <!-- Form Panel -->
+                <VBox spacing="16" styleClass="panel-container">
+                    <HBox spacing="48">
+                        <!-- Left Column -->
+                        <VBox prefWidth="550" spacing="16" HBox.hgrow="ALWAYS">
+                            <VBox spacing="4">
+                                <Label styleClass="form-label" text="ID Maintenance" />
+                                <TextField fx:id="txtIdMaintenance" editable="false" styleClass="text-field-disabled" />
+                                <Label styleClass="form-hint" text="ID di-isi otomatis oleh sistem" />
+                            </VBox>
+
+                            <VBox spacing="4">
+                                <Label styleClass="form-label" text="ID Mesin" />
+                                <ComboBox fx:id="cbMesin" prefHeight="39.0" prefWidth="565.0" />
+                            </VBox>
+
+                            <VBox spacing="4">
+                                <Label styleClass="form-label" text="ID Pegawai" />
+                                <TextField fx:id="txtIdMaintenance1" editable="false" styleClass="text-field-disabled" />
+                            </VBox>
+
+                            <VBox spacing="4">
+                                <Label styleClass="form-label" text="Jenis Kerusakan" />
+                                <ComboBox fx:id="cbJenisKerusakan" prefHeight="39.0" prefWidth="565.0" />
+                            </VBox>
+
+                            <VBox spacing="4">
+                                <Label styleClass="form-label" text="Deskripsi Kerusakan" />
+                                <TextArea fx:id="txtDeskripsi" prefHeight="80" promptText="Masukan Deskripsi..." styleClass="text-area" wrapText="true" />
+                            </VBox>
+
+                            <VBox spacing="4">
+                                <Label styleClass="form-label" text="Tanggal Maintenance" />
+                                <DatePicker fx:id="dpTanggalMaintenance" maxWidth="Infinity" promptText="Masukkan Tanggal Maintenance...." styleClass="date-picker" />
+                            </VBox>
+                        </VBox>
+
+                        <!-- Right Column - Kosong (Status otomatis rusak) -->
+                        <VBox prefWidth="550" spacing="16" HBox.hgrow="ALWAYS">
+                            <VBox spacing="4">
+                                <Label styleClass="form-label" text="Status" />
+                                <TextField editable="false" styleClass="text-field-disabled" text="rusak (otomatis)" />
+                                <Label styleClass="form-hint" text="Status otomatis 'rusak' saat ditambahkan" />
+                            </VBox>
+                        </VBox>
+                    </HBox>
+                </VBox>
+
+                <!-- Buttons and Search -->
+                <HBox alignment="CENTER_LEFT">
+                    <HBox spacing="12">
+                        <Button fx:id="btnSimpan" styleClass="btn-primary" text="💾 Simpan Data" />
+                        <Button fx:id="btnBatal" styleClass="btn-primary" text="Batal" />
+                    </HBox>
+                    <Region HBox.hgrow="ALWAYS" />
+                    <HBox alignment="CENTER_LEFT" spacing="8" styleClass="search-box-container">
+                        <Label styleClass="search-icon" text="🔍" />
+                        <TextField fx:id="txtCari" prefWidth="250" promptText="Cari Berdasarkan nama......" styleClass="search-field" />
+                    </HBox>
+                </HBox>
+
+                <!-- Table Panel -->
+                <VBox spacing="0" style="-fx-padding: 0;" styleClass="panel-container">
+                    <TableView fx:id="tblMaintenance" prefHeight="250" styleClass="table-view" VBox.vgrow="ALWAYS">
+                        <columns>
+                            <TableColumn fx:id="colIdMaintenance" prefWidth="140" text="ID MAINTENANCE" />
+                            <TableColumn fx:id="colIdMesin" prefWidth="100" text="ID MESIN" />
+                            <TableColumn fx:id="colIdPegawai" prefWidth="120" text="ID PEGAWAI" />
+                            <TableColumn fx:id="colJenisKerusakan" prefWidth="150" text="JENIS KERUSAKAN" />
+                            <TableColumn fx:id="colDeskripsi" prefWidth="180" text="DESKRIPSI KERUSAKAN" />
+                            <TableColumn fx:id="colTanggalMaintenance" prefWidth="180" text="TANGGAL MAINTENANCE" />
+                            <TableColumn fx:id="colTanggalSelesai" prefWidth="180" text="TANGGAL SELESAI" />
+                            <TableColumn fx:id="colBiaya" prefWidth="120" text="BIAYA" />
+                            <TableColumn fx:id="colKeterangan" prefWidth="180" text="KETERANGAN" />
+                            <TableColumn fx:id="colStatus" prefWidth="100" text="STATUS" />
+                            <TableColumn fx:id="colAksi" prefWidth="120" text="AKSI" />
+                        </columns>
+                    </TableView>
+
+                    <HBox alignment="CENTER_LEFT" styleClass="pagination-footer">
+                        <Label fx:id="lblInfoData" styleClass="pagination-info" text="Menampilkan 0 dari 0 data" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <HBox alignment="CENTER" spacing="8">
+                            <Button fx:id="btnPrevPage" styleClass="pagination-btn" text="‹" />
+                            <Button fx:id="btnPage1" styleClass="pagination-btn-active" text="1" />
+                            <Button fx:id="btnNextPage" styleClass="pagination-btn" text="›" />
+                        </HBox>
+                    </HBox>
+                </VBox>
+
+            </VBox>
+        </content>
+    </ScrollPane>
+
+</AnchorPane>
