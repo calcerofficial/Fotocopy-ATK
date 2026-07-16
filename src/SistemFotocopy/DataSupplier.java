@@ -89,28 +89,27 @@ public class DataSupplier {
     @FXML
     private TextField txtNomorTelepon;
 
-    @FXML
-    private ComboBox<String> cbStatus;
+    // HAPUS atau COMMENT deklarasi ini karena tidak ada di FXML
+    // @FXML
+    // private ComboBox<String> cbStatus;
 
     private DBConnection db = new DBConnection();
 
     private int currentPage = 1;
 
-    private final int rowsPerPage = 10; // Jumlah data per halaman
+    private final int rowsPerPage = 10;
 
     private void loadData() {
         ObservableList<Supplier> list = FXCollections.observableArrayList();
 
-        // Halaman saat ini - 1 * jumlah baris per halaman
         int offset = (currentPage - 1) * rowsPerPage;
 
-        // Query akan mengambil SEMUA data
         String query = "SELECT * FROM Supplier " +
                 "ORDER BY (CASE WHEN Status_Supplier = 'NonAktif' THEN 1 ELSE 0 END) ASC, ID_Supplier ASC " +
                 "OFFSET " + offset + " ROWS " +
                 "FETCH NEXT " + rowsPerPage + " ROWS ONLY";
 
-        try (Statement st = db.conn.createStatement();
+        try (Statement st = db.getConnection().createStatement();
              ResultSet rs = st.executeQuery(query)) {
 
             while (rs.next()) {
@@ -123,21 +122,20 @@ public class DataSupplier {
                         rs.getString("Status_Supplier")
                 ));
             }
-            tblSupplier.setItems(list); // memasukin data ke tabel
-            lblTotalSupplier.setText(String.valueOf(list.size())); // Update total
+            tblSupplier.setItems(list);
+            lblTotalSupplier.setText(String.valueOf(list.size()));
         } catch (SQLException e) {
             System.out.println("Gagal load data: " + e);
         }
     }
 
     private void updateDashboard() {
-        // menggunakan nama kolom sesuai dengan DDL (Status_Supplier)
         String query = "SELECT " +
                 "(SELECT COUNT(*) FROM Supplier) AS Total, " +
                 "(SELECT COUNT(*) FROM Supplier WHERE Status_Supplier='aktif') AS Aktif, " +
                 "(SELECT COUNT(*) FROM Supplier WHERE Status_Supplier='NonAktif') AS Nonaktif";
 
-        try (Statement st = db.conn.createStatement();
+        try (Statement st = db.getConnection().createStatement();
              ResultSet rs = st.executeQuery(query)) {
 
             if (rs.next()) {
@@ -162,43 +160,26 @@ public class DataSupplier {
             this.status = status;
         }
 
-        // Getter
-        public String getId() {
-            return id; }
-
-        public String getNama() {
-            return nama; }
-
-        public String getAlamat() {
-            return alamat; }
-
-        public String getTelepon() {
-            return telepon; }
-
-        public String getEmail() {
-            return email; }
-
-        public String getStatus() {
-            return status; }
+        public String getId() { return id; }
+        public String getNama() { return nama; }
+        public String getAlamat() { return alamat; }
+        public String getTelepon() { return telepon; }
+        public String getEmail() { return email; }
+        public String getStatus() { return status; }
     }
 
     private void generateIdOtomatis() {
         String query = "SELECT TOP 1 ID_Supplier FROM Supplier ORDER BY ID_Supplier DESC";
 
-        try (Statement st = db.conn.createStatement();
+        try (Statement st = db.getConnection().createStatement();
              ResultSet rs = st.executeQuery(query)) {
 
             if (rs.next()) {
-                //Ambil data dari kolom
                 String lastId = rs.getString("ID_Supplier");
-
-                // Mengambil angka setelah karakter ke-3 (yaitu indeks 0,1,2 adalah SPR)
                 int angka = Integer.parseInt(lastId.substring(3));
                 int nextAngka = angka + 1;
-
                 txtIdSupplier.setText("SPR" + String.format("%03d", nextAngka));
             } else {
-                // tabel kosong, mulai dari SPR001
                 txtIdSupplier.setText("SPR001");
             }
         } catch (Exception e) {
@@ -221,38 +202,33 @@ public class DataSupplier {
         generateIdOtomatis();
         updateDashboard();
 
-        cbStatus.getItems().addAll("aktif", "NonAktif");
-        cbStatus.setValue("aktif");
-        cbStatus.setDisable(true);
+        // HAPUS semua kode yang berkaitan dengan cbStatus
+        // cbStatus.getItems().addAll("aktif", "NonAktif");
+        // cbStatus.setValue("aktif");
+        // cbStatus.setDisable(true);
 
-        txtCari.textProperty().addListener(new javafx.beans.value.ChangeListener<String>() {
-            @Override
-            public void changed(javafx.beans.value.ObservableValue<? extends String> observable, String oldValue, String newValue) {
-                if (newValue == null || newValue.isEmpty()) {
-                    loadData();
-                } else {
-                    searchData(newValue);
-                }
+        txtCari.textProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue == null || newValue.isEmpty()) {
+                loadData();
+            } else {
+                searchData(newValue);
             }
         });
 
         // Listener untuk mengisi form saat baris tabel diklik
-        tblSupplier.getSelectionModel().selectedItemProperty().addListener(new javafx.beans.value.ChangeListener<Supplier>() {
-            @Override
-            public void changed(javafx.beans.value.ObservableValue<? extends Supplier> observable, Supplier oldValue, Supplier newValue) {
-                if (newValue != null) {
-                    txtIdSupplier.setText(newValue.getId());
-                    txtNamaSupplier.setText(newValue.getNama());
-                    txtAlamatLengkap.setText(newValue.getAlamat());
-                    txtNomorTelepon.setText(newValue.getTelepon());
-                    txtEmail.setText(newValue.getEmail());
+        tblSupplier.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
+            if (newValue != null) {
+                txtIdSupplier.setText(newValue.getId());
+                txtNamaSupplier.setText(newValue.getNama());
+                txtAlamatLengkap.setText(newValue.getAlamat());
+                txtNomorTelepon.setText(newValue.getTelepon());
+                txtEmail.setText(newValue.getEmail());
 
-                    btnSimpan.setDisable(true);
+                btnSimpan.setDisable(true);
 
-                    // Set nilai ke ComboBox
-                    cbStatus.setValue(newValue.getStatus());
-                    cbStatus.setDisable(false);
-                }
+                // HAPUS setting cbStatus
+                // cbStatus.setValue(newValue.getStatus());
+                // cbStatus.setDisable(false);
             }
         });
     }
@@ -262,12 +238,10 @@ public class DataSupplier {
         currentPage++;
         loadData();
 
-        // jika pas di-load datanya kosong, dia bakal balik lagi ke halaman sebelumnya
         if (tblSupplier.getItems().isEmpty()) {
             currentPage--;
             loadData();
         }
-
     }
 
     @FXML
@@ -288,8 +262,9 @@ public class DataSupplier {
 
         btnSimpan.setDisable(false);
 
-        cbStatus.setValue("aktif"); // Default ke aktif saat batal/tambah baru
-        cbStatus.setDisable(true);
+        // HAPUS setting cbStatus
+        // cbStatus.setValue("aktif");
+        // cbStatus.setDisable(true);
 
         generateIdOtomatis();
         loadData();
@@ -298,7 +273,6 @@ public class DataSupplier {
 
     @FXML
     void handleHapusData(ActionEvent event) {
-        // Validasi pilih ID terlebih dahulu
         if (txtIdSupplier.getText().isEmpty()) {
             showAlert(Alert.AlertType.WARNING, "Peringatan", "Pilih data yang ingin dihapus terlebih dahulu.");
             return;
@@ -306,7 +280,7 @@ public class DataSupplier {
 
         String query = "{call sp_DeleteSupplierSoft(?)}";
 
-        try (java.sql.CallableStatement cs = db.conn.prepareCall(query)) {
+        try (java.sql.CallableStatement cs = db.getConnection().prepareCall(query)) {
             cs.setString(1, txtIdSupplier.getText());
             cs.execute();
 
@@ -324,7 +298,7 @@ public class DataSupplier {
     void handleSimpanData(ActionEvent event) {
         // validasi data gaboleh sama
         String queryCek = "SELECT COUNT(*) FROM Supplier WHERE Nama_Supplier = ? OR Email = ? OR No_Telepon = ?";
-        try (java.sql.PreparedStatement ps = db.conn.prepareStatement(queryCek)) {
+        try (java.sql.PreparedStatement ps = db.getConnection().prepareStatement(queryCek)) {
             ps.setString(1, txtNamaSupplier.getText().trim());
             ps.setString(2, txtEmail.getText().trim());
             ps.setString(3, txtNomorTelepon.getText().trim());
@@ -332,17 +306,16 @@ public class DataSupplier {
             ResultSet rs = ps.executeQuery();
             if (rs.next() && rs.getInt(1) > 0) {
                 showAlert(Alert.AlertType.WARNING, "Data Duplikat", "Nama, Email, atau No. Telepon sudah terdaftar!");
-                return; // Berhenti di sini, tidak lanjut ke SQL
+                return;
             }
         } catch (SQLException e) {
             showAlert(Alert.AlertType.ERROR, "Error", e.getMessage());
             return;
         }
 
-        // Sesuai dengan SP sp_TambahSupplier
         String query = "{call sp_TambahSupplier(?,?,?,?)}";
 
-        try (java.sql.CallableStatement cs = db.conn.prepareCall(query)) {
+        try (java.sql.CallableStatement cs = db.getConnection().prepareCall(query)) {
             cs.setString(1, txtNamaSupplier.getText());
             cs.setString(2, txtAlamatLengkap.getText());
             cs.setString(3, txtNomorTelepon.getText());
@@ -350,12 +323,9 @@ public class DataSupplier {
 
             cs.execute();
 
-            // Refresh tabel
             loadData();
             handleBatal(event);
-
             updateDashboard();
-
             generateIdOtomatis();
 
             showAlert(Alert.AlertType.INFORMATION, "Sukses", "Data Supplier berhasil disimpan.");
@@ -369,27 +339,25 @@ public class DataSupplier {
     void handleUbahData(ActionEvent event) {
         String query = "{call sp_UpdateSupplier(?,?,?,?,?,?)}";
 
-        try (java.sql.CallableStatement cs = db.conn.prepareCall(query)) {
+        try (java.sql.CallableStatement cs = db.getConnection().prepareCall(query)) {
             cs.setString(1, txtIdSupplier.getText().trim());
-            cs.setString(2, txtNamaSupplier.getText().trim()); // .trim() menghapus spasi di awal/akhir
+            cs.setString(2, txtNamaSupplier.getText().trim());
             cs.setString(3, txtAlamatLengkap.getText().trim());
             cs.setString(4, txtNomorTelepon.getText().trim());
             cs.setString(5, txtEmail.getText().trim());
-            cs.setString(6, cbStatus.getValue());
+
+            // Status default ke 'aktif' karena tidak ada ComboBox
+            cs.setString(6, "aktif");
 
             cs.execute();
 
-            // Panggil update HANYA jika berhasil
             loadData();
-
             handleBatal(event);
             updateDashboard();
-
 
             showAlert(Alert.AlertType.INFORMATION, "Sukses", "Data berhasil diubah.");
 
         } catch (SQLException e) {
-            // Jangan panggil updateDashboard di sini agar tidak crash jika koneksi error
             showAlert(Alert.AlertType.ERROR, "Gagal Ubah", e.getMessage());
         }
     }
@@ -398,7 +366,6 @@ public class DataSupplier {
     private void searchData(String keyword) {
         ObservableList<Supplier> list = FXCollections.observableArrayList();
 
-        // Query untuk mencari di kolom Nama, Alamat, Email, No_Telepon, atau Status
         String query = "SELECT * FROM Supplier WHERE " +
                 "ID_Supplier LIKE '%" + keyword + "%' OR " +
                 "Nama_Supplier LIKE '%" + keyword + "%' OR " +
@@ -406,9 +373,9 @@ public class DataSupplier {
                 "Email LIKE '%" + keyword + "%' OR " +
                 "No_Telepon LIKE '%" + keyword + "%' OR " +
                 "Status_Supplier LIKE '%" + keyword + "%'" +
-                "ORDER BY (CASE WHEN Status_Supplier = 'NonAktif' THEN 1 ELSE 0 END) ASC, ID_Supplier ASC";;
+                "ORDER BY (CASE WHEN Status_Supplier = 'NonAktif' THEN 1 ELSE 0 END) ASC, ID_Supplier ASC";
 
-        try (Statement st = db.conn.createStatement();
+        try (Statement st = db.getConnection().createStatement();
              ResultSet rs = st.executeQuery(query)) {
 
             while (rs.next()) {

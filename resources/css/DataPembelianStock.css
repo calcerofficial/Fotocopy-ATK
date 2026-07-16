@@ -1,0 +1,131 @@
+/* ===== COLOM AKSI ===== */
+.col-aksi {
+    -fx-alignment: CENTER;
+}
+
+.col-aksi-header {
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #434751;
+}
+
+/* ===== BUTTON DETAIL ===== */
+.btn-detail {
+    -fx-background-color: #4A90D9;
+    -fx-background-radius: 4px;
+    -fx-text-fill: white;
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-padding: 5 12 5 12;
+    -fx-cursor: hand;
+    -fx-min-width: 60px;
+}
+
+.btn-detail:hover {
+    -fx-background-color: #357ABD;
+    -fx-effect: dropshadow(gaussian, rgba(74, 144, 217, 0.4), 8, 0, 0, 2);
+}
+
+.btn-detail:pressed {
+    -fx-background-color: #2C6BA0;
+}
+
+.btn-detail .graphic {
+    -fx-spacing: 4px;
+}
+
+.btn-detail-icon {
+    -fx-fill: white;
+    -fx-scale-x: 0.8;
+    -fx-scale-y: 0.8;
+}
+
+/* ===== ALTERNATIVE BUTTON STYLES ===== */
+
+/* Button Detail dengan icon mata (eye) */
+.btn-detail-eye {
+    -fx-background-color: transparent;
+    -fx-text-fill: #4A90D9;
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-size: 11px;
+    -fx-font-weight: 500;
+    -fx-padding: 4 8 4 8;
+    -fx-cursor: hand;
+    -fx-border-color: #4A90D9;
+    -fx-border-radius: 4px;
+    -fx-border-width: 1px;
+    -fx-min-width: 60px;
+}
+
+.btn-detail-eye:hover {
+    -fx-background-color: #4A90D9;
+    -fx-text-fill: white;
+}
+
+.btn-detail-eye .graphic {
+    -fx-spacing: 4px;
+}
+
+/* Button dengan icon edit */
+.btn-edit {
+    -fx-background-color: transparent;
+    -fx-text-fill: #F5A623;
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-size: 11px;
+    -fx-font-weight: 500;
+    -fx-padding: 4 8 4 8;
+    -fx-cursor: hand;
+    -fx-border-color: #F5A623;
+    -fx-border-radius: 4px;
+    -fx-border-width: 1px;
+    -fx-min-width: 60px;
+}
+
+.btn-edit:hover {
+    -fx-background-color: #F5A623;
+    -fx-text-fill: white;
+}
+
+/* Button dengan icon hapus */
+.btn-delete {
+    -fx-background-color: transparent;
+    -fx-text-fill: #E74C3C;
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-size: 11px;
+    -fx-font-weight: 500;
+    -fx-padding: 4 8 4 8;
+    -fx-cursor: hand;
+    -fx-border-color: #E74C3C;
+    -fx-border-radius: 4px;
+    -fx-border-width: 1px;
+    -fx-min-width: 60px;
+}
+
+.btn-delete:hover {
+    -fx-background-color: #E74C3C;
+    -fx-text-fill: white;
+}
+
+/* ===== ACTION BUTTONS CONTAINER ===== */
+.action-buttons {
+    -fx-alignment: CENTER;
+    -fx-spacing: 4px;
+    -fx-padding: 0 4 0 4;
+}
+
+.action-buttons .button {
+    -fx-min-width: 28px;
+    -fx-min-height: 28px;
+    -fx-max-width: 28px;
+    -fx-max-height: 28px;
+    -fx-background-radius: 4px;
+    -fx-padding: 0;
+    -fx-cursor: hand;
+}
+
+.action-buttons .button .svg-path {
+    -fx-scale-x: 0.65;
+    -fx-scale-y: 0.65;
+}

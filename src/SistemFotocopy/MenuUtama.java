@@ -1,6 +1,5 @@
 package SistemFotocopy;
 
-import javafx.application.Platform;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -15,6 +14,7 @@ import javafx.scene.layout.VBox;
 import javafx.scene.shape.SVGPath;
 import javafx.stage.Stage;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 
@@ -39,6 +39,18 @@ public class MenuUtama {
     private Button btPembelianStock;
 
     @FXML
+    private Button btMaintenanceMesin;
+
+    @FXML
+    private Button btLihatTransaksi;
+
+    @FXML
+    private SVGPath chevronLihatTransaksi;
+
+    @FXML
+    private VBox submenuLihatTransaksi;
+
+    @FXML
     private SVGPath chevronKelolaData;
 
     @FXML
@@ -57,6 +69,7 @@ public class MenuUtama {
     private Label headerTitle;
 
     private boolean isSubmenuVisible = false;
+    private boolean isSubmenuTransaksiVisible = false;
     private Button activeButton = null;
 
     // Icon untuk Dashboard
@@ -77,7 +90,7 @@ public class MenuUtama {
     @FXML
     void OnActionDasbord(ActionEvent event) {
         setActiveButton(btDashboard);
-        loadContent("/LayoutSistemFotocopy/DashboardContent.fxml");
+        loadContent("/css/LayoutSistemFotocopy/DashboardContent.fxml");
         updateHeader("Dashboard", ICON_DASHBOARD);
         updateHeaderTitle("Dashboard Admin");
     }
@@ -85,7 +98,7 @@ public class MenuUtama {
     @FXML
     void OnActionDataMesin(ActionEvent event) {
         setActiveButton(btKelolaData);
-        loadContent("/LayoutSistemFotocopy/DataMesin.fxml");
+        loadContent("/css/LayoutSistemFotocopy/DataMesin.fxml");
         updateHeader("Data Mesin", ICON_MESIN);
         updateHeaderTitle("Kelola Data - Mesin");
     }
@@ -93,7 +106,7 @@ public class MenuUtama {
     @FXML
     void OnActionDataPegawai(ActionEvent event) {
         setActiveButton(btKelolaData);
-        loadContent("/LayoutSistemFotocopy/DataPegawai.fxml");
+        loadContent("/css/LayoutSistemFotocopy/DataPegawai.fxml");
         updateHeader("Data Pegawai", ICON_PEGAWAI);
         updateHeaderTitle("Kelola Data - Pegawai");
     }
@@ -101,7 +114,7 @@ public class MenuUtama {
     @FXML
     void OnActionDataProduk(ActionEvent event) {
         setActiveButton(btKelolaData);
-        loadContent("/LayoutSistemFotocopy/DataProduk.fxml");
+        loadContent("/css/LayoutSistemFotocopy/DataProduk.fxml");
         updateHeader("Data Produk", ICON_PRODUK);
         updateHeaderTitle("Kelola Data - Produk");
     }
@@ -109,7 +122,7 @@ public class MenuUtama {
     @FXML
     void OnActionDataSupplier(ActionEvent event) {
         setActiveButton(btKelolaData);
-        loadContent("/LayoutSistemFotocopy/DataSupplier.fxml");
+        loadContent("/css/LayoutSistemFotocopy/DataSupplier.fxml");
         updateHeader("Data Supplier", ICON_SUPPLIER);
         updateHeaderTitle("Kelola Data - Supplier");
     }
@@ -117,7 +130,7 @@ public class MenuUtama {
     @FXML
     void OnActionKembali(ActionEvent event) {
         try {
-            URL resource = getClass().getResource("/LayoutSistemFotocopy/MenuLogin.fxml");
+            URL resource = getClass().getResource("/css/LayoutSistemFotocopy/MenuLogin.fxml");
             if (resource == null) {
                 throw new IOException("File MenuLogin.fxml tidak ditemukan");
             }
@@ -141,16 +154,16 @@ public class MenuUtama {
 
     @FXML
     void OnActionMaintenanceMesin(ActionEvent event) {
-        setActiveButton(btKelolaData);
-        loadContent("/LayoutSistemFotocopy/MaintenanceMesin.fxml");
+        setActiveButton(btMaintenanceMesin);
+        loadContent("/css/LayoutSistemFotocopy/MaintenanceMesin.fxml");
         updateHeader("Maintenance Mesin", ICON_MAINTENANCE);
-        updateHeaderTitle("Kelola Data - Maintenance Mesin");
+        updateHeaderTitle("Maintenance Mesin");
     }
 
     @FXML
     void OnActionPembelianStock(ActionEvent event) {
         setActiveButton(btPembelianStock);
-        loadContent("/LayoutSistemFotocopy/PembelianStock.fxml");
+        loadContent("/css/LayoutSistemFotocopy/PembelianStock.fxml");
         updateHeader("Pembelian Stock", ICON_STOCK);
         updateHeaderTitle("Transaksi - Pembelian Stock");
     }
@@ -169,6 +182,38 @@ public class MenuUtama {
         } else {
             chevronKelolaData.setRotate(0);
         }
+    }
+
+    @FXML
+    void OnActionToggleLihatTransaksi(ActionEvent event) {
+        isSubmenuTransaksiVisible = !isSubmenuTransaksiVisible;
+        submenuLihatTransaksi.setVisible(isSubmenuTransaksiVisible);
+        submenuLihatTransaksi.setManaged(isSubmenuTransaksiVisible);
+
+        if (isSubmenuTransaksiVisible) {
+            chevronLihatTransaksi.setRotate(180);
+            setActiveButton(btLihatTransaksi);
+            updateHeader("Lihat Transaksi", "M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z");
+            updateHeaderTitle("Lihat Transaksi");
+        } else {
+            chevronLihatTransaksi.setRotate(0);
+        }
+    }
+
+    @FXML
+    void OnActionTransaksiPenjualan(ActionEvent event) {
+        setActiveButton(btLihatTransaksi);
+        loadContent("/css/LayoutSistemFotocopy/TransaksiPenjualan.fxml");
+        updateHeader("Transaksi Penjualan", "M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z");
+        updateHeaderTitle("Lihat Transaksi - Penjualan");
+    }
+
+    @FXML
+    void OnActionTransaksiPembelianStock(ActionEvent event) {
+        setActiveButton(btLihatTransaksi);
+        loadContent("/css/LayoutSistemFotocopy/TransaksiPembelianStock.fxml");
+        updateHeader("Transaksi Pembelian Stock", "M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z");
+        updateHeaderTitle("Lihat Transaksi - Pembelian Stock");
     }
 
     @FXML
@@ -195,9 +240,23 @@ public class MenuUtama {
         resetButtonStyle(btDashboard);
         resetButtonStyle(btKelolaData);
         resetButtonStyle(btPembelianStock);
+        resetButtonStyle(btMaintenanceMesin);
+        resetButtonStyle(btLihatTransaksi);
 
         if (submenuKelolaData != null) {
             for (Node node : submenuKelolaData.getChildren()) {
+                if (node instanceof Button) {
+                    Button btn = (Button) node;
+                    btn.getStyleClass().remove("submenu-btn-active");
+                    if (!btn.getStyleClass().contains("submenu-btn")) {
+                        btn.getStyleClass().add("submenu-btn");
+                    }
+                }
+            }
+        }
+
+        if (submenuLihatTransaksi != null) {
+            for (Node node : submenuLihatTransaksi.getChildren()) {
                 if (node instanceof Button) {
                     Button btn = (Button) node;
                     btn.getStyleClass().remove("submenu-btn-active");
@@ -225,7 +284,6 @@ public class MenuUtama {
 
         if (iconDashboard != null && iconContent != null) {
             iconDashboard.setContent(iconContent);
-            // Pastikan warna ikon tetap biru
             iconDashboard.setStyle("-fx-fill: #004596;");
         }
     }
@@ -236,40 +294,91 @@ public class MenuUtama {
         }
     }
 
+    /**
+     * METHOD LOADCONTENT YANG DIPERBAIKI
+     * Mencari file di multiple lokasi
+     */
     private void loadContent(String fxmlPath) {
         try {
-            System.out.println("Mencoba memuat: " + fxmlPath);
+            // Coba dengan path yang diberikan
             URL resource = getClass().getResource(fxmlPath);
-            if (resource == null) {
-                throw new IOException("File tidak ditemukan: " + fxmlPath);
+
+            // Jika tidak ditemukan, coba tanpa folder css
+            if (resource == null && fxmlPath.startsWith("/css/")) {
+                String alternativePath = fxmlPath.replace("/css/", "/");
+                resource = getClass().getResource(alternativePath);
+                System.out.println("Mencoba path alternatif: " + alternativePath);
             }
+
+            // Jika masih null, coba dengan file sistem
+            if (resource == null) {
+                // Coba cari di direktori resources
+                String fileName = fxmlPath.substring(fxmlPath.lastIndexOf("/") + 1);
+                File file = new File("resources/css/LayoutSistemFotocopy/" + fileName);
+                if (file.exists()) {
+                    resource = file.toURI().toURL();
+                    System.out.println("File ditemukan di: " + file.getAbsolutePath());
+                }
+            }
+
+            if (resource == null) {
+                // Tampilkan daftar file yang tersedia
+                StringBuilder availableFiles = new StringBuilder();
+                File resourcesDir = new File("resources/css/LayoutSistemFotocopy");
+                if (resourcesDir.exists() && resourcesDir.isDirectory()) {
+                    File[] files = resourcesDir.listFiles();
+                    if (files != null) {
+                        for (File f : files) {
+                            if (f.getName().endsWith(".fxml")) {
+                                availableFiles.append("\n- ").append(f.getName());
+                            }
+                        }
+                    }
+                }
+
+                throw new IOException("File FXML tidak ditemukan: " + fxmlPath +
+                        "\nFile yang tersedia:" + availableFiles);
+            }
+
+            // Muat file FXML
             Parent content = FXMLLoader.load(resource);
+
+            // Update UI
             contentArea.getChildren().clear();
             contentArea.getChildren().add(content);
+
+            System.out.println("Berhasil memuat: " + resource);
+
         } catch (IOException e) {
             e.printStackTrace();
-            showError("Gagal memuat konten: " + fxmlPath + "\nError: " + e.getMessage());
+            showError("Gagal memuat: " + fxmlPath + "\n\nError: " + e.getMessage());
         }
     }
 
     private void showError(String message) {
         Label errorLabel = new Label(message);
-        errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 14px; -fx-padding: 20px;");
+        errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 14px; -fx-padding: 20px; -fx-wrap-text: true;");
         contentArea.getChildren().clear();
         contentArea.getChildren().add(errorLabel);
     }
 
     @FXML
     public void initialize() {
+        System.out.println("=== INITIALIZE MenuUtama ===");
+        System.out.println("Working Directory: " + System.getProperty("user.dir"));
+
         submenuKelolaData.setVisible(false);
         submenuKelolaData.setManaged(false);
+
+        submenuLihatTransaksi.setVisible(false);
+        submenuLihatTransaksi.setManaged(false);
 
         setActiveButton(btDashboard);
         updateHeader("Dashboard", ICON_DASHBOARD);
         updateHeaderTitle("Dashboard Admin");
 
         try {
-            loadContent("/LayoutSistemFotocopy/DashboardContent.fxml");
+            loadContent("/css/LayoutSistemFotocopy/DashboardContent.fxml");
         } catch (Exception e) {
             System.err.println("Gagal memuat dashboard default: " + e.getMessage());
             showError("Dashboard tidak tersedia\nSilakan periksa file DashboardContent.fxml");

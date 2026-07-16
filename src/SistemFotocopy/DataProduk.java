@@ -8,12 +8,11 @@ import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
 
 import java.sql.CallableStatement;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.text.NumberFormat;
 import java.util.Locale;
+import Database.DBConnection;
 
 public class DataProduk {
 
@@ -57,7 +56,7 @@ public class DataProduk {
 
     private ObservableList<Produk> listProduk = FXCollections.observableArrayList();
     private ObservableList<Produk> filteredList = FXCollections.observableArrayList();
-    private Connection conn;
+    private DBConnection db = new DBConnection();
 
     private int currentPage = 1;
     private final int rowsPerPage = 10;
@@ -65,18 +64,8 @@ public class DataProduk {
     // Flag untuk mencegah loop saat update text
     private boolean isUpdatingHarga = false;
 
-    private void koneksi() {
-        try {
-            String url = "jdbc:sqlserver://kelompok-5.database.windows.net:1433;database=FotoCopyATK;user=hilmi;password=Kelompok5;trustServerCertificate=true;";
-            conn = DriverManager.getConnection(url);
-        } catch (Exception e) {
-            showAlert(Alert.AlertType.ERROR, "Error Koneksi", "Gagal terhubung ke database: " + e.getMessage());
-        }
-    }
-
     @FXML
     public void initialize() {
-        koneksi();
 
         btnSimpan.setDisable(false);
         btnUbah.setDisable(true);
@@ -436,8 +425,7 @@ public class DataProduk {
     private void generateIdOtomatis() {
         String query = "SELECT MAX(CAST(SUBSTRING(ID_Produk, 4, LEN(ID_Produk)) AS INT)) AS max_angka FROM Produk";
         try {
-            if (conn == null || conn.isClosed()) koneksi();
-            try (PreparedStatement ps = conn.prepareStatement(query);
+            try (PreparedStatement ps = db.getConnection().prepareStatement(query);
                  ResultSet rs = ps.executeQuery()) {
 
                 if (rs.next() && rs.getObject("max_angka") != null) {
@@ -458,9 +446,7 @@ public class DataProduk {
                 "ORDER BY CASE WHEN Status_Barang = 'NonTersedia' THEN 2 ELSE 1 END ASC, ID_Produk ASC";
 
         try {
-            if (conn == null || conn.isClosed()) koneksi();
-
-            try (PreparedStatement ps = conn.prepareStatement(query);
+            try (PreparedStatement ps = db.getConnection().prepareStatement(query);
                  ResultSet rs = ps.executeQuery()) {
 
                 int total = 0, tersedia = 0, tidakTersedia = 0;
@@ -581,9 +567,7 @@ public class DataProduk {
 
         String sqlProcedure = "{CALL sp_TambahProduk(?, ?, ?, ?, ?)}";
         try {
-            if (conn == null || conn.isClosed()) koneksi();
-
-            try (CallableStatement cs = conn.prepareCall(sqlProcedure)) {
+            try (CallableStatement cs = db.getConnection().prepareCall(sqlProcedure)) {
                 cs.setString(1, txtNamaBarang.getText());
                 cs.setString(2, cmbKategoriProduk.getValue());
                 cs.setDouble(3, hilangkanFormatRupiah(txtHargaBarang.getText()));
@@ -638,9 +622,7 @@ public class DataProduk {
 
         String sqlProcedure = "{CALL sp_UpdateProduk(?, ?, ?, ?, ?, ?)}";
         try {
-            if (conn == null || conn.isClosed()) koneksi();
-
-            try (CallableStatement cs = conn.prepareCall(sqlProcedure)) {
+            try (CallableStatement cs = db.getConnection().prepareCall(sqlProcedure)) {
                 cs.setString(1, txtIdBarang.getText());
                 cs.setString(2, txtNamaBarang.getText());
                 cs.setDouble(3, hilangkanFormatRupiah(txtHargaBarang.getText()));
@@ -682,9 +664,7 @@ public class DataProduk {
 
         String sqlProcedure = "{CALL sp_DeleteProdukSoft(?)}";
         try {
-            if (conn == null || conn.isClosed()) koneksi();
-
-            try (CallableStatement cs = conn.prepareCall(sqlProcedure)) {
+            try (CallableStatement cs = db.getConnection().prepareCall(sqlProcedure)) {
                 cs.setString(1, produkTerpilih.getIdProduk());
                 cs.execute();
 

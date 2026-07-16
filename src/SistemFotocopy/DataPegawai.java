@@ -537,7 +537,8 @@ public class DataPegawai {
                 "     WHEN Status_Pegawai = 'NonAktif' THEN 1 " +
                 "     ELSE 2 END, Status_Pegawai, ID_Pegawai";
 
-        try (ResultSet rs = dbConnection.stat.executeQuery(query)) {
+        try (java.sql.Statement st = dbConnection.getConnection().createStatement();
+             ResultSet rs = st.executeQuery(query)) {
             while (rs.next()) {
                 masterData.add(new PegawaiModel(
                         rs.getString("ID_Pegawai"),
@@ -595,7 +596,8 @@ public class DataPegawai {
                 "SUM(CASE WHEN Status_Pegawai = 'NonAktif' THEN 1 ELSE 0 END) AS NonAktif " +
                 "FROM Pegawai";
 
-        try (ResultSet rs = dbConnection.stat.executeQuery(query)) {
+        try (java.sql.Statement st = dbConnection.getConnection().createStatement();
+             ResultSet rs = st.executeQuery(query)) {
             if (rs.next()) {
                 lblTotalPegawai.setText(String.valueOf(rs.getInt("Total")));
                 lblPegawaiAktif.setText(String.valueOf(rs.getInt("Aktif")));

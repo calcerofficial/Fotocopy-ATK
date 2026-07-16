@@ -8,7 +8,7 @@ public class MainApp extends Application {
 
     @Override
     public void start(Stage stage) throws Exception {
-        FXMLLoader loader = new FXMLLoader(getClass().getResource("/LayoutSistemFotocopy/MenuLogin.fxml"));
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("/LayoutSistemFotocopy/MenuUtama.fxml"));
         Parent root = loader.load();
 
         // Mengosongkan angka parameter ukuran agar Scene mengikuti resolusi root FXML/layar
@@ -16,8 +16,8 @@ public class MainApp extends Application {
 
         stage.setTitle("Sistem Fotocopy - Login");
         stage.setScene(scene);
-        stage.setMaximized(true);
-        stage.setResizable(false);
+        stage.setFullScreen(true);
+        stage.setFullScreenExitHint("");
         stage.show();
     }
 

@@ -293,7 +293,8 @@ public class DataMesin {
         String sql = "SELECT ID_Mesin, Nama_Mesin, Merk_Mesin, Status_Mesin " +
                 "FROM Mesin ORDER BY ID_Mesin";
 
-        try (ResultSet rs = db.stat.executeQuery(sql)) {
+        try (java.sql.Statement st = db.getConnection().createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
             while (rs.next()) {
                 masterData.add(new MesinModel(
                         rs.getString("ID_Mesin"),
@@ -351,7 +352,8 @@ public class DataMesin {
                 "WHERE ID_Mesin = '" + idMesin + "' " +
                 "ORDER BY Tanggal_Maintenance_Mesin DESC";
 
-        try (ResultSet rs = db.stat.executeQuery(sql)) {
+        try (java.sql.Statement st = db.getConnection().createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
             while (rs.next()) {
                 riwayatList.add(new RiwayatModel(
                         rs.getString("ID_Mesin"),
@@ -377,7 +379,8 @@ public class DataMesin {
                 "  SUM(CASE WHEN Status_Mesin = 'NonAktif' THEN 1 ELSE 0 END) AS NonAktif " +
                 "FROM Mesin";
 
-        try (ResultSet rs = db.stat.executeQuery(sql)) {
+        try (java.sql.Statement st = db.getConnection().createStatement();
+             ResultSet rs = st.executeQuery(sql)) {
             if (rs.next()) {
                 lblTotalMesin.setText(String.valueOf(rs.getInt("Total")));
                 lblMesinAktif.setText(String.valueOf(rs.getInt("Aktif")));
