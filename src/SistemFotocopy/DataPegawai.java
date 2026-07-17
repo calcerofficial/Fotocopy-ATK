@@ -911,6 +911,9 @@ public class DataPegawai {
             } else if (!nama.matches("^[a-zA-Z\\s]+$")) {
                 pesan.append("- Nama hanya boleh berisi huruf dan spasi.\n");
                 showErrorLabel(lblErrorNama, "Nama hanya boleh berisi huruf dan spasi");
+            } else if (isDataExist("Nama_Pegawai", nama)) { // Cek Duplikat Nama
+                pesan.append("- Nama lengkap sudah terdaftar.\n");
+                showErrorLabel(lblErrorNama, "Nama sudah terdaftar");
             } else {
                 hideErrorLabel(lblErrorNama);
             }
@@ -925,6 +928,9 @@ public class DataPegawai {
             if (!email.matches("^[a-z0-9@._-]+$")) {
                 pesan.append("- Format email tidak valid (hanya huruf kecil, angka, @, ., _, -).\n");
                 showErrorLabel(lblErrorEmail, "Format email tidak valid");
+            } else if (isDataExist("Email", email)) { // Cek Duplikat Email
+                pesan.append("- Email sudah digunakan.\n");
+                showErrorLabel(lblErrorEmail, "Email sudah digunakan");
             } else {
                 hideErrorLabel(lblErrorEmail);
             }
@@ -945,6 +951,9 @@ public class DataPegawai {
             } else if (!telepon.matches("^[0-9]+$")) {
                 pesan.append("- Nomor telepon hanya boleh berisi angka.\n");
                 showErrorLabel(lblErrorTelepon, "Nomor telepon hanya boleh berisi angka");
+            }else if (isDataExist("No_Telepon", telepon)) { // Cek Duplikat No HP
+                pesan.append("- Nomor telepon sudah terdaftar.\n");
+                showErrorLabel(lblErrorTelepon, "Nomor telepon sudah terdaftar");
             } else {
                 hideErrorLabel(lblErrorTelepon);
             }
@@ -966,7 +975,10 @@ public class DataPegawai {
             } else if (!username.matches("^[a-zA-Z]+$")) {
                 pesan.append("- Username HANYA boleh huruf (tanpa angka/simbol).\n");
                 showErrorLabel(lblErrorUsername, "Username HANYA boleh huruf");
-            } else {
+            }else if (isDataExist("Username", username)) { // Cek Duplikat Username
+                pesan.append("- Username sudah dipakai.\n");
+                showErrorLabel(lblErrorUsername, "Username sudah dipakai");
+            }else {
                 hideErrorLabel(lblErrorUsername);
             }
         }
@@ -1012,6 +1024,25 @@ public class DataPegawai {
             return false;
         }
         return true;
+    }
+
+    private boolean isDataExist(String column, String value) {
+        // Kita cek ke DB, tapi ID_Pegawai harus bukan ID yang lagi diedit (atau kosong jika Tambah)
+        String currentId = txtIdPegawai.getText().trim();
+        String query = "SELECT COUNT(*) FROM Pegawai WHERE " + column + " = ? AND ID_Pegawai != ?";
+
+        try (PreparedStatement ps = dbConnection.getConnection().prepareStatement(query)) {
+            ps.setString(1, value);
+            ps.setString(2, currentId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     private boolean isKosong(String value) {
