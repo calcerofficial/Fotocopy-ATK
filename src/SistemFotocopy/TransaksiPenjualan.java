@@ -59,6 +59,16 @@ public class TransaksiPenjualan implements Initializable {
     private int totalProdukTerjual = 0;
     private boolean isUpdating = false;
 
+    // =========================================================
+    // VARIABEL UNTUK MENYIMPAN DATA STRUK
+    // =========================================================
+    private String strukIdPenjualan;
+    private String strukPegawai;
+    private String strukTanggal;
+    private String strukMetode;
+    private double strukTotalHarga;
+    private ObservableList<DetailData> strukDetailList;
+
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     @Override
@@ -75,6 +85,7 @@ public class TransaksiPenjualan implements Initializable {
         cbMetodePembayaran.setValue("Cash");
 
         loadProdukData();
+        loadLayananData();
         setupTableColumns();
         setupMetodePembayaranListener();
         setupValidations();
@@ -140,9 +151,12 @@ public class TransaksiPenjualan implements Initializable {
         return nextId;
     }
 
+    // =========================================================
+    // LOAD PRODUK DATA (BARANG)
+    // =========================================================
     private void loadProdukData() {
         ObservableList<String> produkList = FXCollections.observableArrayList();
-        String query = "SELECT ID_Produk, Nama_Barang FROM Produk WHERE Status_Barang = 'tersedia' AND Stok > 0 ORDER BY Nama_Barang";
+        String query = "SELECT ID_Produk, Nama_Barang FROM Produk WHERE Kategori_Produk = 'barang' AND Status_Barang = 'tersedia' AND Stok > 0 ORDER BY Nama_Barang";
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
@@ -152,6 +166,28 @@ public class TransaksiPenjualan implements Initializable {
         } catch (SQLException e) {
             e.printStackTrace();
             showAlert("Error", "Gagal memuat data produk: " + e.getMessage());
+        }
+    }
+
+    // =========================================================
+    // LOAD LAYANAN DATA
+    // =========================================================
+    private void loadLayananData() {
+        ObservableList<String> layananList = FXCollections.observableArrayList();
+        String query = "SELECT ID_Produk, Nama_Barang FROM Produk WHERE Kategori_Produk = 'layanan' AND Status_Barang = 'tersedia' ORDER BY Nama_Barang";
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
+            while (rs.next()) {
+                layananList.add(rs.getString("ID_Produk") + " - " + rs.getString("Nama_Barang"));
+            }
+            cbNamaLayanan.setItems(layananList);
+
+            if (!layananList.isEmpty()) {
+                cbNamaLayanan.setValue(layananList.get(0));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            showAlert("Error", "Gagal memuat data layanan: " + e.getMessage());
         }
     }
 
@@ -255,11 +291,28 @@ public class TransaksiPenjualan implements Initializable {
         isUpdating = false;
     }
 
+    // =========================================================
+    // TAMBAH ITEM - SUPPORT BARANG & LAYANAN
+    // =========================================================
     private void tambahItem() {
-        if (cbNamaBarang.getValue() == null) {
-            showAlert("Error", "Silakan pilih Nama Barang!");
+        String selectedBarang = cbNamaBarang.getValue();
+        String selectedLayanan = cbNamaLayanan.getValue();
+
+        String selected = null;
+        String idProduk = null;
+        String namaProduk = null;
+
+        if (selectedBarang != null) {
+            selected = selectedBarang;
+        } else if (selectedLayanan != null) {
+            selected = selectedLayanan;
+        } else {
+            showAlert("Error", "Silakan pilih Nama Barang atau Layanan!");
             return;
         }
+
+        idProduk = selected.split(" - ")[0];
+        namaProduk = selected.split(" - ")[1];
 
         String jumlahText = txtJumlah.getText();
         if (jumlahText == null || jumlahText.isEmpty()) {
@@ -273,20 +326,19 @@ public class TransaksiPenjualan implements Initializable {
             return;
         }
 
-        String selected = cbNamaBarang.getValue();
-        String idProduk = selected.split(" - ")[0];
-        String namaProduk = selected.split(" - ")[1];
-
         double harga = getHargaProduk(idProduk);
         if (harga <= 0) {
             showAlert("Error", "Produk tidak valid!");
             return;
         }
 
-        int stok = getStokProduk(idProduk);
-        if (stok < jumlah) {
-            showAlert("Error", "Stok tidak mencukupi! Tersedia: " + stok);
-            return;
+        String kategori = getKategoriProduk(idProduk);
+        if ("barang".equalsIgnoreCase(kategori)) {
+            int stok = getStokProduk(idProduk);
+            if (stok < jumlah) {
+                showAlert("Error", "Stok tidak mencukupi! Tersedia: " + stok);
+                return;
+            }
         }
 
         DetailData data = new DetailData(txtIdPenjualan.getText(), idProduk, namaProduk, jumlah, harga);
@@ -300,6 +352,7 @@ public class TransaksiPenjualan implements Initializable {
         updateTotalHarga();
 
         cbNamaBarang.setValue(null);
+        cbNamaLayanan.setValue(null);
         txtJumlah.clear();
 
         if ("Transfer".equals(cbMetodePembayaran.getValue())) {
@@ -314,6 +367,21 @@ public class TransaksiPenjualan implements Initializable {
         }
 
         showAlert("Sukses", "Item berhasil ditambahkan!");
+    }
+
+    private String getKategoriProduk(String idProduk) {
+        String query = "SELECT Kategori_Produk FROM Produk WHERE ID_Produk = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setString(1, idProduk);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("Kategori_Produk");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 
     private double getHargaProduk(String idProduk) {
@@ -374,7 +442,7 @@ public class TransaksiPenjualan implements Initializable {
     }
 
     // ==========================================
-    // SIMPAN TRANSAKSI - FINAL
+    // SIMPAN TRANSAKSI - DIPERBAIKI
     // ==========================================
     private void simpanTransaksi() {
         if (detailList.isEmpty()) {
@@ -419,6 +487,16 @@ public class TransaksiPenjualan implements Initializable {
             lblErrorUangBayar.setVisible(false);
         }
 
+        // =========================================================
+        // SIMPAN DATA UNTUK STRUK SEBELUM RESET
+        // =========================================================
+        strukIdPenjualan = txtIdPenjualan.getText();
+        strukPegawai = txtIdPegawai.getText();
+        strukTanggal = dpTanggal.getValue().format(FORMATTER);
+        strukMetode = metode;
+        strukTotalHarga = totalHarga;
+        strukDetailList = FXCollections.observableArrayList(detailList);
+
         StringBuilder detailString = new StringBuilder();
         for (DetailData data : detailList) {
             if (detailString.length() > 0) detailString.append("|");
@@ -439,11 +517,10 @@ public class TransaksiPenjualan implements Initializable {
                 cstmt.setDouble(5, uangBayar);
                 cstmt.setString(6, detailString.toString());
 
-                // Eksekusi SP
-                boolean hasResult = cstmt.execute();
+                cstmt.execute();
 
                 // ==========================================
-                // TAMPILKAN SESUAI METODE (SETELAH SP BERHASIL)
+                // TAMPILKAN STRUK (SETELAH SP BERHASIL)
                 // ==========================================
                 if ("Transfer".equals(metode)) {
                     showLoadingAndSuccess();
@@ -463,7 +540,7 @@ public class TransaksiPenjualan implements Initializable {
     }
 
     // ==========================================
-    // SHOW LOADING AND SUCCESS - FINAL
+    // SHOW LOADING AND SUCCESS
     // ==========================================
     private void showLoadingAndSuccess() {
         Stage loadingStage = new Stage();
@@ -488,26 +565,16 @@ public class TransaksiPenjualan implements Initializable {
         loadingStage.setScene(scene);
         loadingStage.show();
 
-        // Tunggu 3 detik lalu tutup loading dan tampilkan struk
         PauseTransition pause = new PauseTransition(Duration.seconds(3));
         pause.setOnFinished(e -> {
             loadingStage.close();
-
-            // Tampilkan alert sukses
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("Sukses");
-            alert.setHeaderText(null);
-            alert.setContentText("✅ Pembayaran Berhasil!");
-            alert.showAndWait();
-
-            // Tampilkan struk
             showStruk();
         });
         pause.play();
     }
 
     // ==========================================
-    // SHOW STRUK - FINAL
+    // SHOW STRUK - MENGGUNAKAN DATA YANG DISIMPAN
     // ==========================================
     private void showStruk() {
         Stage strukStage = new Stage();
@@ -532,35 +599,47 @@ public class TransaksiPenjualan implements Initializable {
         detailBox.setAlignment(Pos.CENTER_LEFT);
         detailBox.setPadding(new Insets(10, 0, 10, 0));
 
-        Label lblId = new Label("ID Nota   : " + txtIdPenjualan.getText());
-        Label lblTanggal = new Label("Tanggal   : " + dpTanggal.getValue().format(FORMATTER));
-        Label lblPegawai = new Label("Kasir     : " + txtIdPegawai.getText());
-        Label lblMetode = new Label("Metode    : " + cbMetodePembayaran.getValue());
+        // =========================================================
+        // PAKAI DATA YANG DISIMPAN, BUKAN DARI FIELD
+        // =========================================================
+        Label lblId = new Label("ID Nota   : " + strukIdPenjualan);
+        Label lblTanggal = new Label("Tanggal   : " + strukTanggal);
+        Label lblPegawai = new Label("Kasir     : " + strukPegawai);
+        Label lblMetode = new Label("Metode    : " + strukMetode);
+        Label lblStatus = new Label("Status    : ✅ LUNAS");
+        lblStatus.setStyle("-fx-text-fill: #16A34A; -fx-font-weight: bold;");
 
-        detailBox.getChildren().addAll(lblId, lblTanggal, lblPegawai, lblMetode);
+        detailBox.getChildren().addAll(lblId, lblTanggal, lblPegawai, lblMetode, lblStatus);
 
         Separator sep2 = new Separator();
 
         VBox itemBox = new VBox(3);
         itemBox.setAlignment(Pos.CENTER_LEFT);
+        itemBox.setPadding(new Insets(10, 0, 10, 0));
 
-        for (DetailData data : detailList) {
-            Label item = new Label(data.getJumlah() + "x " + data.getNamaBarang() + " @ " + formatRupiah((long) data.getHarga()));
-            itemBox.getChildren().add(item);
+        // =========================================================
+        // PAKAI DETAIL LIST YANG DISIMPAN
+        // =========================================================
+        if (strukDetailList != null) {
+            for (DetailData data : strukDetailList) {
+                Label item = new Label(data.getJumlah() + "x " + data.getNamaBarang() + " @ " + formatRupiah((long) data.getHarga()));
+                itemBox.getChildren().add(item);
+            }
         }
 
         Separator sep3 = new Separator();
 
-        Label total = new Label("Total: " + formatRupiah((long) totalHarga));
+        Label total = new Label("Total: " + formatRupiah((long) strukTotalHarga));
         total.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        total.setStyle("-fx-text-fill: #1E293B;");
 
         Button btnTutup = new Button("Tutup");
-        btnTutup.setStyle("-fx-background-color: #00357F; -fx-text-fill: white; -fx-padding: 10 30; -fx-cursor: hand;");
+        btnTutup.setStyle("-fx-background-color: #00357F; -fx-text-fill: white; -fx-padding: 10 30; -fx-cursor: hand; -fx-background-radius: 5;");
         btnTutup.setOnAction(e -> strukStage.close());
 
         vbox.getChildren().addAll(title, subTitle, separator, detailBox, sep2, itemBox, sep3, total, btnTutup);
 
-        Scene scene = new Scene(vbox, 400, 550);
+        Scene scene = new Scene(vbox, 450, 600);
         strukStage.setScene(scene);
         strukStage.show();
     }
@@ -576,6 +655,7 @@ public class TransaksiPenjualan implements Initializable {
         txtUangBayar.clear();
         txtKembalian.clear();
         cbNamaBarang.setValue(null);
+        cbNamaLayanan.setValue(null);
         cbMetodePembayaran.setValue("Cash");
         txtUangBayar.setDisable(false);
         txtKembalian.setDisable(false);
@@ -583,6 +663,8 @@ public class TransaksiPenjualan implements Initializable {
             lblErrorUangBayar.setVisible(false);
         }
         generateIdPenjualan();
+        loadProdukData();
+        loadLayananData();
     }
 
     private void showAlert(String title, String message) {

@@ -165,7 +165,7 @@ public class MenuUtama {
     @FXML
     void OnActionPembelianStock(ActionEvent event) {
         setActiveButton(btPembelianStock);
-        loadContent("/css/LayoutSistemFotocopy/PembelianStock.fxml");
+        loadContent("/css/LayoutSistemFotocopy/TransaksiPembelianStock.fxml");
         updateHeader("Pembelian Stock", ICON_STOCK);
         updateHeaderTitle("Transaksi - Pembelian Stock");
     }
@@ -205,7 +205,7 @@ public class MenuUtama {
     @FXML
     void OnActionTransaksiPenjualan(ActionEvent event) {
         setActiveButton(btLihatTransaksi);
-        loadContent("/css/LayoutSistemFotocopy/TransaksiPenjualan.fxml");
+        loadContent("/css/LayoutSistemFotocopy/DataPenjualan.fxml");
         updateHeader("Transaksi Penjualan", "M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z");
         updateHeaderTitle("Lihat Transaksi - Penjualan");
     }
@@ -213,7 +213,7 @@ public class MenuUtama {
     @FXML
     void OnActionTransaksiPembelianStock(ActionEvent event) {
         setActiveButton(btLihatTransaksi);
-        loadContent("/css/LayoutSistemFotocopy/TransaksiPembelianStock.fxml");
+        loadContent("/css/LayoutSistemFotocopy/DataPembelianStock.fxml");
         updateHeader("Transaksi Pembelian Stock", "M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z");
         updateHeaderTitle("Lihat Transaksi - Pembelian Stock");
     }

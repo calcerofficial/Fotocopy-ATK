@@ -130,15 +130,15 @@
                                             <!-- TableView -->
                                             <TableView fx:id="tablePembelian" prefHeight="400.0" styleClass="mesin-table" VBox.vgrow="ALWAYS">
                                                 <columns>
-                                                    <TableColumn fx:id="colIdPembelian" prefWidth="100.0" text="ID Penjualan" />
+                                                    <TableColumn fx:id="colIdPenjualan" prefWidth="100.0" text="ID Penjualan" />
                                                     <TableColumn fx:id="colPegawai" prefWidth="110.0" text="ID Pegawai" />
-                                                    <TableColumn fx:id="colSupplier" prefWidth="120.0" text=" Tanggal Penjualan" />
-                                                    <TableColumn fx:id="colTanggal" prefWidth="120.0" text="Total Harga " />
+                                                    <TableColumn fx:id="colTanggal" prefWidth="120.0" text=" Tanggal Penjualan" />
+                                                    <TableColumn fx:id="colTotal" prefWidth="120.0" text="Total Harga " />
                                                     <TableColumn fx:id="colMetode" prefWidth="120.0" text="Metode" />
-                                                    <TableColumn fx:id="colTotal" prefWidth="120.0" text="Uang Bayar" />
-                                                    <TableColumn fx:id="colStatus" prefWidth="110.0" text="Kembalian" />
-                                       <TableColumn fx:id="colStatus1" prefWidth="110.0" text="Status" />
-                                       <TableColumn fx:id="colStatus11" prefWidth="110.0" text="Aksi" />
+                                                    <TableColumn fx:id="colUangbayar" prefWidth="120.0" text="Uang Bayar" />
+                                                    <TableColumn fx:id="colKembalian" prefWidth="110.0" text="Kembalian" />
+                                       <TableColumn fx:id="colStatus" prefWidth="110.0" text="Status" />
+                                       <TableColumn fx:id="colAksi" prefWidth="110.0" text="Aksi" />
                                                 </columns>
                                                 <columnResizePolicy>
                                                     <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />

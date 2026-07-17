@@ -25,6 +25,46 @@
     -fx-text-fill: #BA1A1A;
 }
 
+/* ===== BarChart - perjelas semua teks ===== */
+
+.chart-title {
+    -fx-text-fill: #1E293B;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+}
+
+/* Label angka di sumbu Y (0, 5.000, 10.000, dst) */
+.axis-tick-mark, .axis-minor-tick-mark {
+    -fx-stroke: #94A3B8;
+}
+
+.axis {
+    -fx-tick-label-fill: #475569;
+    -fx-font-size: 12px;
+}
+
+/* Garis sumbu X & Y */
+.axis-label {
+    -fx-text-fill: #1E293B;
+}
+
+/* Garis horizontal bantu (grid) biar lebih soft, opsional */
+.chart-vertical-grid-lines {
+    -fx-stroke: transparent;
+}
+.chart-horizontal-grid-lines {
+    -fx-stroke: #E2E8F0;
+}
+
+.chart-plot-background {
+    -fx-background-color: transparent;
+}
+
+/* Label kategori bulan (JAN, FEB, dst) di sumbu X */
+.chart-content .axis-tick-mark {
+    -fx-stroke: #94A3B8;
+}
+
 /* --- BADGES --- */
 .badge-green {
     -fx-font-weight: bold;

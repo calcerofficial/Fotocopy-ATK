@@ -115,7 +115,7 @@ public class MenuUtamaKaryawan implements Initializable {
     @FXML
     void OnActionDataBarang(ActionEvent event) {
         setActiveButton(btDataBarang);
-        loadContent("DataProduk.fxml");
+        loadContent("LihatBarang.fxml");
         updateHeader("Data Barang", ICON_DATA_BARANG);
         updateHeaderTitle("Data Barang");
     }
