@@ -101,6 +101,9 @@ public class DataSupplier {
     @FXML
     private Label lblErrorAlamat;
 
+    @FXML
+    private Label lblInfoEmail;
+
     private DBConnection db = new DBConnection();
 
     private int currentPage = 1;
@@ -201,6 +204,10 @@ public class DataSupplier {
 
     @FXML
     public void initialize() {
+        // Tombol Ubah dan Hapus mati saat form pertama kali dimuat
+        btnUbah.setDisable(true);
+        btnHapus.setDisable(true);
+
         // Menghubungkan kolom tabel dengan variabel di class Supplier
         colIdSupplier.setCellValueFactory(new PropertyValueFactory<>("id"));
         colNamaSupplier.setCellValueFactory(new PropertyValueFactory<>("nama"));
@@ -215,25 +222,57 @@ public class DataSupplier {
 
         setupInputValidation();
 
-        txtCari.textProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue == null || newValue.isEmpty()) {
-                loadData();
+        // 1. Logic visibility label informasi (muncul kalau belum ada @)
+        txtEmail.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal.contains("@") && !newVal.isEmpty()) {
+                lblInfoEmail.setVisible(true);
             } else {
-                searchData(newValue);
+                lblInfoEmail.setVisible(false);
             }
         });
 
-        // Listener untuk mengisi form saat baris tabel diklik
-        tblSupplier.getSelectionModel().selectedItemProperty().addListener((observable, oldValue, newValue) -> {
-            if (newValue != null) {
-                txtIdSupplier.setText(newValue.getId());
-                txtNamaSupplier.setText(newValue.getNama());
-                txtAlamatLengkap.setText(newValue.getAlamat());
-                txtNomorTelepon.setText(newValue.getTelepon());
-                txtEmail.setText(newValue.getEmail());
+        // 2. Logic auto-fill @gmail.com saat pindah fokus (TAB/Klik lain)
+        txtEmail.focusedProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal) { // Saat fokus ilang
+                String email = txtEmail.getText().trim();
+                if (!email.isEmpty() && !email.contains("@")) {
+                    txtEmail.setText(email + "@gmail.com");
+                    lblInfoEmail.setVisible(false);
+                }
+            }
+        });
 
-                btnSimpan.setDisable(true);
 
+
+        // Listener untuk textProperty
+        txtCari.textProperty().addListener(new javafx.beans.value.ChangeListener<String>() {
+            @Override
+            public void changed(javafx.beans.value.ObservableValue<? extends String> observable, String oldValue, String newValue) {
+                if (newValue == null || newValue.isEmpty()) {
+                    loadData();
+                } else {
+                    searchData(newValue);
+                }
+            }
+        });
+
+        // Listener untuk TableView
+        tblSupplier.getSelectionModel().selectedItemProperty().addListener(new javafx.beans.value.ChangeListener<Supplier>() {
+            @Override
+            public void changed(javafx.beans.value.ObservableValue<? extends Supplier> observable, Supplier oldValue, Supplier newValue) {
+                if (newValue != null) {
+                    txtIdSupplier.setText(newValue.getId());
+                    txtNamaSupplier.setText(newValue.getNama());
+                    txtAlamatLengkap.setText(newValue.getAlamat());
+                    txtNomorTelepon.setText(newValue.getTelepon());
+                    txtEmail.setText(newValue.getEmail());
+
+                    btnSimpan.setDisable(true);
+                    btnUbah.setDisable(false);
+                    btnHapus.setDisable(false);
+                } else {
+                    handleBatal(null);
+                }
             }
         });
     }
@@ -264,10 +303,13 @@ public class DataSupplier {
         txtIdSupplier.clear();
         txtNamaSupplier.clear();
         txtEmail.clear();
+        lblInfoEmail.setVisible(false);
         txtNomorTelepon.clear();
         txtAlamatLengkap.clear();
 
         btnSimpan.setDisable(false);
+        btnUbah.setDisable(true);
+        btnHapus.setDisable(true);
 
         generateIdOtomatis();
         loadData();
@@ -299,6 +341,15 @@ public class DataSupplier {
 
     @FXML
     void handleSimpanData(ActionEvent event) {
+        // 1. CEK ERROR DULU
+        if (checkInputErrors()) {
+            showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Mohon perbaiki input yang ditandai merah");
+            return;
+        }
+
+        // 2. CEK FORMAT & DUPLIKAT
+        if (!validasiInput()) return;
+
         // validasi data gaboleh sama
         String queryCek = "SELECT COUNT(*) FROM Supplier WHERE Nama_Supplier = ? OR Email = ? OR No_Telepon = ?";
         try (java.sql.PreparedStatement ps = db.getConnection().prepareStatement(queryCek)) {
@@ -327,7 +378,6 @@ public class DataSupplier {
             cs.setString(4, txtEmail.getText());
 
             cs.execute();
-
             loadData();
             handleBatal(event);
             updateDashboard();
@@ -380,31 +430,45 @@ public class DataSupplier {
         ObservableList<Supplier> list = FXCollections.observableArrayList();
 
         String query = "SELECT * FROM Supplier WHERE " +
-                "ID_Supplier LIKE '%" + keyword + "%' OR " +
-                "Nama_Supplier LIKE '%" + keyword + "%' OR " +
-                "Alamat LIKE '%" + keyword + "%' OR " +
-                "Email LIKE '%" + keyword + "%' OR " +
-                "No_Telepon LIKE '%" + keyword + "%' OR " +
-                "Status_Supplier LIKE '%" + keyword + "%'" +
+                "ID_Supplier LIKE ? OR Nama_Supplier LIKE ? OR Alamat LIKE ? OR " +
+                "Email LIKE ? OR No_Telepon LIKE ? OR Status_Supplier LIKE ? " +
                 "ORDER BY (CASE WHEN Status_Supplier = 'NonAktif' THEN 1 ELSE 0 END) ASC, ID_Supplier ASC";
 
-        try (Statement st = db.getConnection().createStatement();
-             ResultSet rs = st.executeQuery(query)) {
+        try (java.sql.PreparedStatement ps = db.getConnection().prepareStatement(query)) {
+            // Bungkus keyword dengan %
+            String param = "%" + keyword + "%";
 
-            while (rs.next()) {
-                list.add(new Supplier(
-                        rs.getString("ID_Supplier"),
-                        rs.getString("Nama_Supplier"),
-                        rs.getString("Alamat"),
-                        rs.getString("No_Telepon"),
-                        rs.getString("Email"),
-                        rs.getString("Status_Supplier")
-                ));
+            ps.setString(1, param);
+            ps.setString(2, param);
+            ps.setString(3, param);
+            ps.setString(4, param);
+            ps.setString(5, param);
+            ps.setString(6, param);
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(new Supplier(
+                            rs.getString("ID_Supplier"),
+                            rs.getString("Nama_Supplier"),
+                            rs.getString("Alamat"),
+                            rs.getString("No_Telepon"),
+                            rs.getString("Email"),
+                            rs.getString("Status_Supplier")
+                    ));
+                }
+                tblSupplier.setItems(list);
             }
-            tblSupplier.setItems(list);
         } catch (SQLException e) {
             System.out.println("Gagal mencari data: " + e.getMessage());
         }
+    }
+
+    private boolean checkInputErrors() {
+        // Kalau salah satu aja label errornya visible, return true (berarti ada error)
+        return lblErrorNama.isVisible() ||
+                lblErrorEmail.isVisible() ||
+                lblErrorTelepon.isVisible() ||
+                lblErrorAlamat.isVisible();
     }
 
     // validasi duplicat data
@@ -447,6 +511,9 @@ public class DataSupplier {
         } else if (!txtNamaSupplier.getText().trim().matches("^[a-zA-Z\\s]+$")) {
             pesan.append("- Nama hanya boleh huruf.\n");
             showErrorLabel(lblErrorNama, "Hanya huruf");
+        } else if (isDataDuplicate(txtNamaSupplier.getText().trim(), null, null, txtIdSupplier.getText())) {
+            pesan.append("- Nama supplier sudah terdaftar.\n");
+            showErrorLabel(lblErrorNama, "Nama sudah terdaftar");
         } else {
             hideErrorLabel(lblErrorNama);
         }
@@ -458,6 +525,9 @@ public class DataSupplier {
         } else if (!txtEmail.getText().trim().matches("^[a-z0-9@._-]+$")) {
             pesan.append("- Format email tidak valid.\n");
             showErrorLabel(lblErrorEmail, "Format salah");
+        } else if (isDataDuplicate(null, txtEmail.getText().trim(), null, txtIdSupplier.getText())) {
+            pesan.append("- Email sudah digunakan.\n");
+            showErrorLabel(lblErrorEmail, "Email sudah digunakan");
         } else {
             hideErrorLabel(lblErrorEmail);
         }
@@ -470,6 +540,9 @@ public class DataSupplier {
         } else if (!telp.startsWith("08") || telp.length() < 10 || telp.length() > 13 || !telp.matches("^[0-9]+$")) {
             pesan.append("- Nomor telepon harus diawali 08 dan 10-13 digit angka.\n");
             showErrorLabel(lblErrorTelepon, "Format salah");
+        } else if (isDataDuplicate(null, null, txtNomorTelepon.getText().trim(), txtIdSupplier.getText())) {
+            pesan.append("- Nomor telepon sudah terdaftar.\n");
+            showErrorLabel(lblErrorTelepon, "Nomor sudah terdaftar");
         } else {
             hideErrorLabel(lblErrorTelepon);
         }
@@ -478,6 +551,9 @@ public class DataSupplier {
         if (isKosong(txtAlamatLengkap.getText())) {
             pesan.append("- Alamat wajib diisi.\n");
             showErrorLabel(lblErrorAlamat, "Wajib diisi");
+        } else if (!txtAlamatLengkap.getText().trim().matches("^[a-zA-Z0-9\\s.]+$")) {
+            pesan.append("- Alamat hanya boleh huruf, angka, spasi, dan titik.\n");
+            showErrorLabel(lblErrorAlamat, "Alamat tidak valid");
         } else {
             hideErrorLabel(lblErrorAlamat);
         }
@@ -599,18 +675,21 @@ public class DataSupplier {
     }
 
     //untuk menampilkan pesan error di Label
-    private void showErrorLabel(Label label, String pesan) {
-        if (label != null) {
-            label.setText(pesan);
-            label.setVisible(true);
-            label.setStyle("-fx-text-fill: red; -fx-font-size: 10px;");
+    private void showErrorLabel(Label errorLabel, String message) {
+        if (errorLabel != null) {
+            errorLabel.setText("⚠ " + message);
+            errorLabel.setVisible(true);
+            errorLabel.setManaged(true);
+            errorLabel.setStyle("-fx-text-fill: #ff4444; -fx-font-size: 11px; -fx-padding: 2 0 0 5; -fx-font-weight: bold;");
         }
     }
 
     // untuk menyembunyikan label error saat input benar
-    private void hideErrorLabel(Label label) {
-        if (label != null) {
-            label.setVisible(false);
+    private void hideErrorLabel(Label errorLabel) {
+        if (errorLabel != null) {
+            errorLabel.setVisible(false);
+            errorLabel.setManaged(false);
+            errorLabel.setText("");
         }
     }
 }

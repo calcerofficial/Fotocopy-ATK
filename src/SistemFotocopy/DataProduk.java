@@ -103,8 +103,14 @@ public class DataProduk {
         // =========================================================
         setupInputValidation();
 
-        // LISTENER KATEGORI
+        // LISTENER KATEGORI - VERSI FINAL
         cmbKategoriProduk.getSelectionModel().selectedItemProperty().addListener((options, oldValue, newValue) -> {
+            // Reset dulu semua style merah sebelum ngapa-ngapain
+            txtStockBarang.setStyle(null);
+            txtMerk.setStyle(null);
+            hideErrorLabel(lblErrorStock);
+            hideErrorLabel(lblErrorMerk);
+
             if (newValue != null && tblProduk.getSelectionModel().getSelectedItem() == null) {
                 generateIdOtomatis();
                 cmbStatus.setValue("Tersedia");
@@ -116,14 +122,13 @@ public class DataProduk {
                     txtStockBarang.setDisable(true);
                     txtMerk.setDisable(true);
                 } else {
-                    txtStockBarang.clear();
-                    txtMerk.clear();
+                    if ("-".equals(txtStockBarang.getText())) txtStockBarang.clear();
+                    if ("-".equals(txtMerk.getText())) txtMerk.clear();
                     txtStockBarang.setDisable(false);
                     txtMerk.setDisable(false);
                 }
             }
         });
-
         loadDataProduk();
 
         // LISTENER KLIK TABEL
@@ -164,6 +169,25 @@ public class DataProduk {
         txtCari.textProperty().addListener((observable, oldValue, newValue) -> {
             cariDataProduk(newValue);
         });
+    }
+
+    // =========================================================
+    // VALIDASI Duplikat nama
+    // =========================================================
+    private boolean isNamaProdukDuplikat(String nama, String idKecuali) {
+        String query = "SELECT COUNT(*) FROM Produk WHERE Nama_Barang = ? AND ID_Produk != ?";
+        try (PreparedStatement ps = db.getConnection().prepareStatement(query)) {
+            ps.setString(1, nama);
+            ps.setString(2, idKecuali);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (Exception e) {
+            System.out.println("Error cek duplikat: " + e.getMessage());
+        }
+        return false;
     }
 
     // =========================================================
@@ -257,6 +281,12 @@ public class DataProduk {
 
         // 3. STOCK - Hanya angka, minimal 10
         txtStockBarang.textProperty().addListener((observable, oldValue, newValue) -> {
+            if ("Layanan".equalsIgnoreCase(cmbKategoriProduk.getValue())) {
+                txtStockBarang.setStyle(null);
+                hideErrorLabel(lblErrorStock);
+                return;
+            }
+
             if (newValue == null || newValue.isEmpty()) {
                 txtStockBarang.setStyle(null);
                 hideErrorLabel(lblErrorStock);
@@ -303,6 +333,11 @@ public class DataProduk {
 
         // 4. MERK - Hanya huruf, angka, dan spasi (TIDAK BOLEH SIMBOL)
         TextFormatter<String> merkFormatter = new TextFormatter<>(change -> {
+            if (txtMerk.isDisabled() || "Layanan".equalsIgnoreCase(cmbKategoriProduk.getValue())) {
+                txtMerk.setStyle(null);
+                return change;
+            }
+
             String newText = change.getControlNewText();
             if (newText.isEmpty()) {
                 txtMerk.setStyle(null);
@@ -314,6 +349,7 @@ public class DataProduk {
                 return null;
             }
             txtMerk.setStyle(null);
+            if (lblErrorMerk != null) hideErrorLabel(lblErrorMerk);
             return change;
         });
         txtMerk.setTextFormatter(merkFormatter);
@@ -563,6 +599,13 @@ public class DataProduk {
                 showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Merk wajib diisi");
                 return;
             }
+
+            if (isNamaProdukDuplikat(txtNamaBarang.getText().trim(), "")) {
+                showErrorLabel(lblErrorNama, "Nama produk sudah terdaftar!");
+                showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Nama produk sudah terdaftar.");
+                return;
+            }
+
         }
 
         String sqlProcedure = "{CALL sp_TambahProduk(?, ?, ?, ?, ?)}";
@@ -607,6 +650,12 @@ public class DataProduk {
         // Validasi input
         if (checkInputErrors()) {
             showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Mohon perbaiki input yang ditandai merah");
+            return;
+        }
+
+        if (isNamaProdukDuplikat(txtNamaBarang.getText().trim(), txtIdBarang.getText().trim())) {
+            showErrorLabel(lblErrorNama, "Nama produk sudah terdaftar di data lain!");
+            showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Nama produk sudah digunakan oleh produk lain.");
             return;
         }
 

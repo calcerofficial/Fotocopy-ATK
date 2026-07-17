@@ -61,6 +61,7 @@ public class DataPegawai {
     @FXML private TableColumn<PegawaiModel, String> colStatus;
     @FXML private TextField txtCari;
     @FXML private Label lblInfoData;
+    @FXML private Label lblInfoEmail;
     private enum Mode { TAMBAH, UBAH }
     private Mode mode = Mode.TAMBAH;
 
@@ -90,6 +91,32 @@ public class DataPegawai {
     // =========================================================
     @FXML
     public void initialize() {
+        // Tambahin ini di method initialize()
+        txtEmail.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal.contains("@") && !newVal.isEmpty()) {
+                // PAS MAU NAMPILIN
+                lblInfoEmail.setVisible(true);
+                lblInfoEmail.setManaged(true);
+            } else {
+                // PAS MAU NYEMBUNYIIN
+                lblInfoEmail.setVisible(false);
+                lblInfoEmail.setManaged(false);
+            }
+        });
+
+        txtEmail.focusedProperty().addListener((obs, oldVal, newVal) -> {
+                    if (!newVal) { // Saat fokus hilang (user pindah ke field lain)
+                        String email = txtEmail.getText().trim();
+                        if (!email.isEmpty() && !email.contains("@")) {
+                            txtEmail.setText(email + "@gmail.com");
+
+                            // Setelah diisi otomatis, labelnya sembunyiin
+                            lblInfoEmail.setVisible(false);
+                            lblInfoEmail.setManaged(false);
+                        }
+                    }
+        });
+
         setupTableColumns();
         setupSearchListener();
         setupRowSelectionListener();
@@ -799,6 +826,11 @@ public class DataPegawai {
     @FXML
     void handleBatal(ActionEvent event) {
         resetForm();
+        if (lblInfoEmail != null) {
+            lblInfoEmail.setVisible(false);
+        }
+
+        btnSimpan.setDisable(false);
         btnUbah.setDisable(true);
         btnHapus.setDisable(true);
     }
@@ -809,6 +841,7 @@ public class DataPegawai {
         txtIdPegawai.clear();
         txtNamaLengkap.clear();
         txtEmail.clear();
+        if (lblInfoEmail != null) lblInfoEmail.setVisible(false);
         txtNomorTelepon.clear();
         txtAlamatLengkap.clear();
         txtUsername.clear();
