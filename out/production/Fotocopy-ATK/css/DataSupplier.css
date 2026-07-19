@@ -1,0 +1,415 @@
+/* =========================================================
+   DataSupplier.css
+   Styling untuk halaman Data Supplier - SistemFotocopy
+   Palet warna mengikuti desain: navy #002F6B / #003366,
+   abu border #C3C6D3, background #F8F9FB
+   ========================================================= */
+
+.root-bg {
+    -fx-background-color: #F8F9FB;
+}
+
+.main-scroll {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+}
+
+.content-wrapper {
+    -fx-background-color: transparent;
+}
+
+/* ===================== HEADER CARD ===================== */
+
+.card-panel {
+    -fx-background-color: white;
+    -fx-background-radius: 8;
+    -fx-border-color: #C3C6D3;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+    -fx-padding: 24 24 32 24;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 4, 0, 0, 1);
+}
+
+.page-title {
+    -fx-font-family: "Hanken Grotesk";
+    -fx-font-size: 32px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #002F6B;
+}
+
+/* ===================== STAT CARDS ===================== */
+
+.stat-card {
+    -fx-background-color: white;
+    -fx-background-radius: 4;
+    -fx-border-color: #C3C6D3;
+    -fx-border-radius: 4;
+    -fx-border-width: 1;
+    -fx-padding: 24;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 8, 0, 0, 2);
+}
+
+.stat-label {
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 12px;
+    -fx-font-weight: 500;
+    -fx-text-fill: #434751;
+}
+
+.stat-value {
+    -fx-font-family: "Hanken Grotesk";
+    -fx-font-size: 24px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #002F6B;
+}
+
+.stat-value-dark {
+    -fx-font-family: "Hanken Grotesk";
+    -fx-font-size: 24px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #151C27;
+}
+
+.stat-icon {
+    -fx-font-size: 20px;
+    -fx-text-fill: #002F6B;
+}
+
+.stat-icon-muted {
+    -fx-font-size: 20px;
+    -fx-text-fill: #737780;
+}
+
+/* ===================== FORM PANEL ===================== */
+
+.form-panel {
+    -fx-background-color: white;
+    -fx-background-radius: 12;
+    -fx-border-color: #C3C6D1;
+    -fx-border-radius: 12;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 4, 0, 0, 1);
+}
+
+.field-label {
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 11px;
+    -fx-font-weight: 500;
+    -fx-text-fill: #43474F;
+}
+
+.field-hint {
+    -fx-font-family: "Hanken Grotesk";
+    -fx-font-size: 10px;
+    -fx-font-style: italic;
+    -fx-text-fill: #43474F;
+}
+
+.text-field,
+.text-area {
+    -fx-font-family: "Hanken Grotesk";
+    -fx-font-size: 14px;
+    -fx-text-fill: #191C1D;
+    -fx-prompt-text-fill: #6B7280;
+    -fx-background-color: white;
+    -fx-background-radius: 4;
+    -fx-border-color: #C3C6D1;
+    -fx-border-radius: 4;
+    -fx-border-width: 1;
+    -fx-padding: 13 16 13 16;
+}
+
+.text-field:focused,
+.text-area:focused {
+    -fx-border-color: #002F6B;
+    -fx-border-width: 1.5;
+}
+
+.text-field-disabled {
+    -fx-font-family: "Hanken Grotesk";
+    -fx-font-size: 14px;
+    -fx-background-color: #EDEEEF;
+    -fx-background-radius: 4;
+    -fx-border-color: #C3C6D1;
+    -fx-border-radius: 4;
+    -fx-border-width: 1;
+    -fx-padding: 12 16 12 16;
+    -fx-opacity: 1;
+}
+
+.text-area .content {
+    -fx-background-color: white;
+    -fx-background-radius: 4;
+}
+
+/* ===================== TOMBOL AKSI ===================== */
+
+.btn-primary {
+    -fx-background-color: #003366;
+    -fx-background-radius: 4;
+    -fx-text-fill: white;
+    -fx-font-family: "Hanken Grotesk";
+    -fx-font-size: 16px;
+    -fx-font-weight: 600;
+    -fx-padding: 10 32 10 32;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.10), 6, 0, 0, 2);
+}
+
+.btn-primary:hover {
+    -fx-background-color: #002850;
+}
+
+.btn-danger {
+    -fx-background-color: #FFDAD6;
+    -fx-background-radius: 4;
+    -fx-text-fill: #BA1A1A;
+    -fx-font-family: "Hanken Grotesk";
+    -fx-font-size: 16px;
+    -fx-font-weight: 600;
+    -fx-padding: 10 32 10 32;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.10), 6, 0, 0, 2);
+}
+
+.btn-danger:hover {
+    -fx-background-color: #FFC7C2;
+}
+
+.search-field {
+    -fx-font-family: "Roboto";
+    -fx-font-size: 12px;
+    -fx-text-fill: #737783;
+    -fx-prompt-text-fill: derive(#737783, 40%);
+    -fx-background-color: white;
+    -fx-background-radius: 4;
+    -fx-border-color: #C3C6D3;
+    -fx-border-radius: 4;
+    -fx-border-width: 1;
+    -fx-padding: 6 12 6 32;
+    -fx-pref-width: 303px;
+    -fx-pref-height: 31px;
+}
+
+/* ===================== TABEL DATA ===================== */
+
+.table-panel {
+    -fx-background-color: white;
+    -fx-background-radius: 4;
+    -fx-border-color: #C3C6D3;
+    -fx-border-radius: 4;
+    -fx-border-width: 1;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 8, 0, 0, 2);
+}
+
+.table-pegawai {
+    -fx-background-color: transparent;
+    -fx-border-width: 0;
+    -fx-min-height: 220px;
+}
+
+.table-pegawai .column-header-background {
+    -fx-background-color: #F0F3FF;
+    -fx-background-radius: 4 4 0 0;
+}
+
+.table-pegawai .column-header,
+.table-pegawai .filler {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent #C3C6D3 transparent;
+    -fx-border-width: 0 0 1 0;
+}
+
+.table-pegawai .column-header .label {
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 12px;
+    -fx-font-weight: 500;
+    -fx-text-fill: #434751;
+    -fx-alignment: CENTER-LEFT;
+}
+
+.table-pegawai .table-row-cell {
+    -fx-background-color: white;
+    -fx-border-color: transparent transparent #C3C6D3 transparent;
+    -fx-border-width: 0 0 1 0;
+    -fx-table-cell-border-color: transparent;
+}
+
+.table-pegawai .table-row-cell:odd {
+    -fx-background-color: #FBFBFC;
+}
+
+.table-pegawai .table-row-cell:selected {
+    -fx-background-color: #E7ECFA;
+}
+
+.table-pegawai .table-cell {
+    -fx-font-family: "Hanken Grotesk";
+    -fx-font-size: 13px;
+    -fx-text-fill: #191C1D;
+    -fx-padding: 8 16 8 16;
+    -fx-alignment: CENTER-LEFT;
+}
+
+.table-pegawai .placeholder .label {
+    -fx-font-family: "Hanken Grotesk";
+    -fx-text-fill: #737780;
+}
+
+/* ===================== PAGINASI ===================== */
+
+.pagination-bar {
+    -fx-background-color: #F0F3FF;
+    -fx-background-radius: 0 0 4 4;
+    -fx-padding: 16 24 16 24;
+}
+
+.pagination-info {
+    -fx-font-family: "Hanken Grotesk";
+    -fx-font-size: 14px;
+    -fx-text-fill: #737780;
+}
+
+.pagination-btn {
+    -fx-background-color: #F8F9FF;
+    -fx-background-radius: 2;
+    -fx-border-color: #C3C6D1;
+    -fx-border-radius: 2;
+    -fx-border-width: 1;
+    -fx-text-fill: #0D1C2E;
+    -fx-font-family: "Hanken Grotesk";
+    -fx-font-size: 14px;
+    -fx-min-width: 32px;
+    -fx-min-height: 32px;
+    -fx-cursor: hand;
+}
+
+.pagination-btn:hover {
+    -fx-background-color: #EAEEFF;
+}
+
+.pagination-btn-active {
+    -fx-background-color: #001E40;
+    -fx-background-radius: 2;
+    -fx-text-fill: white;
+    -fx-font-family: "Hanken Grotesk";
+    -fx-font-size: 14px;
+    -fx-font-weight: 700;
+    -fx-min-width: 32px;
+    -fx-min-height: 32px;
+}
+
+/* ===================== FOOTER ===================== */
+
+.footer-panel {
+    -fx-padding: 16 0 0 0;
+    -fx-border-color: #C3C6D3 transparent transparent transparent;
+    -fx-border-width: 1 0 0 0;
+}
+
+.footer-copyright {
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 10px;
+    -fx-font-weight: 500;
+    -fx-text-fill: #737783;
+}
+
+.footer-link {
+    -fx-font-family: "JetBrains Mono";
+    -fx-font-size: 10px;
+    -fx-text-fill: #737783;
+    -fx-cursor: hand;
+}
+
+.footer-link:hover {
+    -fx-underline: true;
+    -fx-text-fill: #002F6B;
+}
+
+/* ===================== COMBOBOX STYLING ===================== */
+.combo-box {
+    -fx-background-radius: 4;
+    -fx-border-radius: 4;
+    -fx-background-color: white; /* Default background putih */
+    -fx-border-color: #C3C6D1;
+    -fx-border-width: 1;
+}
+
+/* Mengatur warna teks normal saat tidak di-disable */
+.combo-box .list-cell {
+    -fx-text-fill: #191C1D;
+    -fx-font-family: "Hanken Grotesk";
+    -fx-font-size: 14px;
+    -fx-padding: 3 0 3 5; /* Sesuaikan agar pas */
+}
+
+/* Styling saat ComboBox di-disable (JADI ABU-ABU) */
+.combo-box:disabled {
+    -fx-opacity: 1;
+    -fx-background-color: #EDEEEF; /* <-- INI WARNA ABU-ABUnya */
+    -fx-border-color: #C3C6D1;
+}
+
+/* Memaksa warna teks tetap hitam meski komponen di-disable */
+.combo-box:disabled > .list-cell {
+    -fx-text-fill: #191C1D !important;
+    -fx-opacity: 1 !important;
+    -fx-background-color: transparent; /* Biar background dari parent yang tampil */
+}
+
+/* Styling arrow button agar tidak ikut terlihat pudar */
+.combo-box:disabled .arrow-button {
+    -fx-background-color: transparent;
+}
+
+.combo-box:disabled .arrow-button .arrow {
+    -fx-background-color: #43474F;
+}
+
+/* Error field styling */
+.error-field {
+    -fx-border-color: #ff4444 !important;
+    -fx-border-width: 2px !important;
+    -fx-border-radius: 3px !important;
+    -fx-background-color: #fff0f0 !important;
+}
+
+.error-field:focused {
+    -fx-border-color: #ff0000 !important;
+    -fx-border-width: 2px !important;
+}
+
+/* Tooltip styling */
+.tooltip {
+    -fx-background-color: #ff4444;
+    -fx-text-fill: white;
+    -fx-font-size: 12px;
+    -fx-padding: 5px 10px;
+    -fx-border-radius: 3px;
+}
+
+/* Success field styling (optional) */
+.success-field {
+    -fx-border-color: #4CAF50 !important;
+    -fx-border-width: 2px !important;
+}
+
+.error-label {
+    -fx-text-fill: #ff4444;
+    -fx-font-size: 11px;
+    -fx-padding: 2 0 0 5;
+    -fx-font-weight: bold;
+    -fx-wrap-text: true;
+}
+
+.text-field-error {
+    -fx-border-color: #ff4444;
+    -fx-border-width: 2px;
+    -fx-border-radius: 4px;
+}
+
+.text-area-error {
+    -fx-border-color: #ff4444;
+    -fx-border-width: 2px;
+    -fx-border-radius: 4px;
+}

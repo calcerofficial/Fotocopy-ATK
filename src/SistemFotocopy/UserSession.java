@@ -9,6 +9,7 @@ public class UserSession {
 
     private String idPegawai;
     private String username;
+    private String namaPegawai;  // ← TAMBAHKAN INI
 
     private UserSession() {}
 
@@ -22,6 +23,7 @@ public class UserSession {
     public void setSession(String idPegawai, String username) {
         this.idPegawai = idPegawai;
         this.username = username;
+        this.namaPegawai = namaPegawai;  // ← SIMPAN NAMA LENGKAP
     }
 
     public String getIdPegawai() {
@@ -32,8 +34,13 @@ public class UserSession {
         return username;
     }
 
+    public String getNamaPegawai() {  // ← GETTER NAMA LENGKAP
+        return namaPegawai;
+    }
+
     public void clearSession() {
         this.idPegawai = null;
         this.username = null;
+        this.namaPegawai = null;  // ← CLEAR JUGA
     }
 }

@@ -1,6 +1,7 @@
 package SistemFotocopy;
 
 import Database.DBConnection;
+import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.DoubleProperty;
@@ -33,63 +34,49 @@ public class DataMesin {
     // FXML BINDINGS
     // =====================================================================
 
-    // Form fields
     @FXML private TextField txtIdMesin;
     @FXML private TextField txtNamaMesin;
     @FXML private TextField txtMerkMesin;
     @FXML private ComboBox<String> cbNamaLayanan;
 
-    // ERROR LABELS
     @FXML private Label lblErrorNama;
     @FXML private Label lblErrorMerk;
-    @FXML private Label lblErrorMerk1; // error label untuk cbNamaLayanan
+    @FXML private Label lblErrorMerk1;
 
-    // Buttons
     @FXML private Button BrtSimpan;
     @FXML private Button BtUbah;
     @FXML private Button BtHapus;
     @FXML private Button BtBatal;
 
-    // Tabel Mesin
-    @FXML private TableView<MesinModel>    tableMesin;
+    @FXML private TableView<MesinModel> tableMesin;
     @FXML private TableColumn<MesinModel, String> colIdMesin;
     @FXML private TableColumn<MesinModel, String> colNamaMesin;
     @FXML private TableColumn<MesinModel, String> colMerkMesin;
     @FXML private TableColumn<MesinModel, String> colStatusMesin;
-    @FXML private TableColumn<MesinModel, Void>   colStatusMesin1; // kolom Aksi (tombol Detail)
+    @FXML private TableColumn<MesinModel, Void> colStatusMesin1;
 
-    // Tabel Riwayat Maintenance
-    @FXML private TableView<RiwayatModel>    tableRiwayat;
+    @FXML private TableView<RiwayatModel> tableRiwayat;
     @FXML private TableColumn<RiwayatModel, String> colRiwayatId;
     @FXML private TableColumn<RiwayatModel, String> colRiwayatTanggal;
     @FXML private TableColumn<RiwayatModel, String> colRiwayatKeterangan;
 
-    // Search & info
     @FXML private TextField txtCariMesin;
-    @FXML private Label     lblInfoData;
+    @FXML private Label lblInfoData;
 
-    // Stat cards
     @FXML private Label lblTotalMesin;
     @FXML private Label lblMesinAktif;
     @FXML private Label lblMesinNonAktif;
 
-    // Pagination
     @FXML private Button btnPrev;
     @FXML private Button btnNext;
-    @FXML private Label  lblPageInfo;
-
-    // =====================================================================
-    // STATE
-    // =====================================================================
+    @FXML private Label lblPageInfo;
 
     private final DBConnection db = new DBConnection();
 
-    // Master data untuk tabel mesin
-    private final ObservableList<MesinModel> masterData    = FXCollections.observableArrayList();
-    private FilteredList<MesinModel>         filteredData;
-    private SortedList<MesinModel>           sortedData;
+    private final ObservableList<MesinModel> masterData = FXCollections.observableArrayList();
+    private FilteredList<MesinModel> filteredData;
+    private SortedList<MesinModel> sortedData;
 
-    // Pagination - 5 ITEMS PER PAGE
     private static final int ITEMS_PER_PAGE = 5;
     private int currentPage = 1;
     private List<MesinModel> halamanSaatIni = new ArrayList<>();
@@ -111,6 +98,18 @@ public class DataMesin {
         loadNamaLayanan();
         hitungStatCard();
         resetForm();
+
+        Platform.runLater(() -> {
+            if (!tableMesin.getItems().isEmpty()) {
+                MesinModel mesinPertama = tableMesin.getItems().get(0);
+                System.out.println("=== AUTO LOAD RIWAYAT ===");
+                System.out.println("ID Mesin Pertama: " + mesinPertama.getIdMesin());
+                loadRiwayatMesin(mesinPertama.getIdMesin());
+
+                // Optional: select row pertama biar form terisi
+                tableMesin.getSelectionModel().select(0);
+            }
+        });
     }
 
     // =====================================================================
@@ -123,7 +122,6 @@ public class DataMesin {
         colMerkMesin.setCellValueFactory(d -> d.getValue().merkMesinProperty());
         colStatusMesin.setCellValueFactory(d -> d.getValue().statusMesinProperty());
 
-        // Warna status
         colStatusMesin.setCellFactory(col -> new TableCell<>() {
             @Override
             protected void updateItem(String item, boolean empty) {
@@ -150,7 +148,7 @@ public class DataMesin {
     }
 
     // =====================================================================
-    // KOLOM AKSI — TOMBOL DETAIL
+    // KOLOM AKSI
     // =====================================================================
 
     private void setupKolomAksi() {
@@ -214,7 +212,8 @@ public class DataMesin {
         String sql = "SELECT p.Nama_Barang, p.Kategori_Produk, p.Merk_Barang, p.Harga " +
                 "FROM DetailProdukMesin dpm " +
                 "JOIN Produk p ON dpm.ID_Produk = p.ID_Produk " +
-                "WHERE dpm.ID_Mesin = ?";
+                "WHERE dpm.ID_Mesin = ? " +
+                "ORDER BY p.Nama_Barang";
 
         try (PreparedStatement ps = db.getConnection().prepareStatement(sql)) {
             ps.setString(1, idMesin);
@@ -235,13 +234,13 @@ public class DataMesin {
     }
 
     // =====================================================================
-    // NAMA LAYANAN (ComboBox) — hanya produk berkategori 'layanan'
+    // NAMA LAYANAN
     // =====================================================================
 
     private void loadNamaLayanan() {
         ObservableList<String> daftarLayanan = FXCollections.observableArrayList();
         String sql = "SELECT Nama_Barang FROM Produk " +
-                "WHERE Kategori_Produk = 'layanan' " +
+                "WHERE LOWER(Kategori_Produk) = 'layanan' " +
                 "ORDER BY Nama_Barang";
 
         try (java.sql.Statement st = db.getConnection().createStatement();
@@ -256,7 +255,6 @@ public class DataMesin {
     }
 
     private void simpanDetailProdukMesin(String idMesin, String namaProduk) {
-        // Hindari duplikat relasi (ID_Produk, ID_Mesin) sesuai PRIMARY KEY komposit
         String sql = "INSERT INTO DetailProdukMesin (ID_Produk, ID_Mesin) " +
                 "SELECT p.ID_Produk, ? FROM Produk p " +
                 "WHERE p.Nama_Barang = ? " +
@@ -276,7 +274,27 @@ public class DataMesin {
     }
 
     // =====================================================================
-    // INPUT VALIDATION - Nama & Merk: Huruf, angka, spasi (TIDAK BOLEH SIMBOL)
+    // CEK STATUS MAINTENANCE
+    // =====================================================================
+
+    private boolean isMesinRusak(String idMesin) {
+        String sql = "SELECT dbo.f_CekMesinRusak(?) AS IsRusak";
+
+        try (PreparedStatement ps = db.getConnection().prepareStatement(sql)) {
+            ps.setString(1, idMesin);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getBoolean("IsRusak");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    // =====================================================================
+    // INPUT VALIDATION
     // =====================================================================
 
     private void setupInputValidation() {
@@ -381,6 +399,7 @@ public class DataMesin {
                             || m.getNamaMesin().toLowerCase().contains(kw)
                             || m.getIdMesin().toLowerCase().contains(kw)
                             || m.getMerkMesin().toLowerCase().contains(kw)
+                            || m.getStatusMesin().toLowerCase().contains(kw)
             );
             currentPage = 1;
             refreshPagination();
@@ -388,7 +407,7 @@ public class DataMesin {
     }
 
     // =====================================================================
-    // ROW SELECTION -> ISI FORM
+    // ROW SELECTION
     // =====================================================================
 
     private void setupRowSelection() {
@@ -412,18 +431,20 @@ public class DataMesin {
         BtUbah.setDisable(false);
         BtHapus.setDisable(false);
 
+        System.out.println("=== KLIK MESIN ===");
+        System.out.println("ID Mesin: " + m.getIdMesin());
         loadRiwayatMesin(m.getIdMesin());
     }
 
     // =====================================================================
-    // LOAD DATA MESIN (READ)
+    // LOAD DATA MESIN
     // =====================================================================
 
     private void loadDataMesin() {
         masterData.clear();
 
         String sql = "SELECT ID_Mesin, Nama_Mesin, Merk_Mesin, Status_Mesin " +
-                "FROM Mesin ORDER BY ID_Mesin";
+                "FROM v_TampilSemuaMesin ORDER BY ID_Mesin";
 
         try (java.sql.Statement st = db.getConnection().createStatement();
              ResultSet rs = st.executeQuery(sql)) {
@@ -473,27 +494,48 @@ public class DataMesin {
     private void loadRiwayatMesin(String idMesin) {
         ObservableList<RiwayatModel> riwayatList = FXCollections.observableArrayList();
 
-        String sql = "SELECT ID_Mesin, " +
-                "CONVERT(VARCHAR, Tanggal_Maintenance_Mesin, 103) AS Tanggal, " +
-                "ISNULL(Keterangan_Perbaikan, Jenis_Kerusakan_Mesin) AS Keterangan " +
-                "FROM Maintenance_Mesin " +
-                "WHERE ID_Mesin = ? " +
-                "ORDER BY Tanggal_Maintenance_Mesin DESC";
+        System.out.println("=== LOAD RIWAYAT ===");
+        System.out.println("ID Mesin: " + idMesin);
+
+        String sql = "SELECT " +
+                "mm.ID_Mesin, " +
+                "CONVERT(VARCHAR, mm.Tanggal_Maintenance_Mesin, 103) AS Tanggal, " +
+                "ISNULL(mm.Keterangan_Perbaikan, mm.Jenis_Kerusakan_Mesin) AS Keterangan " +
+                "FROM Maintenance_Mesin mm " +
+                "WHERE mm.ID_Mesin = ? " +
+                "ORDER BY mm.Tanggal_Maintenance_Mesin DESC";
 
         try (PreparedStatement ps = db.getConnection().prepareStatement(sql)) {
             ps.setString(1, idMesin);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    riwayatList.add(new RiwayatModel(
-                            rs.getString("ID_Mesin"),
-                            rs.getString("Tanggal"),
-                            rs.getString("Keterangan")
-                    ));
-                }
-                tableRiwayat.setItems(riwayatList);
+            System.out.println("Parameter: " + idMesin);
+
+            ResultSet rs = ps.executeQuery();
+            int count = 0;
+            while (rs.next()) {
+                count++;
+                riwayatList.add(new RiwayatModel(
+                        rs.getString("ID_Mesin"),
+                        rs.getString("Tanggal"),
+                        rs.getString("Keterangan")
+                ));
+                System.out.println("Data ke-" + count + ": " + rs.getString("Keterangan"));
             }
+            rs.close();
+
+            System.out.println("Total data ditemukan: " + count);
+            tableRiwayat.setItems(riwayatList);
+
+            if (riwayatList.isEmpty()) {
+                Label emptyLabel = new Label("Belum ada riwayat maintenance untuk mesin ini");
+                emptyLabel.setStyle("-fx-text-fill: #888; -fx-font-style: italic;");
+                tableRiwayat.setPlaceholder(emptyLabel);
+            } else {
+                tableRiwayat.setPlaceholder(null);
+            }
+
         } catch (SQLException e) {
-            tampilAlert(Alert.AlertType.ERROR, "Gagal memuat riwayat", e.getMessage());
+            System.out.println("ERROR: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -502,18 +544,19 @@ public class DataMesin {
     // =====================================================================
 
     private void hitungStatCard() {
-        String sql = "SELECT " +
-                "  COUNT(*) AS Total, " +
-                "  SUM(CASE WHEN Status_Mesin = 'Aktif' THEN 1 ELSE 0 END) AS Aktif, " +
-                "  SUM(CASE WHEN Status_Mesin = 'NonAktif' THEN 1 ELSE 0 END) AS NonAktif " +
-                "FROM Mesin";
+        try {
+            String query = "SELECT " +
+                    "dbo.f_TotalSemuaMesin() AS Total, " +
+                    "dbo.f_TotalMesinAktif() AS Aktif, " +
+                    "dbo.f_TotalMesinNonAktif() AS NonAktif";
 
-        try (java.sql.Statement st = db.getConnection().createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-            if (rs.next()) {
-                lblTotalMesin.setText(String.valueOf(rs.getInt("Total")));
-                lblMesinAktif.setText(String.valueOf(rs.getInt("Aktif")));
-                lblMesinNonAktif.setText(String.valueOf(rs.getInt("NonAktif")));
+            try (java.sql.Statement st = db.getConnection().createStatement();
+                 ResultSet rs = st.executeQuery(query)) {
+                if (rs.next()) {
+                    lblTotalMesin.setText(String.valueOf(rs.getInt("Total")));
+                    lblMesinAktif.setText(String.valueOf(rs.getInt("Aktif")));
+                    lblMesinNonAktif.setText(String.valueOf(rs.getInt("NonAktif")));
+                }
             }
         } catch (SQLException e) {
             tampilAlert(Alert.AlertType.ERROR, "Gagal menghitung statistik", e.getMessage());
@@ -528,14 +571,14 @@ public class DataMesin {
         if (sortedData == null) return;
 
         List<MesinModel> semuaData = new ArrayList<>(sortedData);
-        int total      = semuaData.size();
+        int total = semuaData.size();
         int totalPages = Math.max(1, (int) Math.ceil((double) total / ITEMS_PER_PAGE));
 
         if (currentPage > totalPages) currentPage = totalPages;
-        if (currentPage < 1)          currentPage = 1;
+        if (currentPage < 1) currentPage = 1;
 
         int from = (currentPage - 1) * ITEMS_PER_PAGE;
-        int to   = Math.min(from + ITEMS_PER_PAGE, total);
+        int to = Math.min(from + ITEMS_PER_PAGE, total);
 
         halamanSaatIni = (from < total) ? semuaData.subList(from, to) : new ArrayList<>();
 
@@ -567,7 +610,7 @@ public class DataMesin {
     }
 
     // =====================================================================
-    // SIMPAN DATA — sp_TambahMesin
+    // SIMPAN DATA
     // =====================================================================
 
     @FXML
@@ -608,7 +651,7 @@ public class DataMesin {
     }
 
     // =====================================================================
-    // UBAH DATA — sp_UpdateMesin
+    // UBAH DATA
     // =====================================================================
 
     @FXML
@@ -633,6 +676,20 @@ public class DataMesin {
         dialog.setContentText("Status Mesin untuk " + id + ":");
 
         dialog.showAndWait().ifPresent(statusBaru -> {
+            if (statusBaru.equalsIgnoreCase("Aktif") && isMesinRusak(id)) {
+                Alert warningAlert = new Alert(Alert.AlertType.WARNING);
+                warningAlert.setTitle("Tidak Dapat Mengubah Status");
+                warningAlert.setHeaderText("❌ Mesin Sedang Rusak");
+                warningAlert.setContentText(
+                        "Mesin " + id + " sedang dalam status RUSAK di tabel Maintenance!\n\n" +
+                                "⚠️ Mesin yang sedang rusak tidak dapat diubah menjadi AKTIF.\n" +
+                                "Harap selesaikan maintenance terlebih dahulu di menu Maintenance Mesin.\n\n" +
+                                "Status yang diperbolehkan: NonAktif"
+                );
+                warningAlert.showAndWait();
+                return;
+            }
+
             String sql = "{call sp_UpdateMesin(?, ?, ?, ?)}";
             try (CallableStatement cs = db.getConnection().prepareCall(sql)) {
                 cs.setString(1, id);
@@ -646,7 +703,7 @@ public class DataMesin {
                     simpanDetailProdukMesin(id, namaLayanan);
                 }
 
-                tampilAlert(Alert.AlertType.INFORMATION, "Berhasil", "Data mesin " + id + " berhasil diubah.");
+                tampilAlert(Alert.AlertType.INFORMATION, "Berhasil", "Data mesin " + id + " berhasil diubah menjadi: " + statusBaru);
 
                 loadDataMesin();
                 hitungStatCard();
@@ -659,7 +716,7 @@ public class DataMesin {
     }
 
     // =====================================================================
-    // HAPUS DATA — sp_DeleteMesinSoft
+    // HAPUS DATA
     // =====================================================================
 
     @FXML
@@ -668,6 +725,27 @@ public class DataMesin {
         if (id.isEmpty()) {
             tampilAlert(Alert.AlertType.WARNING, "Peringatan", "Pilih mesin dari tabel terlebih dahulu!");
             return;
+        }
+
+        if (isMesinRusak(id)) {
+            Alert warningAlert = new Alert(Alert.AlertType.WARNING);
+            warningAlert.setTitle("Peringatan");
+            warningAlert.setHeaderText("⚠️ Mesin Sedang Rusak");
+            warningAlert.setContentText(
+                    "Mesin " + id + " sedang dalam status RUSAK!\n\n" +
+                            "Menonaktifkan mesin yang sedang rusak tidak disarankan.\n" +
+                            "Harap selesaikan maintenance terlebih dahulu.\n\n" +
+                            "Apakah Anda tetap ingin melanjutkan?"
+            );
+
+            ButtonType btnYa = new ButtonType("Ya, Lanjutkan", ButtonBar.ButtonData.OK_DONE);
+            ButtonType btnTidak = new ButtonType("Tidak, Batal", ButtonBar.ButtonData.CANCEL_CLOSE);
+            warningAlert.getButtonTypes().setAll(btnYa, btnTidak);
+
+            var result = warningAlert.showAndWait();
+            if (result.isEmpty() || result.get() == btnTidak) {
+                return;
+            }
         }
 
         Alert konfirmasi = new Alert(Alert.AlertType.CONFIRMATION);
@@ -777,7 +855,7 @@ public class DataMesin {
     }
 
     // =====================================================================
-    // HELPER ALERT
+    // HELPER ALERT - PERBAIKAN ✅
     // =====================================================================
 
     private void tampilAlert(Alert.AlertType tipe, String judul, String pesan) {
@@ -799,22 +877,26 @@ public class DataMesin {
         private final StringProperty statusMesin;
 
         public MesinModel(String id, String nama, String merk, String status) {
-            this.idMesin    = new SimpleStringProperty(id);
-            this.namaMesin  = new SimpleStringProperty(nama);
-            this.merkMesin  = new SimpleStringProperty(merk);
+            this.idMesin = new SimpleStringProperty(id);
+            this.namaMesin = new SimpleStringProperty(nama);
+            this.merkMesin = new SimpleStringProperty(merk);
             this.statusMesin = new SimpleStringProperty(status);
         }
 
-        public String getIdMesin()    { return idMesin.get(); }
+        public String getIdMesin() { return idMesin.get(); }
+
         public StringProperty idMesinProperty() { return idMesin; }
 
-        public String getNamaMesin()  { return namaMesin.get(); }
+        public String getNamaMesin() { return namaMesin.get(); }
+
         public StringProperty namaMesinProperty() { return namaMesin; }
 
-        public String getMerkMesin()  { return merkMesin.get(); }
+        public String getMerkMesin() { return merkMesin.get(); }
+
         public StringProperty merkMesinProperty() { return merkMesin; }
 
         public String getStatusMesin() { return statusMesin.get(); }
+
         public StringProperty statusMesinProperty() { return statusMesin; }
     }
 
@@ -828,18 +910,20 @@ public class DataMesin {
         private final StringProperty keterangan;
 
         public RiwayatModel(String idMesin, String tanggal, String keterangan) {
-            this.idMesin    = new SimpleStringProperty(idMesin);
-            this.tanggal    = new SimpleStringProperty(tanggal);
+            this.idMesin = new SimpleStringProperty(idMesin);
+            this.tanggal = new SimpleStringProperty(tanggal);
             this.keterangan = new SimpleStringProperty(keterangan);
         }
 
-        public StringProperty idMesinProperty()    { return idMesin; }
-        public StringProperty tanggalProperty()    { return tanggal; }
+        public StringProperty idMesinProperty() { return idMesin; }
+
+        public StringProperty tanggalProperty() { return tanggal; }
+
         public StringProperty keteranganProperty() { return keterangan; }
     }
 
     // =====================================================================
-    // MODEL — Detail Produk Mesin (untuk jendela Detail)
+    // MODEL — Detail Produk Mesin
     // =====================================================================
 
     public static class DetailProdukMesinModel {
@@ -850,14 +934,17 @@ public class DataMesin {
 
         public DetailProdukMesinModel(String namaProduk, String kategori, String merkBarang, double harga) {
             this.namaProduk = new SimpleStringProperty(namaProduk);
-            this.kategori   = new SimpleStringProperty(kategori);
+            this.kategori = new SimpleStringProperty(kategori);
             this.merkBarang = new SimpleStringProperty(merkBarang);
-            this.harga      = new SimpleDoubleProperty(harga);
+            this.harga = new SimpleDoubleProperty(harga);
         }
 
-        public StringProperty namaProdukProperty()  { return namaProduk; }
-        public StringProperty kategoriProperty()    { return kategori; }
-        public StringProperty merkBarangProperty()  { return merkBarang; }
-        public DoubleProperty hargaProperty()       { return harga; }
+        public StringProperty namaProdukProperty() { return namaProduk; }
+
+        public StringProperty kategoriProperty() { return kategori; }
+
+        public StringProperty merkBarangProperty() { return merkBarang; }
+
+        public DoubleProperty hargaProperty() { return harga; }
     }
 }

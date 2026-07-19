@@ -30,56 +30,26 @@ import java.util.ResourceBundle;
 
 public class DataPembelianStock implements Initializable {
 
-    @FXML
-    private Button btnNext;
+    @FXML private Button btnNext;
+    @FXML private Button btnPrev;
 
-    @FXML
-    private Button btnPrev;
+    @FXML private TableColumn<PembelianStokModel, Void> colAksi;
+    @FXML private TableColumn<PembelianStokModel, String> colIdPembelian;
+    @FXML private TableColumn<PembelianStokModel, String> colMetode;
+    @FXML private TableColumn<PembelianStokModel, String> colPegawai;
+    @FXML private TableColumn<PembelianStokModel, String> colStatus;
+    @FXML private TableColumn<PembelianStokModel, String> colSupplier;
+    @FXML private TableColumn<PembelianStokModel, String> colTanggal;
+    @FXML private TableColumn<PembelianStokModel, String> colTotal;
 
-    @FXML
-    private TableColumn<PembelianStokModel, Void> colAksi;
+    @FXML private Label lblBelumLunas;
+    @FXML private Label lblInfoData;
+    @FXML private Label lblLunas;
+    @FXML private Label lblPageInfo;
+    @FXML private Label lblTotalTransaksi;
 
-    @FXML
-    private TableColumn<PembelianStokModel, String> colIdPembelian;
-
-    @FXML
-    private TableColumn<PembelianStokModel, String> colMetode;
-
-    @FXML
-    private TableColumn<PembelianStokModel, String> colPegawai;
-
-    @FXML
-    private TableColumn<PembelianStokModel, String> colStatus;
-
-    @FXML
-    private TableColumn<PembelianStokModel, String> colSupplier;
-
-    @FXML
-    private TableColumn<PembelianStokModel, String> colTanggal;
-
-    @FXML
-    private TableColumn<PembelianStokModel, String> colTotal;
-
-    @FXML
-    private Label lblBelumLunas;
-
-    @FXML
-    private Label lblInfoData;
-
-    @FXML
-    private Label lblLunas;
-
-    @FXML
-    private Label lblPageInfo;
-
-    @FXML
-    private Label lblTotalTransaksi;
-
-    @FXML
-    private TableView<PembelianStokModel> tablePembelian;
-
-    @FXML
-    private TextField txtCari;
+    @FXML private TableView<PembelianStokModel> tablePembelian;
+    @FXML private TextField txtCari;
 
     private ObservableList<PembelianStokModel> masterData = FXCollections.observableArrayList();
     private FilteredList<PembelianStokModel> filteredData;
@@ -102,6 +72,7 @@ public class DataPembelianStock implements Initializable {
         setupPaginationButtons();
 
         loadData();
+        hitungStatCard();
     }
 
     private void setupDatabaseConnection() {
@@ -170,12 +141,13 @@ public class DataPembelianStock implements Initializable {
         tablePembelian.setItems(pageData);
     }
 
+    // =============================================================
+    // LOAD DATA - PAKAI VIEW ✅
+    // =============================================================
     private void loadData() {
         if (connection == null) return;
 
         masterData.clear();
-        int countLunas = 0;
-        int countBelumLunas = 0;
 
         String query = "SELECT ID_Pembelian_Stok, Pegawai, Supplier, Tanggal_Pembelian, Status_Pembayaran, Total_Harga " +
                 "FROM v_TampilPembelianStok ORDER BY Tanggal_Pembelian DESC, ID_Pembelian_Stok DESC";
@@ -192,17 +164,11 @@ public class DataPembelianStock implements Initializable {
                 double total = rs.getDouble("Total_Harga");
 
                 masterData.add(new PembelianStokModel(id, pegawai, supplier, tanggal, status, total));
-
-                if ("Lunas".equalsIgnoreCase(status)) {
-                    countLunas++;
-                } else {
-                    countBelumLunas++;
-                }
             }
 
+            filteredData = new FilteredList<>(masterData, p -> true);
             totalItems = filteredData.size();
             currentPage = 0;
-            updateStats(masterData.size(), countLunas, countBelumLunas);
             applyPagination();
 
         } catch (SQLException e) {
@@ -211,12 +177,35 @@ public class DataPembelianStock implements Initializable {
         }
     }
 
-    private void updateStats(int total, int lunas, int belumLunas) {
-        lblTotalTransaksi.setText(String.valueOf(total));
-        lblLunas.setText(String.valueOf(lunas));
-        lblBelumLunas.setText(String.valueOf(belumLunas));
+    // =============================================================
+    // STAT CARDS - PAKAI UDF ✅
+    // =============================================================
+    private void hitungStatCard() {
+        if (connection == null) return;
+
+        try {
+            String query = "SELECT " +
+                    "dbo.f_TotalTransaksiPembelian() AS Total, " +
+                    "dbo.f_TotalLunasPembelian() AS Lunas, " +
+                    "dbo.f_TotalBelumLunasPembelian() AS BelumLunas";
+
+            try (Statement stmt = connection.createStatement();
+                 ResultSet rs = stmt.executeQuery(query)) {
+                if (rs.next()) {
+                    lblTotalTransaksi.setText(String.valueOf(rs.getInt("Total")));
+                    lblLunas.setText(String.valueOf(rs.getInt("Lunas")));
+                    lblBelumLunas.setText(String.valueOf(rs.getInt("BelumLunas")));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            showAlert("Error", "Gagal menghitung statistik: " + e.getMessage(), Alert.AlertType.ERROR);
+        }
     }
 
+    // =============================================================
+    // SEARCH LISTENER
+    // =============================================================
     private void setupSearchListener() {
         txtCari.textProperty().addListener((observable, oldValue, newValue) -> {
             filteredData.setPredicate(model -> {
@@ -225,14 +214,10 @@ public class DataPembelianStock implements Initializable {
                 }
                 String lowerCaseFilter = newValue.toLowerCase();
 
-                if (model.getIdPembelian().toLowerCase().contains(lowerCaseFilter)) {
-                    return true;
-                } else if (model.getSupplier().toLowerCase().contains(lowerCaseFilter)) {
-                    return true;
-                } else if (model.getPegawai().toLowerCase().contains(lowerCaseFilter)) {
-                    return true;
-                }
-                return false;
+                return model.getIdPembelian().toLowerCase().contains(lowerCaseFilter)
+                        || model.getSupplier().toLowerCase().contains(lowerCaseFilter)
+                        || model.getPegawai().toLowerCase().contains(lowerCaseFilter)
+                        || model.getStatusPembayaran().toLowerCase().contains(lowerCaseFilter);
             });
 
             totalItems = filteredData.size();
@@ -285,23 +270,21 @@ public class DataPembelianStock implements Initializable {
         btnNext.setDisable((currentPage + 1) >= totalPages);
     }
 
-    private String formatRupiah(double amount) {
-        NumberFormat formatter = NumberFormat.getCurrencyInstance(new Locale("id", "ID"));
-        return formatter.format(amount).replace("Rp", "Rp.");
-    }
-
-    // =====================================================================
-    // DETAIL PEMBELIAN STOCK — TAMPILAN RAPI & TIDAK FULLSCREEN
-    // =====================================================================
-
+    // =============================================================
+    // DETAIL PEMBELIAN - PAKAI QUERY LANGSUNG (TANPA SUBTOTAL)
+    // =============================================================
     private void showDetailPembelian(PembelianStokModel model) {
-        // =============================================================
-        // LOAD DETAIL ITEMS
-        // =============================================================
-        ObservableList<PembelianStock.DetailPembelianItem> items = FXCollections.observableArrayList();
+        ObservableList<DetailPembelianItem> items = FXCollections.observableArrayList();
 
         if (connection != null) {
-            String query = "SELECT Produk, Jumlah, [Harga Satuan], Subtotal FROM v_TampilDetailPembelianStok WHERE [ID Nota] = ?";
+            // =============================================================
+            // QUERY LANGSUNG TANPA SUBTOTAL
+            // =============================================================
+            String query = "SELECT p.Nama_Barang AS Produk, dp.Jumlah, dp.Harga AS [Harga Satuan] " +
+                    "FROM Detail_Pembelian_Stok dp " +
+                    "JOIN Produk p ON dp.ID_Produk = p.ID_Produk " +
+                    "WHERE dp.ID_Pembelian_Stok = ?";
+
             try (PreparedStatement ps = connection.prepareStatement(query)) {
                 ps.setString(1, model.getIdPembelian());
                 ResultSet rs = ps.executeQuery();
@@ -309,8 +292,9 @@ public class DataPembelianStock implements Initializable {
                     String produk = rs.getString("Produk");
                     int jumlah = rs.getInt("Jumlah");
                     double hargaSatuan = rs.getDouble("Harga Satuan");
-                    items.add(new PembelianStock.DetailPembelianItem("", produk, jumlah, hargaSatuan));
+                    items.add(new DetailPembelianItem(produk, jumlah, hargaSatuan));
                 }
+                rs.close();
             } catch (SQLException e) {
                 e.printStackTrace();
                 showAlert("Error", "Gagal memuat detail: " + e.getMessage(), Alert.AlertType.ERROR);
@@ -319,7 +303,7 @@ public class DataPembelianStock implements Initializable {
         }
 
         // =============================================================
-        // HEADER JUDUL
+        // HEADER
         // =============================================================
         Label lblJudul = new Label("Detail Pembelian Stock");
         lblJudul.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #1E293B;");
@@ -331,7 +315,7 @@ public class DataPembelianStock implements Initializable {
         headerBox.setPadding(new Insets(0, 0, 12, 0));
 
         // =============================================================
-        // INFO PEMBELIAN
+        // INFO
         // =============================================================
         GridPane infoGrid = new GridPane();
         infoGrid.setHgap(15);
@@ -361,39 +345,35 @@ public class DataPembelianStock implements Initializable {
         infoGrid.add(lblMetodeValue, 5, 0);
 
         // =============================================================
-        // TABEL DETAIL
+        // TABEL DETAIL - TANPA KOLOM SUBTOTAL
         // =============================================================
-        TableView<PembelianStock.DetailPembelianItem> detailTable = new TableView<>();
+        TableView<DetailPembelianItem> detailTable = new TableView<>();
         detailTable.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #E2E8F0; -fx-border-width: 1px;");
 
-        TableColumn<PembelianStock.DetailPembelianItem, String> colNama = new TableColumn<>("Nama Barang");
+        TableColumn<DetailPembelianItem, String> colNama = new TableColumn<>("Nama Barang");
         colNama.setCellValueFactory(new PropertyValueFactory<>("namaBarang"));
-        colNama.setPrefWidth(200);
+        colNama.setPrefWidth(250);
         colNama.setStyle("-fx-alignment: CENTER-LEFT; -fx-font-size: 13px;");
 
-        TableColumn<PembelianStock.DetailPembelianItem, Integer> colJumlah = new TableColumn<>("Jumlah");
+        TableColumn<DetailPembelianItem, Integer> colJumlah = new TableColumn<>("Jumlah");
         colJumlah.setCellValueFactory(new PropertyValueFactory<>("jumlah"));
-        colJumlah.setPrefWidth(80);
+        colJumlah.setPrefWidth(100);
         colJumlah.setStyle("-fx-alignment: CENTER; -fx-font-size: 13px;");
 
-        TableColumn<PembelianStock.DetailPembelianItem, String> colHargaItem = new TableColumn<>("Harga Satuan");
+        TableColumn<DetailPembelianItem, String> colHargaItem = new TableColumn<>("Harga Satuan");
         colHargaItem.setCellValueFactory(new PropertyValueFactory<>("hargaFormatted"));
-        colHargaItem.setPrefWidth(140);
+        colHargaItem.setPrefWidth(180);
         colHargaItem.setStyle("-fx-alignment: CENTER-RIGHT; -fx-font-size: 13px;");
 
-        TableColumn<PembelianStock.DetailPembelianItem, String> colSubtotal = new TableColumn<>("Subtotal");
-        colSubtotal.setCellValueFactory(new PropertyValueFactory<>("subtotalFormatted"));
-        colSubtotal.setPrefWidth(140);
-        colSubtotal.setStyle("-fx-alignment: CENTER-RIGHT; -fx-font-size: 13px; -fx-font-weight: bold;");
-
-        detailTable.getColumns().addAll(colNama, colJumlah, colHargaItem, colSubtotal);
+        // HAPUS KOLOM SUBTOTAL
+        detailTable.getColumns().addAll(colNama, colJumlah, colHargaItem);
         detailTable.setItems(items);
         detailTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         detailTable.setPrefHeight(200);
         detailTable.setMaxHeight(250);
 
         // =============================================================
-        // FOOTER — TOTAL & STATUS
+        // FOOTER
         // =============================================================
         GridPane footerGrid = new GridPane();
         footerGrid.setHgap(30);
@@ -421,11 +401,6 @@ public class DataPembelianStock implements Initializable {
         footerGrid.add(lblStatusLabel, 1, 0);
         footerGrid.add(lblStatusValue, 1, 1);
 
-        GridPane.setHalignment(lblTotalLabel, Pos.CENTER_LEFT.getHpos());
-        GridPane.setHalignment(lblTotalValue, Pos.CENTER_LEFT.getHpos());
-        GridPane.setHalignment(lblStatusLabel, Pos.CENTER_LEFT.getHpos());
-        GridPane.setHalignment(lblStatusValue, Pos.CENTER_LEFT.getHpos());
-
         // =============================================================
         // TOMBOL TUTUP
         // =============================================================
@@ -446,26 +421,19 @@ public class DataPembelianStock implements Initializable {
         buttonBox.setPadding(new Insets(10, 0, 0, 0));
 
         // =============================================================
-        // MAIN LAYOUT
+        // MAIN
         // =============================================================
         VBox root = new VBox(12);
         root.setPadding(new Insets(20, 25, 20, 25));
         root.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #CBD5E1; -fx-border-width: 1px; -fx-border-radius: 8;");
         root.getChildren().addAll(headerBox, infoGrid, detailTable, footerGrid, buttonBox);
 
-        // =============================================================
-        // SCENE DAN STAGE — UKURAN SEDANG
-        // =============================================================
         Scene scene = new Scene(root);
 
         Stage stage = new Stage();
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.setTitle("Detail Pembelian - " + model.getIdPembelian());
         stage.setScene(scene);
-
-        // =============================================================
-        // ATUR UKURAN WINDOW — TIDAK FULLSCREEN
-        // =============================================================
         stage.setWidth(650);
         stage.setHeight(480);
         stage.setMinWidth(600);
@@ -473,26 +441,13 @@ public class DataPembelianStock implements Initializable {
         stage.setMaxWidth(750);
         stage.setMaxHeight(550);
         stage.setResizable(false);
-
-        // Center di tengah layar
         stage.centerOnScreen();
-
         stage.show();
-
-        // Styling row tabel
-        detailTable.setRowFactory(tv -> new TableRow<PembelianStock.DetailPembelianItem>() {
-            @Override
-            protected void updateItem(PembelianStock.DetailPembelianItem item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setStyle("");
-                } else {
-                    setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #F1F5F9; -fx-border-width: 0 0 1px 0;");
-                }
-            }
-        });
     }
 
+    // =============================================================
+    // HELPER
+    // =============================================================
     private void showAlert(String title, String message, Alert.AlertType type) {
         Platform.runLater(() -> {
             Alert alert = new Alert(type);
@@ -503,10 +458,14 @@ public class DataPembelianStock implements Initializable {
         });
     }
 
-    // =====================================================================
-    // MODEL — Pembelian Stok
-    // =====================================================================
+    private static String formatRupiah(double amount) {
+        NumberFormat formatter = NumberFormat.getCurrencyInstance(new Locale("id", "ID"));
+        return formatter.format(amount).replace("Rp", "Rp.");
+    }
 
+    // =============================================================
+    // MODEL - Pembelian Stok
+    // =============================================================
     public static class PembelianStokModel {
         private final String idPembelian;
         private final String pegawai;
@@ -530,11 +489,32 @@ public class DataPembelianStock implements Initializable {
         public String getSupplier() { return supplier; }
         public String getTanggal() { return tanggal; }
         public String getStatusPembayaran() { return statusPembayaran; }
-        public String getMetodePembayaran() { return "Transfer"; } // Default
+        public String getMetodePembayaran() { return "Transfer"; }
 
         public String getTotalHargaFormatted() {
             NumberFormat formatter = NumberFormat.getCurrencyInstance(new Locale("id", "ID"));
             return formatter.format(totalHarga).replace("Rp", "Rp.");
         }
+    }
+
+    // =============================================================
+    // MODEL - Detail Pembelian (TANPA SUBTOTAL)
+    // =============================================================
+    public static class DetailPembelianItem {
+        private final String namaBarang;
+        private final int jumlah;
+        private final double harga;
+
+        public DetailPembelianItem(String namaBarang, int jumlah, double harga) {
+            this.namaBarang = namaBarang;
+            this.jumlah = jumlah;
+            this.harga = harga;
+        }
+
+        public String getNamaBarang() { return namaBarang; }
+        public int getJumlah() { return jumlah; }
+        public double getHarga() { return harga; }
+        public String getHargaFormatted() { return formatRupiah(harga); }
+        // HAPUS method getSubtotalFormatted()
     }
 }

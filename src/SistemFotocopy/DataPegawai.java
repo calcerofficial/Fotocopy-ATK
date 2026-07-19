@@ -355,7 +355,6 @@ public class DataPegawai {
             }
         });
     }
-
     private void generateIdOtomatis() {
         String role = cmbRole.getValue();
         String prefix = "";
@@ -369,6 +368,7 @@ public class DataPegawai {
         }
 
         try {
+            // Query ini sama dengan yang ada di SP_TambahPegawai
             String query = "SELECT COALESCE(MAX(CAST(SUBSTRING(ID_Pegawai, 4, LEN(ID_Pegawai)) AS INT)), 0) AS MaxID " +
                     "FROM Pegawai WHERE ID_Pegawai LIKE ?";
 
@@ -558,11 +558,9 @@ public class DataPegawai {
     // =========================================================
     private void tampilkanData() {
         masterData.clear();
+        // Gunakan View v_TampilPegawaiTerurut
         String query = "SELECT ID_Pegawai, Nama_Pegawai, Alamat, No_Telepon, Email, Username, Status_Pegawai " +
-                "FROM v_TampilSemuaPegawai ORDER BY " +
-                "CASE WHEN Status_Pegawai = 'aktif' THEN 0 " +
-                "     WHEN Status_Pegawai = 'NonAktif' THEN 1 " +
-                "     ELSE 2 END, Status_Pegawai, ID_Pegawai";
+                "FROM v_TampilPegawaiTerurut ORDER BY UrutanStatus, Status_Pegawai, ID_Pegawai";
 
         try (java.sql.Statement st = dbConnection.getConnection().createStatement();
              ResultSet rs = st.executeQuery(query)) {
@@ -617,18 +615,20 @@ public class DataPegawai {
     // DASHBOARD CARDS
     // =========================================================
     private void hitungDashboard() {
-        String query = "SELECT " +
-                "COUNT(*) AS Total, " +
-                "SUM(CASE WHEN Status_Pegawai = 'aktif' THEN 1 ELSE 0 END) AS Aktif, " +
-                "SUM(CASE WHEN Status_Pegawai = 'NonAktif' THEN 1 ELSE 0 END) AS NonAktif " +
-                "FROM Pegawai";
+        try {
+            // Gunakan UDF untuk menghitung
+            String query = "SELECT " +
+                    "dbo.f_TotalSemuaPegawai() AS Total, " +
+                    "dbo.f_TotalPegawaiAktif() AS Aktif, " +
+                    "dbo.f_TotalPegawaiNonAktif() AS NonAktif";
 
-        try (java.sql.Statement st = dbConnection.getConnection().createStatement();
-             ResultSet rs = st.executeQuery(query)) {
-            if (rs.next()) {
-                lblTotalPegawai.setText(String.valueOf(rs.getInt("Total")));
-                lblPegawaiAktif.setText(String.valueOf(rs.getInt("Aktif")));
-                lblPegawaiNonAktif.setText(String.valueOf(rs.getInt("NonAktif")));
+            try (java.sql.Statement st = dbConnection.getConnection().createStatement();
+                 ResultSet rs = st.executeQuery(query)) {
+                if (rs.next()) {
+                    lblTotalPegawai.setText(String.valueOf(rs.getInt("Total")));
+                    lblPegawaiAktif.setText(String.valueOf(rs.getInt("Aktif")));
+                    lblPegawaiNonAktif.setText(String.valueOf(rs.getInt("NonAktif")));
+                }
             }
         } catch (SQLException e) {
             tampilkanAlert(Alert.AlertType.ERROR, "Gagal menghitung dashboard", e.getMessage());
@@ -724,6 +724,14 @@ public class DataPegawai {
             return;
         }
 
+        // ===== CEK STATUS SEBELUM UPDATE =====
+        String statusSekarang = txtStatus.getText().trim();
+        if ("NonAktif".equalsIgnoreCase(statusSekarang)) {
+            tampilkanAlert(Alert.AlertType.WARNING, "Tidak Bisa Update",
+                    "Pegawai dengan status NonAktif tidak dapat diubah. Silakan aktifkan terlebih dahulu menggunakan tombol Aktifkan.");
+            return;
+        }
+
         if (checkInputErrors()) {
             tampilkanAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Mohon perbaiki input yang ditandai merah");
             return;
@@ -736,18 +744,24 @@ public class DataPegawai {
         try {
             String passwordFinal = getPasswordText();
             if (isKosong(passwordFinal)) {
-                passwordFinal = ambilPasswordLama(txtIdPegawai.getText().trim());
+                passwordFinal = "";  // Kosongkan agar SP menggunakan password lama
+            }
+
+            // Ambil status dari form
+            String status = txtStatus.getText().trim();
+            if (status.isEmpty()) {
+                status = "aktif"; // Default jika kosong
             }
 
             try (CallableStatement cs = dbConnection.getConnection().prepareCall(query)) {
-                cs.setString(1, txtIdPegawai.getText().trim());
+                cs.setString(1, txtIdPegawai.getText().trim());      // ID (tidak diubah)
                 cs.setString(2, txtNamaLengkap.getText().trim());
                 cs.setString(3, txtAlamatLengkap.getText().trim());
                 cs.setString(4, txtNomorTelepon.getText().trim());
                 cs.setString(5, txtEmail.getText().trim());
                 cs.setString(6, txtUsername.getText().trim());
                 cs.setString(7, passwordFinal);
-                cs.setString(8, "aktif");
+                cs.setString(8, status);  // Status BISA diupdate (tapi hanya jika status lama aktif)
 
                 cs.execute();
             }
@@ -761,21 +775,14 @@ public class DataPegawai {
             btnHapus.setDisable(true);
 
         } catch (SQLException e) {
-            tampilkanAlert(Alert.AlertType.ERROR, "Gagal mengubah data", e.getMessage());
-        }
-    }
-
-    private String ambilPasswordLama(String idPegawai) throws SQLException {
-        String query = "SELECT Password FROM Pegawai WHERE ID_Pegawai = ?";
-        try (PreparedStatement ps = dbConnection.getConnection().prepareStatement(query)) {
-            ps.setString(1, idPegawai);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getString("Password");
-                }
+            String errorMsg = e.getMessage();
+            if (errorMsg.contains("NonAktif tidak dapat diubah")) {
+                tampilkanAlert(Alert.AlertType.WARNING, "Tidak Bisa Update",
+                        "Pegawai dengan status NonAktif tidak dapat diubah. Silakan aktifkan terlebih dahulu.");
+            } else {
+                tampilkanAlert(Alert.AlertType.ERROR, "Gagal mengubah data", errorMsg);
             }
         }
-        throw new SQLException("Password lama tidak ditemukan untuk ID " + idPegawai);
     }
 
     // =========================================================

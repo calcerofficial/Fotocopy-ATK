@@ -1,25 +1,32 @@
 package SistemFotocopy;
 
 import Database.DBConnection;
+import javafx.animation.PauseTransition;           // ← TAMBAHKAN
+import javafx.application.Platform;               // ← TAMBAHKAN
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
+import javafx.util.Duration;                      // ← TAMBAHKAN
 
 import java.net.URL;
 import java.sql.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
 import java.util.ResourceBundle;
 
 public class MaintenanceMesin implements Initializable {
 
     @FXML
-    private Button btnBatal, btnNextPage, btnPage1, btnPrevPage, btnSimpan;
+    private Button btnBatal, btnNextPage, btnPrevPage, btnSimpan;
 
     @FXML
     private ComboBox<String> cbJenisKerusakan, cbMesin;
@@ -30,7 +37,7 @@ public class MaintenanceMesin implements Initializable {
             colTanggalMaintenance, colTanggalSelesai, colBiaya, colKeterangan;
 
     @FXML
-    private DatePicker dpTanggalMaintenance;
+    private TextField txtTanggalMaintenance;
 
     @FXML
     private Label lblInfoData, lblMesinAktif, lblMesinRusak, lblMesinSelesai, lblTotalMesin;
@@ -44,9 +51,29 @@ public class MaintenanceMesin implements Initializable {
     @FXML
     private TextArea txtDeskripsi;
 
+    @FXML
+    private HBox hboxPagination;
+
     private Connection conn;
+
+    // =============================================================
+    // 🔥 TAMBAHKAN VARIABLE UNTUK AUTO REFRESH
+    // =============================================================
+    private PauseTransition refreshTimer;
+
+    // Data untuk tabel
     private ObservableList<MaintenanceData> maintenanceDataList = FXCollections.observableArrayList();
+    private ObservableList<MaintenanceData> currentPageData = FXCollections.observableArrayList();
     private ObservableList<String> mesinList = FXCollections.observableArrayList();
+
+    // SortedList untuk sorting
+    private SortedList<MaintenanceData> sortedData;
+
+    // Pagination variables
+    private int currentPage = 0;
+    private int itemsPerPage = 5;
+    private int totalPages = 0;
+    private int totalItems = 0;
 
     private static final String[] JENIS_KERUSAKAN = {
             "rusak_berat", "rusak_ringan", "perbaikan_rutin",
@@ -62,8 +89,8 @@ public class MaintenanceMesin implements Initializable {
         generateIdMaintenance();
         setPegawaiFromSession();
 
-        dpTanggalMaintenance.setValue(LocalDate.now());
-        dpTanggalMaintenance.setEditable(false);
+        txtTanggalMaintenance.setText(LocalDate.now().format(FORMATTER));
+        txtTanggalMaintenance.setEditable(false);
 
         cbJenisKerusakan.setItems(FXCollections.observableArrayList(JENIS_KERUSAKAN));
 
@@ -76,6 +103,175 @@ public class MaintenanceMesin implements Initializable {
 
         btnSimpan.setOnAction(e -> simpanData());
         btnBatal.setOnAction(e -> clearForm());
+
+        btnPrevPage.setOnAction(e -> handlePrevPage());
+        btnNextPage.setOnAction(e -> handleNextPage());
+
+        cbMesin.setOnAction(e -> validateMesinStatus());
+
+        // =============================================================
+        // 🔥 AUTO REFRESH SETIAP 5 DETIK
+        // =============================================================
+        setupAutoRefresh();
+    }
+
+    // =============================================================
+    // 🔥 AUTO REFRESH METHOD
+    // =============================================================
+    private void setupAutoRefresh() {
+        refreshTimer = new PauseTransition(Duration.seconds(5));
+        refreshTimer.setOnFinished(e -> {
+            Platform.runLater(() -> {
+                loadMaintenanceData();
+                updateStatisticsCards();
+            });
+            refreshTimer.playFromStart();
+        });
+        refreshTimer.play();
+    }
+
+    public void stopAutoRefresh() {
+        if (refreshTimer != null) {
+            refreshTimer.stop();
+        }
+    }
+
+    // =============================================================
+    // CEK SALDO KAS - PERBAIKAN (f_GetSaldoKas → f_SaldoKas)
+    // =============================================================
+    private double getSaldoKas() {
+        String query = "SELECT dbo.f_SaldoKas() AS Saldo";  // ← PERBAIKAN
+        try (Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
+            if (rs.next()) {
+                return rs.getDouble("Saldo");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    // =============================================================
+    // PAGINATION METHODS (SAMA)
+    // =============================================================
+
+    private void applyPagination() {
+        if (maintenanceDataList == null) return;
+
+        if (sortedData == null) {
+            sortedData = new SortedList<>(maintenanceDataList, new Comparator<MaintenanceData>() {
+                @Override
+                public int compare(MaintenanceData o1, MaintenanceData o2) {
+                    String status1 = o1.getStatus();
+                    String status2 = o2.getStatus();
+
+                    if (status1.equalsIgnoreCase(status2)) {
+                        if (o1.getTanggalMaintenance() == null && o2.getTanggalMaintenance() == null) {
+                            return 0;
+                        }
+                        if (o1.getTanggalMaintenance() == null) return 1;
+                        if (o2.getTanggalMaintenance() == null) return -1;
+                        return o2.getTanggalMaintenance().compareTo(o1.getTanggalMaintenance());
+                    }
+
+                    boolean isRusak1 = status1.equalsIgnoreCase("rusak");
+                    boolean isRusak2 = status2.equalsIgnoreCase("rusak");
+
+                    if (isRusak1 && !isRusak2) return -1;
+                    if (!isRusak1 && isRusak2) return 1;
+
+                    return 0;
+                }
+            });
+        }
+
+        totalItems = sortedData.size();
+        totalPages = (int) Math.ceil((double) totalItems / itemsPerPage);
+        if (totalPages == 0) totalPages = 1;
+
+        if (currentPage >= totalPages) currentPage = totalPages - 1;
+        if (currentPage < 0) currentPage = 0;
+
+        int fromIndex = currentPage * itemsPerPage;
+        int toIndex = Math.min(fromIndex + itemsPerPage, totalItems);
+
+        currentPageData.clear();
+        if (fromIndex < totalItems) {
+            currentPageData.addAll(sortedData.subList(fromIndex, toIndex));
+        }
+
+        tblMaintenance.setItems(currentPageData);
+
+        int startItem = totalItems > 0 ? fromIndex + 1 : 0;
+        int endItem = Math.min(toIndex, totalItems);
+        lblInfoData.setText("Menampilkan " + startItem + "-" + endItem + " dari " + totalItems + " data");
+
+        btnPrevPage.setDisable(currentPage == 0);
+        btnNextPage.setDisable(currentPage >= totalPages - 1);
+
+        updatePageButtons();
+    }
+
+    private void updatePageButtons() {
+        if (hboxPagination == null) return;
+
+        hboxPagination.getChildren().clear();
+
+        btnPrevPage.setStyle("-fx-background-color: transparent; -fx-text-fill: #475569; -fx-font-size: 16px; -fx-font-weight: bold; -fx-padding: 4 10; -fx-cursor: hand;");
+        hboxPagination.getChildren().add(btnPrevPage);
+
+        int maxButtons = 5;
+        int startPage = Math.max(0, currentPage - 2);
+        int endPage = Math.min(totalPages - 1, startPage + maxButtons - 1);
+
+        if (endPage - startPage < maxButtons - 1 && startPage > 0) {
+            startPage = Math.max(0, endPage - maxButtons + 1);
+        }
+
+        for (int i = startPage; i <= endPage; i++) {
+            Button pageBtn = new Button(String.valueOf(i + 1));
+            pageBtn.setPrefWidth(32);
+            pageBtn.setPrefHeight(32);
+
+            if (i == currentPage) {
+                pageBtn.setStyle("-fx-background-color: #002F6B; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 4 12; -fx-background-radius: 4; -fx-cursor: hand; -fx-font-size: 13px;");
+            } else {
+                pageBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #3B82F6; -fx-font-weight: bold; -fx-padding: 4 12; -fx-cursor: hand; -fx-font-size: 13px;");
+                pageBtn.setOnMouseEntered(e -> pageBtn.setStyle("-fx-background-color: #EFF6FF; -fx-text-fill: #3B82F6; -fx-font-weight: bold; -fx-padding: 4 12; -fx-cursor: hand; -fx-background-radius: 4; -fx-font-size: 13px;"));
+                pageBtn.setOnMouseExited(e -> pageBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #3B82F6; -fx-font-weight: bold; -fx-padding: 4 12; -fx-cursor: hand; -fx-font-size: 13px;"));
+            }
+
+            final int pageIndex = i;
+            pageBtn.setOnAction(e -> {
+                currentPage = pageIndex;
+                applyPagination();
+            });
+
+            hboxPagination.getChildren().add(pageBtn);
+        }
+
+        btnNextPage.setStyle("-fx-background-color: transparent; -fx-text-fill: #475569; -fx-font-size: 16px; -fx-font-weight: bold; -fx-padding: 4 10; -fx-cursor: hand;");
+        hboxPagination.getChildren().add(btnNextPage);
+
+        hboxPagination.setAlignment(Pos.CENTER);
+        hboxPagination.setSpacing(4);
+    }
+
+    @FXML
+    void handlePrevPage() {
+        if (currentPage > 0) {
+            currentPage--;
+            applyPagination();
+        }
+    }
+
+    @FXML
+    void handleNextPage() {
+        if (currentPage < totalPages - 1) {
+            currentPage++;
+            applyPagination();
+        }
     }
 
     private void generateIdMaintenance() {
@@ -124,9 +320,35 @@ public class MaintenanceMesin implements Initializable {
         return nama;
     }
 
+    private void validateMesinStatus() {
+        String selected = cbMesin.getValue();
+        if (selected == null || selected.isEmpty()) {
+            btnSimpan.setDisable(false);
+            return;
+        }
+
+        String idMesin = selected.split(" - ")[0];
+
+        String query = "SELECT dbo.f_CekMesinRusak(?) AS IsRusak";
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setString(1, idMesin);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next() && rs.getBoolean("IsRusak")) {
+                    btnSimpan.setDisable(true);
+                    showAlert("Peringatan", "Mesin ini sedang dalam status RUSAK!\n" +
+                            "Harap selesaikan maintenance terlebih dahulu sebelum menambah maintenance baru.");
+                } else {
+                    btnSimpan.setDisable(false);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
     private void loadMesinData() {
         mesinList.clear();
-        String query = "SELECT ID_Mesin, Nama_Mesin FROM Mesin WHERE Status_Mesin = 'Aktif'";
+        String query = "SELECT ID_Mesin, Nama_Mesin FROM v_MesinAktif ORDER BY Nama_Mesin";
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
@@ -152,6 +374,26 @@ public class MaintenanceMesin implements Initializable {
         colBiaya.setCellValueFactory(new PropertyValueFactory<>("biayaFormatted"));
         colKeterangan.setCellValueFactory(new PropertyValueFactory<>("keterangan"));
         colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
+
+        colStatus.setCellFactory(col -> new TableCell<MaintenanceData, String>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    setText(item);
+                    if (item.equalsIgnoreCase("selesai")) {
+                        setStyle("-fx-text-fill: #10B981; -fx-font-weight: bold;");
+                    } else if (item.equalsIgnoreCase("rusak")) {
+                        setStyle("-fx-text-fill: #EF4444; -fx-font-weight: bold;");
+                    } else {
+                        setStyle("-fx-text-fill: #6B7280;");
+                    }
+                }
+            }
+        });
 
         colAksi.setCellValueFactory(new PropertyValueFactory<>("aksi"));
 
@@ -190,33 +432,21 @@ public class MaintenanceMesin implements Initializable {
         });
     }
 
+    // =============================================================
+    // LOAD DATA MAINTENANCE - PAKAI VIEW ✅
+    // =============================================================
     private void loadMaintenanceData() {
         maintenanceDataList.clear();
-        String query =
-                "SELECT " +
-                        "    M.ID_Maintenance_Mesin, " +
-                        "    (M.ID_Mesin + ' - ' + ME.Nama_Mesin) AS Mesin, " +
-                        "    M.ID_Mesin, " +
-                        "    M.ID_Pegawai, " +
-                        "    M.Jenis_Kerusakan_Mesin, " +
-                        "    M.Deskripsi_Kerusakan, " +
-                        "    M.Tanggal_Maintenance_Mesin, " +
-                        "    M.Tanggal_Selesai_Mesin, " +
-                        "    M.Biaya_Maintenance_Mesin, " +
-                        "    M.Keterangan_Perbaikan, " +
-                        "    M.Status_Maintenance, " +
-                        "    P.Nama_Pegawai " +
-                        "FROM Maintenance_Mesin M " +
-                        "INNER JOIN Mesin ME ON M.ID_Mesin = ME.ID_Mesin " +
-                        "INNER JOIN Pegawai P ON M.ID_Pegawai = P.ID_Pegawai " +
-                        "ORDER BY M.Tanggal_Maintenance_Mesin DESC";
+        sortedData = null;
+
+        String query = "SELECT * FROM v_TampilMaintenanceMesin ORDER BY Tanggal_Maintenance_Mesin DESC";
 
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
             while (rs.next()) {
                 MaintenanceData data = new MaintenanceData(
                         rs.getString("ID_Maintenance_Mesin"),
-                        rs.getString("Mesin"),
+                        rs.getString("Nama_Mesin"),
                         rs.getString("ID_Pegawai"),
                         rs.getString("Jenis_Kerusakan_Mesin"),
                         rs.getString("Deskripsi_Kerusakan"),
@@ -231,48 +461,36 @@ public class MaintenanceMesin implements Initializable {
                 );
                 maintenanceDataList.add(data);
             }
-            tblMaintenance.setItems(maintenanceDataList);
-            updatePaginationInfo();
+
+            currentPage = 0;
+            applyPagination();
+
         } catch (SQLException e) {
             e.printStackTrace();
             showAlert("Error", "Gagal memuat data maintenance: " + e.getMessage());
         }
     }
 
+    // =============================================================
+    // UPDATE STATISTICS CARDS - PAKAI UDF ✅
+    // =============================================================
     private void updateStatisticsCards() {
         try {
-            String queryTotal = "SELECT COUNT(*) AS Total FROM Mesin";
+            String query = "SELECT " +
+                    "dbo.f_TotalMesin() AS Total, " +
+                    "dbo.f_MesinAktif() AS Aktif, " +
+                    "dbo.f_MesinRusak() AS Rusak, " +
+                    "dbo.f_MesinSelesai() AS Selesai";
+
             try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery(queryTotal)) {
+                 ResultSet rs = stmt.executeQuery(query)) {
                 if (rs.next()) {
                     lblTotalMesin.setText(String.valueOf(rs.getInt("Total")));
+                    lblMesinAktif.setText(String.valueOf(rs.getInt("Aktif")));
+                    lblMesinRusak.setText(String.valueOf(rs.getInt("Rusak")));
+                    lblMesinSelesai.setText(String.valueOf(rs.getInt("Selesai")));
                 }
             }
-
-            String queryAktif = "SELECT COUNT(*) AS Total FROM Mesin WHERE Status_Mesin = 'Aktif'";
-            try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery(queryAktif)) {
-                if (rs.next()) {
-                    lblMesinAktif.setText(String.valueOf(rs.getInt("Total")));
-                }
-            }
-
-            String queryRusak = "SELECT COUNT(*) AS Total FROM Maintenance_Mesin WHERE Status_Maintenance = 'rusak'";
-            try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery(queryRusak)) {
-                if (rs.next()) {
-                    lblMesinRusak.setText(String.valueOf(rs.getInt("Total")));
-                }
-            }
-
-            String querySelesai = "SELECT COUNT(*) AS Total FROM Maintenance_Mesin WHERE Status_Maintenance = 'selesai'";
-            try (Statement stmt = conn.createStatement();
-                 ResultSet rs = stmt.executeQuery(querySelesai)) {
-                if (rs.next()) {
-                    lblMesinSelesai.setText(String.valueOf(rs.getInt("Total")));
-                }
-            }
-
         } catch (SQLException e) {
             e.printStackTrace();
         }
@@ -286,6 +504,9 @@ public class MaintenanceMesin implements Initializable {
         });
     }
 
+    // =============================================================
+    // SEARCH - PAKAI UDF ✅
+    // =============================================================
     private void setupSearch() {
         txtCari.textProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal == null || newVal.isEmpty()) {
@@ -298,34 +519,17 @@ public class MaintenanceMesin implements Initializable {
 
     private void searchMaintenance(String keyword) {
         maintenanceDataList.clear();
-        String query =
-                "SELECT " +
-                        "    M.ID_Maintenance_Mesin, " +
-                        "    (M.ID_Mesin + ' - ' + ME.Nama_Mesin) AS Mesin, " +
-                        "    M.ID_Mesin, " +
-                        "    M.ID_Pegawai, " +
-                        "    M.Jenis_Kerusakan_Mesin, " +
-                        "    M.Deskripsi_Kerusakan, " +
-                        "    M.Tanggal_Maintenance_Mesin, " +
-                        "    M.Tanggal_Selesai_Mesin, " +
-                        "    M.Biaya_Maintenance_Mesin, " +
-                        "    M.Keterangan_Perbaikan, " +
-                        "    M.Status_Maintenance, " +
-                        "    P.Nama_Pegawai " +
-                        "FROM Maintenance_Mesin M " +
-                        "INNER JOIN Mesin ME ON M.ID_Mesin = ME.ID_Mesin " +
-                        "INNER JOIN Pegawai P ON M.ID_Pegawai = P.ID_Pegawai " +
-                        "WHERE M.ID_Maintenance_Mesin LIKE ? OR (M.ID_Mesin + ' - ' + ME.Nama_Mesin) LIKE ?";
+        sortedData = null;
+
+        String query = "SELECT * FROM dbo.f_CariMaintenance(?) ORDER BY Tanggal_Maintenance_Mesin DESC";
 
         try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-            String searchPattern = "%" + keyword + "%";
-            pstmt.setString(1, searchPattern);
-            pstmt.setString(2, searchPattern);
+            pstmt.setString(1, keyword);
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     MaintenanceData data = new MaintenanceData(
                             rs.getString("ID_Maintenance_Mesin"),
-                            rs.getString("Mesin"),
+                            rs.getString("Nama_Mesin"),
                             rs.getString("ID_Pegawai"),
                             rs.getString("Jenis_Kerusakan_Mesin"),
                             rs.getString("Deskripsi_Kerusakan"),
@@ -340,8 +544,9 @@ public class MaintenanceMesin implements Initializable {
                     );
                     maintenanceDataList.add(data);
                 }
-                tblMaintenance.setItems(maintenanceDataList);
-                updatePaginationInfo();
+
+                currentPage = 0;
+                applyPagination();
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -360,22 +565,21 @@ public class MaintenanceMesin implements Initializable {
             String idPegawai = txtIdMaintenance1.getText().split(" - ")[0];
             String jenisKerusakan = cbJenisKerusakan.getValue();
             String deskripsi = txtDeskripsi.getText();
-            LocalDate tanggalMaintenance = dpTanggalMaintenance.getValue();
-            // Status otomatis 'rusak'
+
+            LocalDate tanggalMaintenance = LocalDate.parse(txtTanggalMaintenance.getText(), FORMATTER);
             String status = "rusak";
 
-            String sql = "{call sp_TambahMaintenanceMesin(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)}";
+            String sql = "{call sp_TambahMaintenanceMesin(?, ?, ?, ?, ?, ?, ?, ?, ?)}";
             try (CallableStatement cstmt = conn.prepareCall(sql)) {
                 cstmt.setString(1, idMesin);
                 cstmt.setString(2, idPegawai);
                 cstmt.setString(3, jenisKerusakan);
                 cstmt.setString(4, deskripsi);
                 cstmt.setDate(5, Date.valueOf(tanggalMaintenance));
-                cstmt.setDate(6, null);
+                cstmt.setNull(6, Types.DATE);
                 cstmt.setDouble(7, 0);
-                cstmt.setString(8, null);
-                cstmt.setString(9, null);
-                cstmt.setString(10, status);
+                cstmt.setNull(8, Types.VARCHAR);
+                cstmt.setString(9, status);
 
                 cstmt.execute();
 
@@ -384,6 +588,7 @@ public class MaintenanceMesin implements Initializable {
                 loadMaintenanceData();
                 updateStatisticsCards();
                 generateIdMaintenance();
+                btnSimpan.setDisable(false);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -410,7 +615,7 @@ public class MaintenanceMesin implements Initializable {
             return false;
         }
 
-        if (dpTanggalMaintenance.getValue() == null) {
+        if (txtTanggalMaintenance.getText() == null || txtTanggalMaintenance.getText().isEmpty()) {
             showAlert("Error", "Tanggal Maintenance harus diisi!");
             return false;
         }
@@ -422,13 +627,13 @@ public class MaintenanceMesin implements Initializable {
         cbMesin.setValue(null);
         cbJenisKerusakan.setValue(null);
         txtDeskripsi.clear();
-        dpTanggalMaintenance.setValue(LocalDate.now());
+        txtTanggalMaintenance.setText(LocalDate.now().format(FORMATTER));
         generateIdMaintenance();
+        btnSimpan.setDisable(false);
     }
 
-    private void updatePaginationInfo() {
-        int total = maintenanceDataList.size();
-        lblInfoData.setText("Menampilkan " + total + " dari " + total + " data");
+    private String formatRupiah(double amount) {
+        return String.format("Rp. %,.0f", amount);
     }
 
     private void showAlert(String title, String message) {
@@ -454,74 +659,60 @@ public class MaintenanceMesin implements Initializable {
         grid.setPadding(new Insets(20, 20, 20, 20));
         grid.setPrefWidth(500);
 
-        // Field - Semua readonly/disable
         TextField txtIdMaintenancePopup = new TextField(data.getIdMaintenance());
-        txtIdMaintenancePopup.setDisable(true);
-        txtIdMaintenancePopup.setStyle("-fx-background-color: #f0f0f0;");
+        txtIdMaintenancePopup.setEditable(false);
+        txtIdMaintenancePopup.setStyle("-fx-background-color: #f0f0f0; -fx-opacity: 1.0;");
 
         TextField txtMesinPopup = new TextField(data.getIdMesin());
-        txtMesinPopup.setDisable(true);
-        txtMesinPopup.setStyle("-fx-background-color: #f0f0f0;");
+        txtMesinPopup.setEditable(false);
+        txtMesinPopup.setStyle("-fx-background-color: #f0f0f0; -fx-opacity: 1.0;");
 
         TextField txtPegawaiPopup = new TextField(data.getNamaPegawai() != null ? data.getNamaPegawai() : data.getIdPegawai());
-        txtPegawaiPopup.setDisable(true);
-        txtPegawaiPopup.setStyle("-fx-background-color: #f0f0f0;");
+        txtPegawaiPopup.setEditable(false);
+        txtPegawaiPopup.setStyle("-fx-background-color: #f0f0f0; -fx-opacity: 1.0;");
 
         TextField txtJenisPopup = new TextField(data.getJenisKerusakan());
-        txtJenisPopup.setDisable(true);
-        txtJenisPopup.setStyle("-fx-background-color: #f0f0f0;");
+        txtJenisPopup.setEditable(false);
+        txtJenisPopup.setStyle("-fx-background-color: #f0f0f0; -fx-opacity: 1.0;");
 
         TextArea txtDeskripsiPopup = new TextArea(data.getDeskripsi());
-        txtDeskripsiPopup.setDisable(true);
-        txtDeskripsiPopup.setStyle("-fx-background-color: #f0f0f0;");
+        txtDeskripsiPopup.setEditable(false);
+        txtDeskripsiPopup.setStyle("-fx-background-color: #f0f0f0; -fx-opacity: 1.0;");
         txtDeskripsiPopup.setPrefHeight(60);
         txtDeskripsiPopup.setWrapText(true);
 
         TextField txtTanggalMainPopup = new TextField(data.getTanggalMaintenance() != null ?
                 data.getTanggalMaintenance().format(FORMATTER) : "");
-        txtTanggalMainPopup.setDisable(true);
-        txtTanggalMainPopup.setStyle("-fx-background-color: #f0f0f0;");
+        txtTanggalMainPopup.setEditable(false);
+        txtTanggalMainPopup.setStyle("-fx-background-color: #f0f0f0; -fx-opacity: 1.0;");
 
-        DatePicker dpTanggalSelesaiPopup = new DatePicker(LocalDate.now());
-        dpTanggalSelesaiPopup.setEditable(false);
-        dpTanggalSelesaiPopup.setStyle("-fx-background-color: white;");
+        TextField txtTanggalSelesaiPopup = new TextField(LocalDate.now().format(FORMATTER));
+        txtTanggalSelesaiPopup.setEditable(false);
+        txtTanggalSelesaiPopup.setStyle("-fx-background-color: #f0f0f0; -fx-opacity: 1.0;");
 
-        // ==========================================
-        // FIELD BIAYA - OTOMATIS FORMAT Rp DAN TITIK
-        // ==========================================
         TextField txtBiayaPopup = new TextField();
         txtBiayaPopup.setPromptText("Masukan Biaya...");
         txtBiayaPopup.setStyle("-fx-background-color: white; -fx-alignment: center-right;");
+        txtBiayaPopup.setEditable(true);
 
-        // Listener untuk format biaya otomatis
         txtBiayaPopup.textProperty().addListener((obs, oldVal, newVal) -> {
-            // Hanya angka
             String clean = newVal.replaceAll("[^\\d]", "");
-
             if (clean.isEmpty()) {
                 txtBiayaPopup.setText("");
                 return;
             }
-
-            // Ubah ke Long untuk menghindari overflow
             long number = Long.parseLong(clean);
-
-            // Format dengan titik ribuan dan tambahan "Rp "
             String formatted = "Rp " + String.format("%,d", number).replace(',', '.');
-
-            // Set text tanpa memicu listener berulang
             txtBiayaPopup.setText(formatted);
-
-            // Posisi kursor di akhir
             txtBiayaPopup.positionCaret(formatted.length());
         });
 
-        // Keterangan
         TextArea txtKeteranganPopup = new TextArea();
         txtKeteranganPopup.setPromptText("Masukan Keterangan...");
         txtKeteranganPopup.setPrefHeight(60);
         txtKeteranganPopup.setWrapText(true);
         txtKeteranganPopup.setStyle("-fx-background-color: white;");
+        txtKeteranganPopup.setEditable(true);
         txtKeteranganPopup.textProperty().addListener((obs, oldVal, newVal) -> {
             if (!newVal.matches("[a-zA-Z0-9 .,!?]*")) {
                 txtKeteranganPopup.setText(newVal.replaceAll("[^a-zA-Z0-9 .,!?]", ""));
@@ -529,8 +720,8 @@ public class MaintenanceMesin implements Initializable {
         });
 
         TextField txtStatusPopup = new TextField("selesai");
-        txtStatusPopup.setDisable(true);
-        txtStatusPopup.setStyle("-fx-background-color: #f0f0f0; -fx-text-fill: #10B981; -fx-font-weight: bold;");
+        txtStatusPopup.setEditable(false);
+        txtStatusPopup.setStyle("-fx-background-color: #f0f0f0; -fx-text-fill: #10B981; -fx-font-weight: bold; -fx-opacity: 1.0;");
 
         int row = 0;
         grid.add(new Label("ID Maintenance:"), 0, row);
@@ -546,7 +737,7 @@ public class MaintenanceMesin implements Initializable {
         grid.add(new Label("Tanggal Maintenance:"), 0, row);
         grid.add(txtTanggalMainPopup, 1, row++);
         grid.add(new Label("Tanggal Selesai:"), 0, row);
-        grid.add(dpTanggalSelesaiPopup, 1, row++);
+        grid.add(txtTanggalSelesaiPopup, 1, row++);
         grid.add(new Label("Biaya Maintenance:"), 0, row);
         grid.add(txtBiayaPopup, 1, row++);
         grid.add(new Label("Keterangan:"), 0, row);
@@ -559,15 +750,10 @@ public class MaintenanceMesin implements Initializable {
         Button btnSelesaiButton = (Button) dialog.getDialogPane().lookupButton(btnSelesai);
         btnSelesaiButton.setDisable(true);
 
-        // Validasi biaya (ambil angka bersih tanpa Rp dan titik)
         txtBiayaPopup.textProperty().addListener((obs, oldVal, newVal) -> {
-            // Ambil angka bersih dari formatted text
             String cleanNumber = newVal.replaceAll("[^\\d]", "");
             long biayaValue = cleanNumber.isEmpty() ? 0 : Long.parseLong(cleanNumber);
-
-            // Simpan angka bersih ke userData untuk validasi
             txtBiayaPopup.setUserData(biayaValue);
-
             validatePopupForm(txtBiayaPopup, txtKeteranganPopup, btnSelesaiButton);
         });
 
@@ -578,7 +764,6 @@ public class MaintenanceMesin implements Initializable {
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == btnSelesai) {
                 try {
-                    // Ambil angka bersih dari formatted text
                     String biayaText = txtBiayaPopup.getText();
                     String keteranganText = txtKeteranganPopup.getText();
 
@@ -587,7 +772,6 @@ public class MaintenanceMesin implements Initializable {
                         return null;
                     }
 
-                    // Ambil angka bersih (hilangkan Rp dan titik)
                     String cleanBiaya = biayaText.replaceAll("[^\\d]", "");
                     double biaya = Double.parseDouble(cleanBiaya);
 
@@ -605,8 +789,26 @@ public class MaintenanceMesin implements Initializable {
                         return null;
                     }
 
+                    double saldoKas = getSaldoKas();
+
+                    if (saldoKas < biaya) {
+                        Alert errorAlert = new Alert(Alert.AlertType.ERROR);
+                        errorAlert.setTitle("Saldo Tidak Cukup");
+                        errorAlert.setHeaderText("❌ Maintenance Gagal Diselesaikan");
+                        errorAlert.setContentText(
+                                "Saldo kas tidak mencukupi untuk membayar maintenance!\n\n" +
+                                        "💰 Saldo Kas Saat Ini: " + formatRupiah(saldoKas) + "\n" +
+                                        "🔧 Biaya Maintenance: " + formatRupiah(biaya) + "\n" +
+                                        "🔴 Kekurangan: " + formatRupiah(biaya - saldoKas) + "\n\n" +
+                                        "⚠️ Maintenance tidak dapat diselesaikan.\n" +
+                                        "Silakan tambahkan pendapatan terlebih dahulu."
+                        );
+                        errorAlert.showAndWait();
+                        return null;
+                    }
+
                     String idMaintenance = data.getIdMaintenance();
-                    LocalDate tanggalSelesai = dpTanggalSelesaiPopup.getValue();
+                    LocalDate tanggalSelesai = LocalDate.now();
 
                     String sql = "{call sp_UpdateMaintenanceMesin(?, ?, ?, ?, ?)}";
                     try (CallableStatement cstmt = conn.prepareCall(sql)) {
@@ -617,7 +819,10 @@ public class MaintenanceMesin implements Initializable {
                         cstmt.setString(5, keteranganText);
 
                         cstmt.execute();
-                        showAlert("Sukses", "Maintenance berhasil diselesaikan!");
+
+                        showAlert("Sukses", "✅ Maintenance berhasil diselesaikan!\n" +
+                                "Biaya: " + formatRupiah(biaya) + "\n" +
+                                "💰 Saldo Kas Saat Ini: " + formatRupiah(getSaldoKas()));
                         loadMaintenanceData();
                         updateStatisticsCards();
                     }
@@ -645,7 +850,6 @@ public class MaintenanceMesin implements Initializable {
             valid = false;
         } else {
             try {
-                // Ambil angka bersih dari formatted text
                 String cleanBiaya = biayaText.replaceAll("[^\\d]", "");
                 double biaya = Double.parseDouble(cleanBiaya);
                 if (biaya < 1000 || biaya % 1000 != 0) {
@@ -662,7 +866,6 @@ public class MaintenanceMesin implements Initializable {
 
         btnSelesai.setDisable(!valid);
     }
-
 
     // ==========================================
     // HELPER CLASS MAINTENANCE DATA

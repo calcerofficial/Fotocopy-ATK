@@ -2,13 +2,14 @@ package SistemFotocopy;
 
 import Database.DBConnection;
 import javafx.beans.property.SimpleDoubleProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.IntegerProperty;
 import javafx.beans.property.StringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
-import javafx.collections.transformation.SortedList;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -23,7 +24,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
@@ -63,11 +63,12 @@ public class DataPenjualan {
 
     private final ObservableList<PenjualanModel> masterData = FXCollections.observableArrayList();
     private FilteredList<PenjualanModel> filteredData;
-    private SortedList<PenjualanModel>   sortedData;
+    private ObservableList<PenjualanModel> currentPageData = FXCollections.observableArrayList();
 
     private static final int ITEMS_PER_PAGE = 5;
-    private int currentPage = 1;
-    private List<PenjualanModel> halamanSaatIni = new ArrayList<>();
+    private int currentPage = 0;
+    private int totalPages = 0;
+    private int totalItems = 0;
 
     // =====================================================================
     // INITIALIZE
@@ -81,6 +82,10 @@ public class DataPenjualan {
 
         loadDataPenjualan();
         hitungStatCard();
+
+        // Setup pagination buttons
+        btnPrev.setOnAction(e -> handlePrevPage());
+        btnNext.setOnAction(e -> handleNextPage());
     }
 
     // =====================================================================
@@ -166,13 +171,12 @@ public class DataPenjualan {
     }
 
     // =====================================================================
-    // JENDELA DETAIL PENJUALAN — UKURAN SEDANG (TIDAK FULLSCREEN)
+    // JENDELA DETAIL PENJUALAN
     // =====================================================================
 
     private void bukaJendelaDetailPenjualan(PenjualanModel penjualan) {
-        // =============================================================
-        // HEADER JUDUL
-        // =============================================================
+        if (penjualan == null) return;
+
         Label lblJudul = new Label("Detail Penjualan");
         lblJudul.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #1E293B;");
 
@@ -182,25 +186,26 @@ public class DataPenjualan {
         VBox headerBox = new VBox(5, lblJudul, lblSubJudul);
         headerBox.setPadding(new Insets(0, 0, 12, 0));
 
-        // =============================================================
-        // TABEL DETAIL
-        // =============================================================
         TableView<DetailPenjualanModel> tableDetail = new TableView<>();
         tableDetail.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #E2E8F0; -fx-border-width: 1px;");
+        tableDetail.setPlaceholder(new Label("Tidak ada detail penjualan"));
 
+        // Kolom Nama Produk
         TableColumn<DetailPenjualanModel, String> colNamaProduk = new TableColumn<>("Nama Produk");
         colNamaProduk.setCellValueFactory(d -> d.getValue().namaProdukProperty());
-        colNamaProduk.setPrefWidth(180);
+        colNamaProduk.setPrefWidth(200);
         colNamaProduk.setStyle("-fx-alignment: CENTER-LEFT; -fx-font-size: 13px;");
 
-        TableColumn<DetailPenjualanModel, Number> colQty = new TableColumn<>("Qty");
-        colQty.setCellValueFactory(d -> d.getValue().qtyProperty());
-        colQty.setPrefWidth(70);
-        colQty.setStyle("-fx-alignment: CENTER; -fx-font-size: 13px;");
+        // Kolom Jumlah (ganti dari Qty)
+        TableColumn<DetailPenjualanModel, Number> colJumlah = new TableColumn<>("Jumlah");
+        colJumlah.setCellValueFactory(d -> d.getValue().jumlahProperty());
+        colJumlah.setPrefWidth(80);
+        colJumlah.setStyle("-fx-alignment: CENTER; -fx-font-size: 13px;");
 
+        // Kolom Harga Satuan
         TableColumn<DetailPenjualanModel, Number> colHargaSatuan = new TableColumn<>("Harga Satuan");
         colHargaSatuan.setCellValueFactory(d -> d.getValue().hargaSatuanProperty());
-        colHargaSatuan.setPrefWidth(140);
+        colHargaSatuan.setPrefWidth(150);
         colHargaSatuan.setStyle("-fx-alignment: CENTER-RIGHT; -fx-font-size: 13px;");
         colHargaSatuan.setCellFactory(col -> new TableCell<>() {
             @Override
@@ -211,28 +216,15 @@ public class DataPenjualan {
             }
         });
 
-        TableColumn<DetailPenjualanModel, Number> colSubtotal = new TableColumn<>("Subtotal");
-        colSubtotal.setCellValueFactory(d -> d.getValue().subtotalProperty());
-        colSubtotal.setPrefWidth(140);
-        colSubtotal.setStyle("-fx-alignment: CENTER-RIGHT; -fx-font-size: 13px; -fx-font-weight: bold;");
-        colSubtotal.setCellFactory(col -> new TableCell<>() {
-            @Override
-            protected void updateItem(Number item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : formatRupiah(item.doubleValue()));
-                setStyle("-fx-alignment: CENTER-RIGHT; -fx-font-weight: bold;");
-            }
-        });
-
-        tableDetail.getColumns().addAll(colNamaProduk, colQty, colHargaSatuan, colSubtotal);
-        tableDetail.setItems(loadDetailPenjualan(penjualan.getIdPenjualan()));
+        tableDetail.getColumns().addAll(colNamaProduk, colJumlah, colHargaSatuan);
         tableDetail.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
         tableDetail.setPrefHeight(200);
         tableDetail.setMaxHeight(250);
 
-        // =============================================================
-        // FOOTER — TOTAL, BAYAR, KEMBALIAN (3 kolom terpisah)
-        // =============================================================
+        // Load data detail
+        ObservableList<DetailPenjualanModel> detailData = loadDetailPenjualan(penjualan.getIdPenjualan());
+        tableDetail.setItems(detailData);
+
         GridPane footerGrid = new GridPane();
         footerGrid.setHgap(30);
         footerGrid.setPadding(new Insets(12, 15, 10, 15));
@@ -253,17 +245,13 @@ public class DataPenjualan {
         Label lblKembalianValue = new Label(formatRupiah(penjualan.getKembalian()));
         lblKembalianValue.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #3B82F6;");
 
-        // Baris 1: Label
         footerGrid.add(lblTotalLabel, 0, 0);
         footerGrid.add(lblBayarLabel, 1, 0);
         footerGrid.add(lblKembalianLabel, 2, 0);
-
-        // Baris 2: Value
         footerGrid.add(lblTotalValue, 0, 1);
         footerGrid.add(lblBayarValue, 1, 1);
         footerGrid.add(lblKembalianValue, 2, 1);
 
-        // Set alignment
         GridPane.setHalignment(lblTotalLabel, Pos.CENTER_LEFT.getHpos());
         GridPane.setHalignment(lblBayarLabel, Pos.CENTER_LEFT.getHpos());
         GridPane.setHalignment(lblKembalianLabel, Pos.CENTER_LEFT.getHpos());
@@ -271,9 +259,6 @@ public class DataPenjualan {
         GridPane.setHalignment(lblBayarValue, Pos.CENTER_LEFT.getHpos());
         GridPane.setHalignment(lblKembalianValue, Pos.CENTER_LEFT.getHpos());
 
-        // =============================================================
-        // TOMBOL TUTUP
-        // =============================================================
         Button btnTutup = new Button("Tutup");
         btnTutup.setStyle(
                 "-fx-background-color: #475569; " +
@@ -290,27 +275,17 @@ public class DataPenjualan {
         buttonBox.setAlignment(Pos.CENTER_RIGHT);
         buttonBox.setPadding(new Insets(10, 0, 0, 0));
 
-        // =============================================================
-        // MAIN LAYOUT
-        // =============================================================
         VBox root = new VBox(12);
         root.setPadding(new Insets(20, 25, 20, 25));
         root.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #CBD5E1; -fx-border-width: 1px; -fx-border-radius: 8;");
         root.getChildren().addAll(headerBox, tableDetail, footerGrid, buttonBox);
 
-        // =============================================================
-        // SCENE DAN STAGE — UKURAN SEDANG
-        // =============================================================
         Scene scene = new Scene(root);
 
         Stage stage = new Stage();
         stage.initModality(Modality.APPLICATION_MODAL);
         stage.setTitle("Detail Penjualan - " + penjualan.getIdPenjualan());
         stage.setScene(scene);
-
-        // =============================================================
-        // ATUR UKURAN WINDOW — TIDAK FULLSCREEN
-        // =============================================================
         stage.setWidth(600);
         stage.setHeight(420);
         stage.setMinWidth(550);
@@ -318,33 +293,17 @@ public class DataPenjualan {
         stage.setMaxWidth(700);
         stage.setMaxHeight(500);
         stage.setResizable(false);
-
-        // Center di tengah layar
         stage.centerOnScreen();
-
         stage.show();
-
-        // Styling header tabel
-        tableDetail.setRowFactory(tv -> new TableRow<DetailPenjualanModel>() {
-            @Override
-            protected void updateItem(DetailPenjualanModel item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setStyle("");
-                } else {
-                    setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #F1F5F9; -fx-border-width: 0 0 1px 0;");
-                }
-            }
-        });
     }
 
     // =====================================================================
-    // LOAD DETAIL PENJUALAN
+    // LOAD DETAIL PENJUALAN - MENGGUNAKAN UDF
     // =====================================================================
 
     private ObservableList<DetailPenjualanModel> loadDetailPenjualan(String idPenjualan) {
         ObservableList<DetailPenjualanModel> list = FXCollections.observableArrayList();
-        String sql = "SELECT * FROM fn_DetailPenjualanNota(?)";
+        String sql = "SELECT * FROM dbo.fn_DetailPenjualanNota(?)";
 
         try (PreparedStatement ps = db.getConnection().prepareStatement(sql)) {
             ps.setString(1, idPenjualan);
@@ -352,14 +311,15 @@ public class DataPenjualan {
                 while (rs.next()) {
                     list.add(new DetailPenjualanModel(
                             rs.getString("Nama Produk"),
-                            rs.getInt("Qty"),
-                            rs.getDouble("Harga Satuan"),
-                            rs.getDouble("Subtotal")
+                            rs.getInt("Jumlah"),  // Tetap pakai Qty, bukan Jumlah
+                            rs.getDouble("Harga Satuan")
                     ));
                 }
             }
         } catch (SQLException e) {
-            tampilAlert(Alert.AlertType.ERROR, "Gagal memuat detail penjualan", e.getMessage());
+            e.printStackTrace();
+            tampilAlert(Alert.AlertType.ERROR, "Gagal memuat detail penjualan",
+                    "Error: " + e.getMessage());
         }
         return list;
     }
@@ -372,18 +332,21 @@ public class DataPenjualan {
         txtCari.textProperty().addListener((obs, lama, baru) -> {
             if (filteredData == null) return;
             String kw = baru == null ? "" : baru.trim().toLowerCase();
+
             filteredData.setPredicate(p ->
                     kw.isEmpty()
                             || p.getIdPenjualan().toLowerCase().contains(kw)
                             || p.getKaryawan().toLowerCase().contains(kw)
+                            || p.getMetode().toLowerCase().contains(kw)
+                            || p.getStatus().toLowerCase().contains(kw)
             );
-            currentPage = 1;
-            refreshPagination();
+            currentPage = 0;
+            applyPagination();
         });
     }
 
     // =====================================================================
-    // LOAD DATA PENJUALAN — pakai v_TampilPenjualan
+    // LOAD DATA PENJUALAN
     // =====================================================================
 
     private void loadDataPenjualan() {
@@ -408,15 +371,8 @@ public class DataPenjualan {
 
             filteredData = new FilteredList<>(masterData, p -> true);
 
-            sortedData = new SortedList<>(filteredData, new Comparator<PenjualanModel>() {
-                @Override
-                public int compare(PenjualanModel o1, PenjualanModel o2) {
-                    return o2.getIdPenjualan().compareTo(o1.getIdPenjualan());
-                }
-            });
-
-            currentPage = 1;
-            refreshPagination();
+            currentPage = 0;
+            applyPagination();
 
         } catch (SQLException e) {
             tampilAlert(Alert.AlertType.ERROR, "Gagal memuat data penjualan", e.getMessage());
@@ -428,18 +384,19 @@ public class DataPenjualan {
     // =====================================================================
 
     private void hitungStatCard() {
-        String sql = "SELECT " +
-                "  COUNT(*) AS Total, " +
-                "  SUM(CASE WHEN Status_Penjualan = 'Lunas' THEN 1 ELSE 0 END) AS Lunas, " +
-                "  SUM(CASE WHEN Status_Penjualan = 'Batal Pembayaran' THEN 1 ELSE 0 END) AS BelumLunas " +
-                "FROM Penjualan";
+        try {
+            String query = "SELECT " +
+                    "dbo.f_TotalTransaksi() AS Total, " +
+                    "dbo.f_TotalLunas() AS Lunas, " +
+                    "dbo.f_TotalBelumLunas() AS BelumLunas";
 
-        try (java.sql.Statement st = db.getConnection().createStatement();
-             ResultSet rs = st.executeQuery(sql)) {
-            if (rs.next()) {
-                lblTotalTransaksi.setText(String.valueOf(rs.getInt("Total")));
-                lblLunas.setText(String.valueOf(rs.getInt("Lunas")));
-                lblBelumLunas.setText(String.valueOf(rs.getInt("BelumLunas")));
+            try (java.sql.Statement st = db.getConnection().createStatement();
+                 ResultSet rs = st.executeQuery(query)) {
+                if (rs.next()) {
+                    lblTotalTransaksi.setText(String.valueOf(rs.getInt("Total")));
+                    lblLunas.setText(String.valueOf(rs.getInt("Lunas")));
+                    lblBelumLunas.setText(String.valueOf(rs.getInt("BelumLunas")));
+                }
             }
         } catch (SQLException e) {
             tampilAlert(Alert.AlertType.ERROR, "Gagal menghitung statistik", e.getMessage());
@@ -450,45 +407,50 @@ public class DataPenjualan {
     // PAGINATION
     // =====================================================================
 
-    private void refreshPagination() {
-        if (sortedData == null) return;
+    private void applyPagination() {
+        if (filteredData == null) return;
 
-        List<PenjualanModel> semuaData = new ArrayList<>(sortedData);
-        int total      = semuaData.size();
-        int totalPages = Math.max(1, (int) Math.ceil((double) total / ITEMS_PER_PAGE));
+        List<PenjualanModel> allItems = new ArrayList<>(filteredData);
+        totalItems = allItems.size();
 
-        if (currentPage > totalPages) currentPage = totalPages;
-        if (currentPage < 1)          currentPage = 1;
+        totalPages = (int) Math.ceil((double) totalItems / ITEMS_PER_PAGE);
+        if (totalPages == 0) totalPages = 1;
 
-        int from = (currentPage - 1) * ITEMS_PER_PAGE;
-        int to   = Math.min(from + ITEMS_PER_PAGE, total);
+        if (currentPage >= totalPages) currentPage = totalPages - 1;
+        if (currentPage < 0) currentPage = 0;
 
-        halamanSaatIni = (from < total) ? semuaData.subList(from, to) : new ArrayList<>();
+        int fromIndex = currentPage * ITEMS_PER_PAGE;
+        int toIndex = Math.min(fromIndex + ITEMS_PER_PAGE, totalItems);
 
-        tablePembelian.setItems(FXCollections.observableArrayList(halamanSaatIni));
+        currentPageData.clear();
+        if (fromIndex < totalItems) {
+            currentPageData.addAll(allItems.subList(fromIndex, toIndex));
+        }
 
-        lblInfoData.setText("Menampilkan " + halamanSaatIni.size() + " dari " + total + " data");
-        lblPageInfo.setText("Hal " + currentPage + " / " + totalPages);
+        tablePembelian.setItems(currentPageData);
 
-        btnPrev.setDisable(currentPage <= 1);
-        btnNext.setDisable(currentPage >= totalPages);
+        int startItem = totalItems > 0 ? fromIndex + 1 : 0;
+        int endItem = Math.min(toIndex, totalItems);
+        lblInfoData.setText("Menampilkan " + startItem + "-" + endItem + " dari " + totalItems + " data");
+        lblPageInfo.setText("Hal " + (currentPage + 1) + " / " + totalPages);
+
+        btnPrev.setDisable(currentPage == 0);
+        btnNext.setDisable(currentPage >= totalPages - 1);
     }
 
     @FXML
     void handlePrevPage() {
-        if (currentPage > 1) {
+        if (currentPage > 0) {
             currentPage--;
-            refreshPagination();
+            applyPagination();
         }
     }
 
     @FXML
     void handleNextPage() {
-        if (sortedData == null) return;
-        int totalPages = Math.max(1, (int) Math.ceil((double) sortedData.size() / ITEMS_PER_PAGE));
-        if (currentPage < totalPages) {
+        if (currentPage < totalPages - 1) {
             currentPage++;
-            refreshPagination();
+            applyPagination();
         }
     }
 
@@ -542,6 +504,7 @@ public class DataPenjualan {
         public String getKaryawan() { return karyawan.get(); }
         public StringProperty karyawanProperty() { return karyawan; }
 
+        public String getTanggal() { return tanggal.get(); }
         public StringProperty tanggalProperty() { return tanggal; }
 
         public double getTotalHarga() { return totalHarga.get(); }
@@ -553,30 +516,35 @@ public class DataPenjualan {
         public double getKembalian() { return kembalian.get(); }
         public DoubleProperty kembalianProperty() { return kembalian; }
 
+        public String getMetode() { return metode.get(); }
         public StringProperty metodeProperty() { return metode; }
+
+        public String getStatus() { return status.get(); }
         public StringProperty statusProperty() { return status; }
     }
 
     // =====================================================================
-    // MODEL — Detail Penjualan (untuk jendela Detail)
+    // MODEL — Detail Penjualan
     // =====================================================================
 
     public static class DetailPenjualanModel {
         private final StringProperty namaProduk;
-        private final javafx.beans.property.IntegerProperty qty;
+        private final IntegerProperty jumlah;  // Ganti dari qty ke jumlah
         private final DoubleProperty hargaSatuan;
-        private final DoubleProperty subtotal;
 
-        public DetailPenjualanModel(String namaProduk, int qty, double hargaSatuan, double subtotal) {
-            this.namaProduk  = new SimpleStringProperty(namaProduk);
-            this.qty         = new javafx.beans.property.SimpleIntegerProperty(qty);
+        public DetailPenjualanModel(String namaProduk, int jumlah, double hargaSatuan) {
+            this.namaProduk = new SimpleStringProperty(namaProduk);
+            this.jumlah = new SimpleIntegerProperty(jumlah);
             this.hargaSatuan = new SimpleDoubleProperty(hargaSatuan);
-            this.subtotal    = new SimpleDoubleProperty(subtotal);
         }
 
+        public String getNamaProduk() { return namaProduk.get(); }
         public StringProperty namaProdukProperty() { return namaProduk; }
-        public javafx.beans.property.IntegerProperty qtyProperty() { return qty; }
+
+        public int getJumlah() { return jumlah.get(); }
+        public IntegerProperty jumlahProperty() { return jumlah; }
+
+        public double getHargaSatuan() { return hargaSatuan.get(); }
         public DoubleProperty hargaSatuanProperty() { return hargaSatuan; }
-        public DoubleProperty subtotalProperty() { return subtotal; }
     }
 }

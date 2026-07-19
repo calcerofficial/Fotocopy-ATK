@@ -1,0 +1,443 @@
+/* ========================================
+   DashboardKaryawan.css
+   CopyStream Pro - Dashboard Karyawan
+   ======================================== */
+
+/* ========================================
+   ROOT & BACKGROUND
+   ======================================== */
+.dashboard-bg {
+    -fx-background-color: #EDEEF2;
+    -fx-padding: 0;
+}
+
+.dashboard-container {
+    -fx-max-width: 1100px;
+    -fx-padding: 16px 0 24px 0;
+    -fx-spacing: 16px;
+    -fx-alignment: TOP_CENTER;
+}
+
+/* ========================================
+   ROW 1 WRAPPER — Saldo + Stats sebagai 1 unit
+   ======================================== */
+.card-top-wrapper {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 18px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.07), 20, 0, 0, 4);
+}
+
+/* ========================================
+   CARD - SALDO KAS UNIT
+   ======================================== */
+.card-saldo {
+    -fx-background-color: #1957A0;
+    -fx-background-radius: 18px 0 0 18px;
+    -fx-padding: 32px;
+    -fx-spacing: 12px;
+    -fx-min-height: 175px;
+    -fx-pref-height: 185px;
+}
+
+.saldo-icon-bg {
+    -fx-background-color: rgba(255, 255, 255, 0.18);
+    -fx-background-radius: 8px;
+    -fx-padding: 8px 10px;
+}
+
+.saldo-label {
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-text-fill: rgba(244, 255, 252, 0.75);
+    -fx-letter-spacing: 1.4px;
+}
+
+.saldo-amount {
+    -fx-font-family: "Segoe UI Semibold", sans-serif;
+    -fx-font-size: 40px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #FFFFFF;
+}
+
+.saldo-currency {
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-size: 15px;
+    -fx-font-weight: 400;
+    -fx-text-fill: rgba(244, 255, 252, 0.60);
+}
+
+/* ========================================
+   DIVIDERS
+   ======================================== */
+.vertical-divider-green {
+    -fx-background-color: #00685F;
+    -fx-pref-width: 4px;
+    -fx-min-height: 100px;
+}
+
+.vertical-divider-light {
+    -fx-background-color: #E5E7ED;
+    -fx-pref-width: 1px;
+    -fx-min-height: 80px;
+}
+
+/* ========================================
+   STAT CARDS (Pendapatan & Pengeluaran)
+   inside the white wrapper
+   ======================================== */
+.card-stat-pendapatan {
+    -fx-background-color: transparent;
+    -fx-padding: 28px 16px 28px 28px;
+    -fx-spacing: 8px;
+}
+
+.card-stat-pengeluaran {
+    -fx-background-color: transparent;
+    -fx-padding: 28px 28px 28px 28px;
+    -fx-spacing: 8px;
+}
+
+.icon-circle-green {
+    -fx-background-color: #E6F4F2;
+    -fx-background-radius: 9999px;
+    -fx-min-height: 38px;
+    -fx-min-width: 38px;
+    -fx-pref-height: 38px;
+    -fx-pref-width: 38px;
+}
+
+.icon-circle-red {
+    -fx-background-color: #FDE8E8;
+    -fx-background-radius: 9999px;
+    -fx-min-height: 38px;
+    -fx-min-width: 38px;
+    -fx-pref-height: 38px;
+    -fx-pref-width: 38px;
+}
+
+.stats-label {
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-size: 13px;
+    -fx-font-weight: 400;
+    -fx-text-fill: #6B7280;
+    -fx-padding: 4px 0 0 0;
+}
+
+.stats-amount {
+    -fx-font-family: "Segoe UI Semibold", sans-serif;
+    -fx-font-size: 22px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #111C2D;
+}
+
+.stats-change-label-green {
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #00685F;
+}
+
+.stats-change-label-red {
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-size: 11px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #BA1A1A;
+}
+
+/* ========================================
+   ROW 2
+   ======================================== */
+.bottom-row {
+    -fx-alignment: TOP_CENTER;
+    -fx-spacing: 16px;
+}
+
+/* ========================================
+   CARD - CHART (Grafik Penjualan)
+   ======================================== */
+.card-chart {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 18px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.07), 20, 0, 0, 4);
+    -fx-padding: 28px 32px;
+    -fx-spacing: 20px;
+    -fx-min-height: 380px;
+    -fx-pref-height: 420px;
+}
+
+.chart-header {
+    -fx-alignment: CENTER_LEFT;
+}
+
+.chart-title {
+    -fx-font-family: "Segoe UI Semibold", sans-serif;
+    -fx-font-size: 16px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #111C2D;
+}
+
+.chart-subtitle {
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-size: 12px;
+    -fx-font-weight: 400;
+    -fx-text-fill: #9CA3AF;
+}
+
+.year-selector {
+    -fx-background-color: #F3F4F6;
+    -fx-background-radius: 8px;
+    -fx-padding: 6px 12px;
+    -fx-cursor: hand;
+}
+
+.year-selector-text {
+    -fx-font-family: "Segoe UI Semibold", sans-serif;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #374151;
+}
+
+.chart-area {
+    -fx-background-color: #FFFFFF;
+    -fx-min-height: 240px;
+    -fx-pref-height: 270px;
+    -fx-border-color: #F0F1F3;
+    -fx-border-width: 0 0 1px 0;
+}
+
+.chart-bars {
+    -fx-alignment: BOTTOM_CENTER;
+}
+
+.chart-bars-container {
+    -fx-alignment: BOTTOM_CENTER;
+    -fx-padding: 8px;
+    -fx-spacing: 8px;
+}
+
+.chart-grid {
+    -fx-border-color: rgba(188, 201, 198, 0.25);
+    -fx-border-width: 0 0 1px 0;
+}
+
+.chart-legend {
+    -fx-alignment: CENTER;
+    -fx-spacing: 28px;
+}
+
+.legend-label {
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-size: 12px;
+    -fx-font-weight: 500;
+    -fx-text-fill: #6B7280;
+}
+
+/* ========================================
+   CARD - STATUS MESIN
+   ======================================== */
+.card-status {
+    -fx-background-color: #FFFFFF;
+    -fx-background-radius: 18px;
+    -fx-effect: dropshadow(gaussian, rgba(15, 23, 42, 0.07), 20, 0, 0, 4);
+    -fx-padding: 28px;
+    -fx-spacing: 20px;
+    -fx-min-height: 380px;
+    -fx-pref-height: 420px;
+    -fx-min-width: 220px;
+    -fx-pref-width: 260px;
+}
+
+.status-header {
+    -fx-alignment: CENTER_LEFT;
+}
+
+.status-title {
+    -fx-font-family: "Segoe UI Semibold", sans-serif;
+    -fx-font-size: 16px;
+    -fx-font-weight: 700;
+    -fx-text-fill: #111C2D;
+}
+
+.status-view-all {
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-size: 13px;
+    -fx-font-weight: 600;
+    -fx-text-fill: #1957A0;
+    -fx-cursor: hand;
+}
+
+.status-view-all:hover {
+    -fx-underline: true;
+    -fx-opacity: 0.75;
+}
+
+.status-list {
+    -fx-spacing: 12px;
+}
+
+.status-empty {
+    -fx-font-family: "Segoe UI", sans-serif;
+    -fx-font-size: 13px;
+    -fx-font-weight: 400;
+    -fx-text-fill: #B0B8C8;
+}
+
+/* ========================================
+   SCROLLBAR STYLING
+   ======================================== */
+.scroll-pane {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-border-color: transparent;
+}
+
+.scroll-pane .viewport {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar:vertical {
+    -fx-background-color: transparent;
+    -fx-pref-width: 6px;
+}
+
+.scroll-bar:vertical .thumb {
+    -fx-background-color: #C3C6D3;
+    -fx-background-radius: 3px;
+}
+
+.scroll-bar:vertical .thumb:hover {
+    -fx-background-color: #A0A4B5;
+}
+
+.scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+@media (max-width: 1024px) {
+    .dashboard-container {
+        -fx-padding: 16px 16px 24px 16px;
+    }
+
+    .card-saldo {
+        -fx-padding: 24px;
+    }
+
+    .saldo-amount {
+        -fx-font-size: 32px;
+    }
+}
+
+@media (max-width: 768px) {
+    .card-top-wrapper {
+        -fx-wrap: true;
+    }
+
+    .card-saldo {
+        -fx-background-radius: 18px 18px 0 0;
+    }
+
+    .vertical-divider-green {
+        -fx-pref-width: 0px;
+        -fx-min-height: 0px;
+    }
+
+    .card-stat-pendapatan {
+        -fx-padding: 20px 16px 20px 20px;
+    }
+
+    .card-stat-pengeluaran {
+        -fx-padding: 20px;
+    }
+
+    .bottom-row {
+        -fx-wrap: true;
+    }
+
+    .card-status {
+        -fx-min-width: 100%;
+        -fx-pref-width: 100%;
+        -fx-min-height: 200px;
+        -fx-pref-height: 220px;
+    }
+
+    .card-chart {
+        -fx-min-height: 280px;
+        -fx-pref-height: 320px;
+    }
+}
+
+/* ========================================
+   DARK MODE
+   ======================================== */
+.dark-mode .dashboard-bg {
+    -fx-background-color: #1A1A2E;
+}
+
+.dark-mode .card-top-wrapper {
+    -fx-background-color: rgba(30, 30, 50, 0.90);
+}
+
+.dark-mode .card-chart {
+    -fx-background-color: rgba(30, 30, 50, 0.90);
+}
+
+.dark-mode .card-status {
+    -fx-background-color: rgba(30, 30, 50, 0.90);
+}
+
+.dark-mode .chart-title {
+    -fx-text-fill: #E8E8F0;
+}
+
+.dark-mode .chart-subtitle {
+    -fx-text-fill: #8A8FA8;
+}
+
+.dark-mode .year-selector {
+    -fx-background-color: #2D2D44;
+}
+
+.dark-mode .year-selector-text {
+    -fx-text-fill: #E8E8F0;
+}
+
+.dark-mode .status-title {
+    -fx-text-fill: #E8E8F0;
+}
+
+.dark-mode .status-empty {
+    -fx-text-fill: #5A5F73;
+}
+
+.dark-mode .stats-amount {
+    -fx-text-fill: #E8E8F0;
+}
+
+.dark-mode .stats-label {
+    -fx-text-fill: #8A8FA8;
+}
+
+.dark-mode .legend-label {
+    -fx-text-fill: #8A8FA8;
+}
+
+.dark-mode .vertical-divider-light {
+    -fx-background-color: #2D2D44;
+}
+
+.dark-mode .chart-area {
+    -fx-background-color: transparent;
+    -fx-border-color: #2D2D44;
+}
+
+.dark-mode .status-view-all {
+    -fx-text-fill: #4A90D9;
+}
+
+/* ========================================
+   END OF CSS
+   ======================================== */

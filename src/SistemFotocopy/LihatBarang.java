@@ -1,6 +1,8 @@
 package SistemFotocopy;
 
 import Database.DBConnection;
+import javafx.animation.PauseTransition;
+import javafx.application.Platform;
 import javafx.beans.property.SimpleDoubleProperty;
 import javafx.beans.property.SimpleIntegerProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -12,6 +14,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
+import javafx.util.Duration;
 
 import java.net.URL;
 import java.sql.Connection;
@@ -42,7 +45,7 @@ public class LihatBarang implements Initializable {
     private TableColumn<ProdukModel, String> colNamaBarang;
 
     @FXML
-    private TableColumn<ProdukModel, String> colMerkProduk; // Tetap ada tapi bisa di-hidden
+    private TableColumn<ProdukModel, String> colMerkProduk;
 
     @FXML
     private TableColumn<ProdukModel, Number> colHarga;
@@ -82,9 +85,13 @@ public class LihatBarang implements Initializable {
     private FilteredList<ProdukModel> filteredData;
 
     private static final int ITEMS_PER_PAGE = 10;
-    private int currentPage = 1;
+    private int currentPage = 0;
     private int totalPages = 1;
+    private int totalItems = 0;
     private List<ProdukModel> halamanSaatIni = new ArrayList<>();
+
+    private PauseTransition refreshTimer;
+    private boolean isRefreshing = false;
 
     // =========================================================
     // INITIALIZE
@@ -103,10 +110,159 @@ public class LihatBarang implements Initializable {
         loadData();
         hitungStatistik();
 
-        // Set default button states
-        btnPrevPage.setDisable(true);
-        btnNextPage.setDisable(true);
-        btnPage1.setText("Halaman 1");
+        btnPrevPage.setOnAction(e -> handlePrevPage(e));
+        btnNextPage.setOnAction(e -> handleNextPage(e));
+
+        setupAutoRefresh();
+    }
+
+    // =========================================================
+    // AUTO REFRESH
+    // =========================================================
+    private void setupAutoRefresh() {
+        refreshTimer = new PauseTransition(Duration.seconds(5));
+        refreshTimer.setOnFinished(e -> {
+            refreshData();
+            refreshTimer.playFromStart();
+        });
+        refreshTimer.play();
+    }
+
+    private void refreshData() {
+        if (isRefreshing) return;
+        isRefreshing = true;
+
+        Platform.runLater(() -> {
+            try {
+                int currentPageTemp = currentPage;
+                String currentKeyword = txtCari.getText();
+
+                reloadDataFromDatabase();
+                hitungStatistik();
+
+                if (currentKeyword != null && !currentKeyword.trim().isEmpty() && filteredData != null) {
+                    String keyword = currentKeyword.trim().toLowerCase();
+                    filteredData.setPredicate(produk ->
+                            produk.getNamaBarang().toLowerCase().contains(keyword) ||
+                                    produk.getIdProduk().toLowerCase().contains(keyword)
+                    );
+                }
+
+                List<ProdukModel> semuaData = new ArrayList<>(filteredData);
+                totalItems = semuaData.size();
+                totalPages = (int) Math.ceil((double) totalItems / ITEMS_PER_PAGE);
+                if (totalPages == 0) totalPages = 1;
+
+                if (currentPageTemp >= totalPages) {
+                    currentPage = totalPages - 1;
+                } else {
+                    currentPage = currentPageTemp;
+                }
+                if (currentPage < 0) currentPage = 0;
+
+                applyPaginationWithoutReset();
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                isRefreshing = false;
+            }
+        });
+    }
+
+    // =========================================================
+    // RELOAD DATA - TAMPILKAN APA ADANYA DARI DATABASE
+    // =========================================================
+    private void reloadDataFromDatabase() {
+        masterData.clear();
+
+        String query = "SELECT ID_Produk, Nama_Barang, Harga, Stok, Status_Barang " +
+                "FROM v_LihatBarang ORDER BY ID_Produk";
+
+        System.out.println("📊 Query Lihat Barang: " + query);
+
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(query)) {
+
+            int count = 0;
+            while (rs.next()) {
+                String idProduk = rs.getString("ID_Produk");
+                String namaBarang = rs.getString("Nama_Barang");
+                double harga = rs.getDouble("Harga");
+                int stok = rs.getInt("Stok");
+                String status = rs.getString("Status_Barang");
+
+                // =========================================================
+                // TAMPILKAN APA ADANYA DARI DATABASE
+                // TIDAK ADA PERUBAHAN STATUS!
+                // =========================================================
+                System.out.println("✅ Produk: " + idProduk + " | " + namaBarang +
+                        " | Stok: " + stok + " | Status: " + status);
+
+                masterData.add(new ProdukModel(
+                        idProduk,
+                        namaBarang,
+                        "-",
+                        harga,
+                        stok,
+                        status
+                ));
+                count++;
+            }
+
+            System.out.println("📊 Total data dimuat: " + count);
+
+            if (filteredData == null) {
+                filteredData = new FilteredList<>(masterData, p -> true);
+            } else {
+                filteredData = new FilteredList<>(masterData, p -> true);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            showAlert("Error", "Gagal memuat data barang: " + e.getMessage());
+            loadDataFallback();
+        }
+    }
+
+    // =========================================================
+    // FALLBACK: Query langsung ke tabel Produk
+    // =========================================================
+    private void loadDataFallback() {
+        try {
+            String query = "SELECT ID_Produk, Nama_Barang, Harga, Stok, Status_Barang " +
+                    "FROM Produk WHERE Kategori_Produk = 'Barang' ORDER BY ID_Produk";
+
+            try (Statement stmt = connection.createStatement();
+                 ResultSet rs = stmt.executeQuery(query)) {
+
+                while (rs.next()) {
+                    String idProduk = rs.getString("ID_Produk");
+                    String namaBarang = rs.getString("Nama_Barang");
+                    double harga = rs.getDouble("Harga");
+                    int stok = rs.getInt("Stok");
+                    String status = rs.getString("Status_Barang");
+
+                    // TAMPILKAN APA ADANYA
+                    masterData.add(new ProdukModel(
+                            idProduk,
+                            namaBarang,
+                            "-",
+                            harga,
+                            stok,
+                            status
+                    ));
+                }
+
+                if (filteredData == null) {
+                    filteredData = new FilteredList<>(masterData, p -> true);
+                } else {
+                    filteredData = new FilteredList<>(masterData, p -> true);
+                }
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
     }
 
     // =========================================================
@@ -115,18 +271,13 @@ public class LihatBarang implements Initializable {
     private void setupTableColumns() {
         colIdBarang.setCellValueFactory(cellData -> cellData.getValue().idProdukProperty());
         colNamaBarang.setCellValueFactory(cellData -> cellData.getValue().namaBarangProperty());
-
-        // =========================================================
-        // KOLOM MERK - HIDDEN (karena tidak ada di database)
-        // =========================================================
         colMerkProduk.setCellValueFactory(cellData -> cellData.getValue().merkProperty());
-        colMerkProduk.setVisible(false); // Sembunyikan kolom Merk
+        colMerkProduk.setVisible(false);
 
         colHarga.setCellValueFactory(cellData -> cellData.getValue().hargaProperty());
         colStock.setCellValueFactory(cellData -> cellData.getValue().stokProperty());
         colStatusProduk.setCellValueFactory(cellData -> cellData.getValue().statusProperty());
 
-        // Format harga ke Rupiah
         colHarga.setCellFactory(col -> new TableCell<>() {
             @Override
             protected void updateItem(Number item, boolean empty) {
@@ -136,7 +287,6 @@ public class LihatBarang implements Initializable {
             }
         });
 
-        // Format stok
         colStock.setCellFactory(col -> new TableCell<>() {
             @Override
             protected void updateItem(Number item, boolean empty) {
@@ -145,13 +295,13 @@ public class LihatBarang implements Initializable {
                     setText(null);
                     setStyle("");
                 } else {
-                    setText(String.valueOf(item.intValue()));
+                    int stok = item.intValue();
+                    setText(String.valueOf(stok));
                     setStyle("-fx-alignment: CENTER;");
 
-                    // Warna merah jika stok 0
-                    if (item.intValue() == 0) {
+                    if (stok == 0) {
                         setStyle("-fx-text-fill: #EF4444; -fx-font-weight: bold; -fx-alignment: CENTER;");
-                    } else if (item.intValue() <= 5) {
+                    } else if (stok <= 5) {
                         setStyle("-fx-text-fill: #F59E0B; -fx-font-weight: bold; -fx-alignment: CENTER;");
                     } else {
                         setStyle("-fx-text-fill: #16A34A; -fx-alignment: CENTER;");
@@ -160,7 +310,6 @@ public class LihatBarang implements Initializable {
             }
         });
 
-        // Warna status
         colStatusProduk.setCellFactory(col -> new TableCell<>() {
             @Override
             protected void updateItem(String item, boolean empty) {
@@ -182,69 +331,68 @@ public class LihatBarang implements Initializable {
     }
 
     // =========================================================
-    // LOAD DATA (HANYA KATEGORI BARANG)
+    // LOAD DATA PERTAMA KALI
     // =========================================================
     private void loadData() {
-        masterData.clear();
+        reloadDataFromDatabase();
 
-        // =========================================================
-        // HAPUS KOLOM MERK DARI QUERY
-        // =========================================================
-        String query = "SELECT ID_Produk, Nama_Barang, Harga, Stok, Status_Barang " +
-                "FROM Produk WHERE Kategori_Produk = 'barang' ORDER BY Nama_Barang";
-
-        try (Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery(query)) {
-
-            while (rs.next()) {
-                masterData.add(new ProdukModel(
-                        rs.getString("ID_Produk"),
-                        rs.getString("Nama_Barang"),
-                        "-", // Merk tidak ada, pakai "-"
-                        rs.getDouble("Harga"),
-                        rs.getInt("Stok"),
-                        rs.getString("Status_Barang")
-                ));
-            }
-
+        if (filteredData == null) {
             filteredData = new FilteredList<>(masterData, p -> true);
-            currentPage = 1;
-            updatePagination();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-            showAlert("Error", "Gagal memuat data barang: " + e.getMessage());
         }
+
+        currentPage = 0;
+        applyPaginationWithoutReset();
     }
 
     // =========================================================
     // HITUNG STATISTIK
     // =========================================================
     private void hitungStatistik() {
-        int total = 0;
-        int tersedia = 0;
-        int tidakTersedia = 0;
+        try {
+            String query = "SELECT " +
+                    "dbo.f_TotalProdukBarang() AS Total, " +
+                    "dbo.f_TotalProdukBarangTersedia() AS Tersedia, " +
+                    "dbo.f_TotalProdukBarangNonTersedia() AS NonTersedia";
 
-        String query = "SELECT " +
-                "COUNT(*) AS Total, " +
-                "SUM(CASE WHEN Status_Barang = 'tersedia' THEN 1 ELSE 0 END) AS Tersedia, " +
-                "SUM(CASE WHEN Status_Barang != 'tersedia' THEN 1 ELSE 0 END) AS TidakTersedia " +
-                "FROM Produk WHERE Kategori_Produk = 'barang'";
+            try (Statement stmt = connection.createStatement();
+                 ResultSet rs = stmt.executeQuery(query)) {
+                if (rs.next()) {
+                    int total = rs.getInt("Total");
+                    int tersedia = rs.getInt("Tersedia");
+                    int tidakTersedia = rs.getInt("NonTersedia");
 
-        try (Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery(query)) {
-            if (rs.next()) {
-                total = rs.getInt("Total");
-                tersedia = rs.getInt("Tersedia");
-                tidakTersedia = rs.getInt("TidakTersedia");
+                    System.out.println("📊 Statistik Barang: Total=" + total +
+                            ", Tersedia=" + tersedia +
+                            ", TidakTersedia=" + tidakTersedia);
+
+                    lblTotalProduk.setText(String.valueOf(total));
+                    lblProdukTersedia.setText(String.valueOf(tersedia));
+                    lblProdukTidakTersedia.setText(String.valueOf(tidakTersedia));
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
-        }
 
-        lblTotalProduk.setText(String.valueOf(total));
-        lblProdukTersedia.setText(String.valueOf(tersedia));
-        lblProdukTidakTersedia.setText(String.valueOf(tidakTersedia));
+            // FALLBACK
+            try {
+                String query = "SELECT " +
+                        "COUNT(*) AS Total, " +
+                        "SUM(CASE WHEN LOWER(Status_Barang) = 'tersedia' AND Stok > 0 THEN 1 ELSE 0 END) AS Tersedia, " +
+                        "SUM(CASE WHEN LOWER(Status_Barang) != 'tersedia' OR Stok = 0 THEN 1 ELSE 0 END) AS TidakTersedia " +
+                        "FROM Produk WHERE Kategori_Produk = 'Barang'";
+
+                try (Statement stmt = connection.createStatement();
+                     ResultSet rs = stmt.executeQuery(query)) {
+                    if (rs.next()) {
+                        lblTotalProduk.setText(String.valueOf(rs.getInt("Total")));
+                        lblProdukTersedia.setText(String.valueOf(rs.getInt("Tersedia")));
+                        lblProdukTidakTersedia.setText(String.valueOf(rs.getInt("TidakTersedia")));
+                    }
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        }
     }
 
     // =========================================================
@@ -257,28 +405,30 @@ public class LihatBarang implements Initializable {
             filteredData.setPredicate(produk ->
                     keyword.isEmpty() ||
                             produk.getNamaBarang().toLowerCase().contains(keyword) ||
-                            produk.getIdProduk().toLowerCase().contains(keyword)
+                            produk.getIdProduk().toLowerCase().contains(keyword) ||
+                            produk.getStatus().toLowerCase().contains(keyword)
             );
-            currentPage = 1;
-            updatePagination();
+            currentPage = 0;
+            applyPaginationWithoutReset();
         });
     }
 
     // =========================================================
     // PAGINATION
     // =========================================================
-    private void updatePagination() {
+    private void applyPaginationWithoutReset() {
         if (filteredData == null) return;
 
         List<ProdukModel> semuaData = new ArrayList<>(filteredData);
-        int totalItems = semuaData.size();
+        totalItems = semuaData.size();
+
         totalPages = (int) Math.ceil((double) totalItems / ITEMS_PER_PAGE);
         if (totalPages == 0) totalPages = 1;
 
-        if (currentPage > totalPages) currentPage = totalPages;
-        if (currentPage < 1) currentPage = 1;
+        if (currentPage >= totalPages) currentPage = totalPages - 1;
+        if (currentPage < 0) currentPage = 0;
 
-        int fromIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+        int fromIndex = currentPage * ITEMS_PER_PAGE;
         int toIndex = Math.min(fromIndex + ITEMS_PER_PAGE, totalItems);
 
         if (totalItems == 0) {
@@ -288,38 +438,47 @@ public class LihatBarang implements Initializable {
             tblProduk.setItems(FXCollections.observableArrayList(halamanSaatIni));
         }
 
-        // Update info
-        btnPage1.setText("Halaman " + currentPage + " dari " + totalPages);
-        btnPrevPage.setDisable(currentPage <= 1);
-        btnNextPage.setDisable(currentPage >= totalPages);
+        int startItem = totalItems > 0 ? fromIndex + 1 : 0;
+        int endItem = Math.min(toIndex, totalItems);
+        lblInfoData.setText("Menampilkan " + startItem + "-" + endItem + " dari " + totalItems + " data");
+        btnPage1.setText("Halaman " + (currentPage + 1) + " / " + totalPages);
 
-        int start = totalItems == 0 ? 0 : fromIndex + 1;
-        int end = Math.min(toIndex, totalItems);
-        lblInfoData.setText("Menampilkan " + start + "-" + end + " dari " + totalItems + " data");
+        btnPrevPage.setDisable(currentPage == 0);
+        btnNextPage.setDisable(currentPage >= totalPages - 1);
     }
 
     // =========================================================
     // PAGINATION HANDLERS
     // =========================================================
     @FXML
-    void handleNextPage(ActionEvent event) {
-        if (currentPage < totalPages) {
-            currentPage++;
-            updatePagination();
+    void handlePrevPage(ActionEvent event) {
+        if (currentPage > 0) {
+            currentPage--;
+            applyPaginationWithoutReset();
         }
     }
 
     @FXML
-    void handlePrevPage(ActionEvent event) {
-        if (currentPage > 1) {
-            currentPage--;
-            updatePagination();
+    void handleNextPage(ActionEvent event) {
+        if (currentPage < totalPages - 1) {
+            currentPage++;
+            applyPaginationWithoutReset();
         }
     }
 
     // =========================================================
     // HELPER METHODS
     // =========================================================
+    public void refreshManual() {
+        refreshData();
+    }
+
+    public void stopAutoRefresh() {
+        if (refreshTimer != null) {
+            refreshTimer.stop();
+        }
+    }
+
     private String formatRupiah(double nominal) {
         NumberFormat formatRp = NumberFormat.getNumberInstance(new Locale("in", "ID"));
         return "Rp " + formatRp.format(nominal);

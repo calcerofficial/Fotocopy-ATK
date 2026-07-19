@@ -1,5 +1,6 @@
 package SistemFotocopy;
 
+import javafx.beans.property.*;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -10,10 +11,53 @@ import javafx.scene.layout.BorderPane;
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.text.NumberFormat;
 import java.util.Locale;
 import Database.DBConnection;
 
+// ============================================================
+// CLASS PRODUK (Model)
+// ============================================================
+class Produk {
+    private final StringProperty idProduk;
+    private final StringProperty namaProduk;
+    private final StringProperty merk;
+    private final StringProperty kategori;
+    private final DoubleProperty harga;
+    private final IntegerProperty stok;
+    private final StringProperty status;
+
+    public Produk(String idProduk, String namaProduk, String merk, String kategori, double harga, int stok, String status) {
+        this.idProduk = new SimpleStringProperty(idProduk);
+        this.namaProduk = new SimpleStringProperty(namaProduk);
+        this.merk = new SimpleStringProperty(merk);
+        this.kategori = new SimpleStringProperty(kategori);
+        this.harga = new SimpleDoubleProperty(harga);
+        this.stok = new SimpleIntegerProperty(stok);
+        this.status = new SimpleStringProperty(status);
+    }
+
+    public StringProperty idProdukProperty() { return idProduk; }
+    public StringProperty namaProdukProperty() { return namaProduk; }
+    public StringProperty merkProperty() { return merk; }
+    public StringProperty kategoriProperty() { return kategori; }
+    public DoubleProperty hargaProperty() { return harga; }
+    public IntegerProperty stokProperty() { return stok; }
+    public StringProperty statusProperty() { return status; }
+
+    public String getIdProduk() { return idProduk.get(); }
+    public String getNamaProduk() { return namaProduk.get(); }
+    public String getMerk() { return merk.get(); }
+    public String getKategori() { return kategori.get(); }
+    public double getHarga() { return harga.get(); }
+    public int getStok() { return stok.get(); }
+    public String getStatus() { return status.get(); }
+}
+
+// ============================================================
+// CLASS DATAPRODUK (Controller)
+// ============================================================
 public class DataProduk {
 
     @FXML private Button btnBatal;
@@ -72,7 +116,7 @@ public class DataProduk {
         btnHapus.setDisable(true);
 
         txtIdBarang.setDisable(true);
-        cmbStatus.setDisable(true);
+        cmbStatus.setDisable(true); // ← STATUS DISABLED
 
         // BINDING KOLOM TABEL
         colIdBarang.setCellValueFactory(cellData -> cellData.getValue().idProdukProperty());
@@ -103,9 +147,8 @@ public class DataProduk {
         // =========================================================
         setupInputValidation();
 
-        // LISTENER KATEGORI - VERSI FINAL
+        // LISTENER KATEGORI
         cmbKategoriProduk.getSelectionModel().selectedItemProperty().addListener((options, oldValue, newValue) -> {
-            // Reset dulu semua style merah sebelum ngapa-ngapain
             txtStockBarang.setStyle(null);
             txtMerk.setStyle(null);
             hideErrorLabel(lblErrorStock);
@@ -114,7 +157,7 @@ public class DataProduk {
             if (newValue != null && tblProduk.getSelectionModel().getSelectedItem() == null) {
                 generateIdOtomatis();
                 cmbStatus.setValue("Tersedia");
-                cmbStatus.setDisable(true);
+                cmbStatus.setDisable(true); // ← STATUS TETAP DISABLED
 
                 if ("Layanan".equalsIgnoreCase(newValue)) {
                     txtStockBarang.setText("-");
@@ -143,14 +186,15 @@ public class DataProduk {
                 txtMerk.setText(newSelection.getMerk());
                 cmbKategoriProduk.setValue(newSelection.getKategori());
 
-                // Set harga dengan format Rupiah
                 isUpdatingHarga = true;
                 txtHargaBarang.setText(formatRupiah(newSelection.getHarga()));
                 isUpdatingHarga = false;
 
-                // STATUS MUNCUL SAAT UBAH
+                // =============================================
+                // STATUS HANYA DITAMPILKAN, TIDAK BISA DIUBAH
+                // =============================================
                 cmbStatus.setValue(newSelection.getStatus());
-                cmbStatus.setDisable(false);
+                cmbStatus.setDisable(true); // ← SELALU DISABLED!
 
                 if ("layanan".equalsIgnoreCase(newSelection.getKategori())) {
                     txtStockBarang.setText("-");
@@ -169,6 +213,29 @@ public class DataProduk {
         txtCari.textProperty().addListener((observable, oldValue, newValue) -> {
             cariDataProduk(newValue);
         });
+    }
+
+    // =========================================================
+    // HITUNG STATISTIK PAKAI UDF
+    // =========================================================
+    private void hitungStatistikProduk() {
+        try {
+            String query = "SELECT " +
+                    "dbo.f_TotalSemuaProduk() AS Total, " +
+                    "dbo.f_TotalProdukTersedia() AS Tersedia, " +
+                    "dbo.f_TotalProdukNonTersedia() AS NonTersedia";
+
+            try (java.sql.Statement st = db.getConnection().createStatement();
+                 ResultSet rs = st.executeQuery(query)) {
+                if (rs.next()) {
+                    lblTotalProduk.setText(String.valueOf(rs.getInt("Total")));
+                    lblProdukTersedia.setText(String.valueOf(rs.getInt("Tersedia")));
+                    lblProdukTidakTersedia.setText(String.valueOf(rs.getInt("NonTersedia")));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     // =========================================================
@@ -191,10 +258,10 @@ public class DataProduk {
     }
 
     // =========================================================
-    // VALIDASI INPUT - FINAL
+    // VALIDASI INPUT
     // =========================================================
     private void setupInputValidation() {
-        // 1. NAMA PRODUK - Hanya huruf, spasi, dan angka (TIDAK BOLEH SIMBOL)
+        // 1. NAMA PRODUK - Huruf, angka, spasi (TIDAK BOLEH SIMBOL)
         TextFormatter<String> namaFormatter = new TextFormatter<>(change -> {
             String newText = change.getControlNewText();
             if (newText.isEmpty()) {
@@ -210,22 +277,18 @@ public class DataProduk {
         });
         txtNamaBarang.setTextFormatter(namaFormatter);
 
-        // 2. HARGA - Format Rupiah otomatis
-        // 2. HARGA - Format Rupiah otomatis, minimal 1000, TIDAK BISA 0 DI AWAL
+        // 2. HARGA - Format Rupiah otomatis, minimal 1000, maksimal 100000
         txtHargaBarang.textProperty().addListener((observable, oldValue, newValue) -> {
             if (isUpdatingHarga) return;
 
-            // Jika kosong, reset
             if (newValue == null || newValue.isEmpty()) {
                 txtHargaBarang.setStyle(null);
                 hideErrorLabel(lblErrorHarga);
                 return;
             }
 
-            // Hanya ambil angka
             String cleanString = newValue.replaceAll("[^0-9]", "");
 
-            // Jika tidak ada angka, clear
             if (cleanString.isEmpty()) {
                 isUpdatingHarga = true;
                 txtHargaBarang.setText("");
@@ -235,9 +298,7 @@ public class DataProduk {
                 return;
             }
 
-            // CEK APAKAH DIAWALI 0 - LANGSUNG TOLAK/TIDAK BISA DIKETIK
             if (cleanString.startsWith("0")) {
-                // Kembalikan ke nilai sebelumnya (oldValue)
                 isUpdatingHarga = true;
                 txtHargaBarang.setText(oldValue != null ? oldValue : "");
                 isUpdatingHarga = false;
@@ -249,21 +310,18 @@ public class DataProduk {
             try {
                 int value = Integer.parseInt(cleanString);
 
-                // Validasi minimal 1000
                 if (value < 1000) {
                     txtHargaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
                     showErrorLabel(lblErrorHarga, "Harga minimal Rp1.000");
                     return;
                 }
 
-                // Validasi maksimal 100000
                 if (value > 100000) {
                     txtHargaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
                     showErrorLabel(lblErrorHarga, "Harga maksimal Rp100.000");
                     return;
                 }
 
-                // Format Rupiah
                 isUpdatingHarga = true;
                 String formatted = formatRupiah(value);
                 txtHargaBarang.setText(formatted);
@@ -293,10 +351,8 @@ public class DataProduk {
                 return;
             }
 
-            // Hanya ambil angka
             String cleanString = newValue.replaceAll("[^0-9]", "");
 
-            // Jika tidak ada angka, clear
             if (cleanString.isEmpty()) {
                 txtStockBarang.setText("");
                 txtStockBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
@@ -304,7 +360,6 @@ public class DataProduk {
                 return;
             }
 
-            // CEK APAKAH DIAWALI 0 - LANGSUNG TOLAK
             if (cleanString.startsWith("0")) {
                 txtStockBarang.setText(oldValue != null ? oldValue : "");
                 txtStockBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
@@ -315,7 +370,6 @@ public class DataProduk {
             try {
                 int value = Integer.parseInt(cleanString);
 
-                // Validasi minimal 10
                 if (value < 10) {
                     txtStockBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
                     showErrorLabel(lblErrorStock, "Stock minimal 10");
@@ -331,7 +385,7 @@ public class DataProduk {
             }
         });
 
-        // 4. MERK - Hanya huruf, angka, dan spasi (TIDAK BOLEH SIMBOL)
+        // 4. MERK - Huruf, angka, dan spasi (TIDAK BOLEH SIMBOL)
         TextFormatter<String> merkFormatter = new TextFormatter<>(change -> {
             if (txtMerk.isDisabled() || "Layanan".equalsIgnoreCase(cmbKategoriProduk.getValue())) {
                 txtMerk.setStyle(null);
@@ -343,7 +397,6 @@ public class DataProduk {
                 txtMerk.setStyle(null);
                 return change;
             }
-            // Hanya huruf, angka, dan spasi
             if (!newText.matches("^[a-zA-Z0-9\\s]*$")) {
                 txtMerk.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
                 return null;
@@ -356,7 +409,7 @@ public class DataProduk {
     }
 
     // =========================================================
-    // CHECK INPUT ERRORS
+    // CHECK INPUT ERRORS - FINAL
     // =========================================================
     private boolean checkInputErrors() {
         boolean hasError = false;
@@ -415,12 +468,12 @@ public class DataProduk {
             }
         }
 
-        // Cek Merk (hanya jika kategori Barang)
+        // Cek Merk (hanya jika kategori Barang) - DENGAN SPASI
         if ("Barang".equalsIgnoreCase(kategori)) {
             String merk = txtMerk.getText();
-            if (!merk.isEmpty() && !merk.matches("^[a-zA-Z0-9]+$")) {
+            if (!merk.isEmpty() && !merk.matches("^[a-zA-Z0-9\\s]+$")) {
                 txtMerk.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-                showErrorLabel(lblErrorMerk, "Merk hanya boleh huruf dan angka");
+                showErrorLabel(lblErrorMerk, "Merk hanya boleh huruf, angka, dan spasi");
                 hasError = true;
             } else {
                 txtMerk.setStyle(null);
@@ -458,6 +511,9 @@ public class DataProduk {
         }
     }
 
+    // =========================================================
+    // GENERATE ID OTOMATIS
+    // =========================================================
     private void generateIdOtomatis() {
         String query = "SELECT MAX(CAST(SUBSTRING(ID_Produk, 4, LEN(ID_Produk)) AS INT)) AS max_angka FROM Produk";
         try {
@@ -476,6 +532,9 @@ public class DataProduk {
         }
     }
 
+    // =========================================================
+    // LOAD DATA PRODUK
+    // =========================================================
     private void loadDataProduk() {
         listProduk.clear();
         String query = "SELECT * FROM v_TampilSemuaProduk " +
@@ -484,8 +543,6 @@ public class DataProduk {
         try {
             try (PreparedStatement ps = db.getConnection().prepareStatement(query);
                  ResultSet rs = ps.executeQuery()) {
-
-                int total = 0, tersedia = 0, tidakTersedia = 0;
 
                 while (rs.next()) {
                     String id = rs.getString("ID_Produk");
@@ -502,25 +559,23 @@ public class DataProduk {
                     String status = rs.getString("Status_Barang");
 
                     listProduk.add(new Produk(id, nama, merk, kategori, harga, stok, status));
-
-                    total++;
-                    if ("Tersedia".equalsIgnoreCase(status) || "tersedia".equalsIgnoreCase(status)) tersedia++;
-                    else tidakTersedia++;
                 }
 
                 filteredList.setAll(listProduk);
                 currentPage = 1;
                 updateTableAndPagination();
 
-                lblTotalProduk.setText(String.valueOf(total));
-                lblProdukTersedia.setText(String.valueOf(tersedia));
-                lblProdukTidakTersedia.setText(String.valueOf(tidakTersedia));
+                hitungStatistikProduk();
+
             }
         } catch (Exception e) {
             showAlert(Alert.AlertType.ERROR, "Error Database", "Gagal memuat data: " + e.getMessage());
         }
     }
 
+    // =========================================================
+    // PAGINATION
+    // =========================================================
     private void updateTableAndPagination() {
         int totalRows = filteredList.size();
         int maxPage = (int) Math.ceil((double) totalRows / rowsPerPage);
@@ -561,15 +616,16 @@ public class DataProduk {
         updateTableAndPagination();
     }
 
+    // =========================================================
+    // SIMPAN DATA
+    // =========================================================
     @FXML
     void handleSimpanData(ActionEvent event) {
-        // Validasi input
         if (checkInputErrors()) {
             showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Mohon perbaiki input yang ditandai merah");
             return;
         }
 
-        // Validasi wajib isi
         if (txtNamaBarang.getText().isEmpty()) {
             showErrorLabel(lblErrorNama, "Nama produk wajib diisi");
             showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Nama produk wajib diisi");
@@ -605,7 +661,6 @@ public class DataProduk {
                 showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Nama produk sudah terdaftar.");
                 return;
             }
-
         }
 
         String sqlProcedure = "{CALL sp_TambahProduk(?, ?, ?, ?, ?)}";
@@ -639,6 +694,9 @@ public class DataProduk {
         }
     }
 
+    // =========================================================
+    // UBAH DATA - 6 PARAMETER (TANPA STATUS)
+    // =========================================================
     @FXML
     void handleUbahData(ActionEvent event) {
         Produk produkTerpilih = tblProduk.getSelectionModel().getSelectedItem();
@@ -647,7 +705,6 @@ public class DataProduk {
             return;
         }
 
-        // Validasi input
         if (checkInputErrors()) {
             showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Mohon perbaiki input yang ditandai merah");
             return;
@@ -659,39 +716,25 @@ public class DataProduk {
             return;
         }
 
-        String statusLama = produkTerpilih.getStatus();
-        String statusBaru = cmbStatus.getValue();
-
-        if (("Tersedia".equalsIgnoreCase(statusLama) || "tersedia".equalsIgnoreCase(statusLama))
-                && "NonTersedia".equalsIgnoreCase(statusBaru)) {
-            showAlert(Alert.AlertType.WARNING, "Peringatan", "Untuk menonaktifkan produk, silakan pakai tombol 'Hapus Data'!");
-            cmbStatus.setValue(statusLama);
-            return;
-        }
-
+        // =============================================
+        // 6 PARAMETER (TANPA STATUS - OTOMATIS DARI SP)
+        // =============================================
         String sqlProcedure = "{CALL sp_UpdateProduk(?, ?, ?, ?, ?, ?)}";
         try {
             try (CallableStatement cs = db.getConnection().prepareCall(sqlProcedure)) {
                 cs.setString(1, txtIdBarang.getText());
                 cs.setString(2, txtNamaBarang.getText());
-                cs.setDouble(3, hilangkanFormatRupiah(txtHargaBarang.getText()));
+                cs.setString(3, cmbKategoriProduk.getValue());
+                cs.setDouble(4, hilangkanFormatRupiah(txtHargaBarang.getText()));
 
                 String kategori = cmbKategoriProduk.getValue();
-                String stok = txtStockBarang.getText();
                 if ("Layanan".equalsIgnoreCase(kategori)) {
-                    cs.setString(4, "0");
+                    cs.setString(5, "0");
+                    cs.setString(6, "-");
                 } else {
-                    cs.setString(4, stok);
+                    cs.setString(5, txtStockBarang.getText());
+                    cs.setString(6, txtMerk.getText());
                 }
-
-                String merk = txtMerk.getText();
-                if ("Layanan".equalsIgnoreCase(kategori)) {
-                    cs.setString(5, "-");
-                } else {
-                    cs.setString(5, merk);
-                }
-
-                cs.setString(6, statusBaru);
 
                 cs.execute();
                 showAlert(Alert.AlertType.INFORMATION, "Sukses", "Data produk berhasil diperbarui!");
@@ -700,9 +743,13 @@ public class DataProduk {
             }
         } catch (Exception e) {
             showAlert(Alert.AlertType.ERROR, "Error Update", "Gagal mengubah data: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
+    // =========================================================
+    // HAPUS DATA (SOFT DELETE)
+    // =========================================================
     @FXML
     void handleHapusData(ActionEvent event) {
         Produk produkTerpilih = tblProduk.getSelectionModel().getSelectedItem();
@@ -726,6 +773,9 @@ public class DataProduk {
         }
     }
 
+    // =========================================================
+    // BATAL / RESET FORM
+    // =========================================================
     @FXML
     void handleBatal(ActionEvent event) {
         tblProduk.getSelectionModel().clearSelection();
@@ -736,7 +786,7 @@ public class DataProduk {
         txtHargaBarang.clear();
         txtStockBarang.clear();
         cmbStatus.setValue(null);
-        cmbStatus.setDisable(true);
+        cmbStatus.setDisable(true); // ← TETAP DISABLED
 
         txtStockBarang.setDisable(false);
         txtMerk.setDisable(false);
@@ -747,13 +797,15 @@ public class DataProduk {
 
         hideAllErrorLabels();
 
-        // Reset style
         txtNamaBarang.setStyle(null);
         txtHargaBarang.setStyle(null);
         txtStockBarang.setStyle(null);
         txtMerk.setStyle(null);
     }
 
+    // =========================================================
+    // CARI DATA PRODUK
+    // =========================================================
     private void cariDataProduk(String keyword) {
         if (keyword == null || keyword.isEmpty()) {
             filteredList.setAll(listProduk);
@@ -771,6 +823,9 @@ public class DataProduk {
         updateTableAndPagination();
     }
 
+    // =========================================================
+    // HELPER FORMAT RUPIAH
+    // =========================================================
     private String formatRupiah(double nilai) {
         NumberFormat nf = NumberFormat.getCurrencyInstance(new Locale("id", "ID"));
         return nf.format(nilai).replaceAll(",00", "");
@@ -782,6 +837,9 @@ public class DataProduk {
         return clean.isEmpty() ? 0 : Double.parseDouble(clean);
     }
 
+    // =========================================================
+    // HELPER ALERT
+    // =========================================================
     private void showAlert(Alert.AlertType type, String title, String content) {
         Alert alert = new Alert(type);
         alert.setTitle(title);

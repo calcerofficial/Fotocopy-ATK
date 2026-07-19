@@ -1,5 +1,6 @@
 package SistemFotocopy;
 
+import Database.DBConnection;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -17,6 +18,9 @@ import javafx.stage.Stage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.ResourceBundle;
 
 public class MenuUtamaKaryawan implements Initializable {
@@ -57,23 +61,25 @@ public class MenuUtamaKaryawan implements Initializable {
     @FXML
     private Label headerTitle;
 
+    @FXML
+    private Label lblNamaUser;  // ← TAMBAHKAN INI
+
     private Button activeButton = null;
 
-    // Icon untuk Dashboard
+    // ICONS
     private static final String ICON_DASHBOARD = "M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z";
-    // Icon untuk Penjualan
     private static final String ICON_PENJUALAN = "M20 6h-2c0-2.76-2.24-5-5-5S8 3.24 8 6H6c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7-3c1.66 0 3 1.34 3 3H10c0-1.66 1.34-3 3-3zm0 10c-2.76 0-5-2.24-5-5h2c0 1.66 1.34 3 3 3s3-1.34 3-3h2c0 2.76-2.24 5-5 5z";
-    // Icon untuk Hasil Penjualan
     private static final String ICON_HASIL_PENJUALAN = "M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z";
-    // Icon untuk Data Barang
     private static final String ICON_DATA_BARANG = "M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h10v2H4v-2z";
-    // Icon untuk Maintenance Mesin
     private static final String ICON_MAINTENANCE = "M19 6h-2c0-2.76-2.24-5-5-5S7 3.24 7 6H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7-3c1.66 0 3 1.34 3 3H9c0-1.66 1.34-3 3-3zm0 10c-2.76 0-5-2.24-5-5h2c0 1.66 1.34 3 3 3s3-1.34 3-3h2c0 2.76-2.24 5-5 5z";
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         System.out.println("=== INITIALIZE MenuUtamaKaryawan ===");
         System.out.println("Working Directory: " + System.getProperty("user.dir"));
+
+        // SET NAMA USER
+        setNamaUser();
 
         // Set Dashboard sebagai default
         setActiveButton(btDashboard);
@@ -86,6 +92,51 @@ public class MenuUtamaKaryawan implements Initializable {
             System.err.println("Gagal memuat dashboard default: " + e.getMessage());
             showError("Dashboard tidak tersedia\nSilakan periksa file DashboardKaryawan.fxml");
         }
+    }
+
+    // =========================================================
+    // SET NAMA USER DARI SESSION
+    // =========================================================
+    private void setNamaUser() {
+        UserSession session = UserSession.getInstance();
+        String nama = session.getNamaPegawai();
+
+        if (lblNamaUser != null) {
+            if (nama != null && !nama.isEmpty()) {
+                lblNamaUser.setText(nama);
+                System.out.println("✅ Nama user: " + nama);
+            } else {
+                // FALLBACK: ambil dari database
+                String id = session.getIdPegawai();
+                if (id != null && !id.isEmpty()) {
+                    String namaDb = getNamaPegawai(id);
+                    if (namaDb != null && !namaDb.isEmpty()) {
+                        lblNamaUser.setText(namaDb);
+                    } else {
+                        lblNamaUser.setText("Guest");
+                    }
+                } else {
+                    lblNamaUser.setText("Guest");
+                }
+            }
+        }
+    }
+
+    private String getNamaPegawai(String idPegawai) {
+        String nama = "";
+        String query = "SELECT Nama_Pegawai FROM Pegawai WHERE ID_Pegawai = ?";
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setString(1, idPegawai);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    nama = rs.getString("Nama_Pegawai");
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return nama;
     }
 
     @FXML
@@ -213,14 +264,10 @@ public class MenuUtamaKaryawan implements Initializable {
         }
     }
 
-    /**
-     * METHOD LOADCONTENT - Mencari file di multiple lokasi
-     */
     private void loadContent(String fxmlName) {
         try {
             URL resource = null;
 
-            // 1. Coba di folder resources/LayoutSistemFotocopy/
             String[] paths = {
                     "/css/LayoutSistemFotocopy/" + fxmlName,
                     "/LayoutSistemFotocopy/" + fxmlName,
@@ -238,7 +285,6 @@ public class MenuUtamaKaryawan implements Initializable {
                 }
             }
 
-            // 2. Jika masih null, coba dengan file sistem
             if (resource == null) {
                 String[] dirs = {
                         "resources/LayoutSistemFotocopy/",
@@ -258,7 +304,6 @@ public class MenuUtamaKaryawan implements Initializable {
             }
 
             if (resource == null) {
-                // Tampilkan daftar file yang tersedia
                 StringBuilder availableFiles = new StringBuilder();
                 String[] dirs = {
                         "resources/LayoutSistemFotocopy/",
@@ -284,11 +329,9 @@ public class MenuUtamaKaryawan implements Initializable {
                         "\nFile yang tersedia:" + availableFiles);
             }
 
-            // Muat file FXML
             FXMLLoader loader = new FXMLLoader(resource);
             Parent content = loader.load();
 
-            // Update UI
             contentArea.getChildren().clear();
             contentArea.getChildren().add(content);
 

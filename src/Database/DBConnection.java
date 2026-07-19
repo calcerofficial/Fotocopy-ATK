@@ -4,23 +4,60 @@ import java.sql.*;
 
 public class DBConnection {
 
-    public Connection conn;
-    public Statement stat;
-    public ResultSet result;
-    public PreparedStatement pstat;
+    private static Connection conn;
+    private Statement stat;
+    private ResultSet result;
+    private PreparedStatement pstat;
 
-    public DBConnection(){
+    public DBConnection() {
         try {
-            String url = "jdbc:sqlserver://kelompok-5.database.windows.net:1433;database=FotoCopyATK;user=hilmi;password=Kelompok5;trustServerCertificate=true;";
-            conn = DriverManager.getConnection(url);
+            String url = "jdbc:sqlserver://localhost:1433;databaseName=FotoCopyATK;encrypt=false;trustServerCertificate=true;";
+            String user = "sa";
+            String password = "PasswordAnda123";
+
+            conn = DriverManager.getConnection(url, user, password);
             stat = conn.createStatement();
-        } catch (SQLException e) {
-            System.out.println("Eror saat connect database : " + e);
+
+            System.out.println("Connection berhasil");
+        } catch (Exception e) {
+            System.out.println("Error saat connect database: " + e.getMessage());
         }
     }
 
-    public Connection getConnection() {
-        return this.conn;
+    // Method static untuk mendapatkan koneksi
+    public static Connection getConnection() {
+        // Jika koneksi null atau closed, buat koneksi baru
+        try {
+            if (conn == null || conn.isClosed()) {
+                new DBConnection(); // Panggil constructor untuk inisialisasi
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return conn;
+    }
+
+    public Statement getStatement() {
+        return stat;
+    }
+
+    public PreparedStatement getPreparedStatement(String sql) throws SQLException {
+        if (conn == null || conn.isClosed()) {
+            new DBConnection();
+        }
+        return conn.prepareStatement(sql);
+    }
+
+    public void closeConnection() {
+        try {
+            if (result != null) result.close();
+            if (stat != null) stat.close();
+            if (pstat != null) pstat.close();
+            if (conn != null) conn.close();
+            System.out.println("Connection closed");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void main(String[] args) {

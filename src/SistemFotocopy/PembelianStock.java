@@ -131,7 +131,6 @@ public class PembelianStock implements Initializable {
             String selected = cbSupplier.getValue();
             if (selected != null && !selected.equals("Pilih Supplier...")) {
                 selectedSupplierId = selected.split(" - ")[0];
-                // Tidak memfilter produk berdasarkan supplier karena tidak ada tabel Supplier_Produk
                 resetDetailPembelian();
             } else {
                 selectedSupplierId = null;
@@ -154,16 +153,19 @@ public class PembelianStock implements Initializable {
         if (txtIdPembelian != null) {
             txtIdPembelian.setText(currentIDPembelian);
             txtIdPembelian.setEditable(false);
+            txtIdPembelian.setStyle("-fx-background-color: #f8f9fa; -fx-text-fill: #0d6efd; -fx-font-weight: bold;");
         }
 
         if (txtIdPegawai != null) {
             txtIdPegawai.setText(currentUserID);
             txtIdPegawai.setEditable(false);
+            txtIdPegawai.setStyle("-fx-background-color: #f8f9fa; -fx-text-fill: #198754; -fx-font-weight: bold;");
         }
 
         if (txtTanggal != null) {
             txtTanggal.setText(LocalDate.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")));
             txtTanggal.setEditable(false);
+            txtTanggal.setStyle("-fx-background-color: #f8f9fa; -fx-text-fill: #dc3545; -fx-font-weight: bold;");
         }
     }
 
@@ -185,7 +187,8 @@ public class PembelianStock implements Initializable {
         cbSupplier.getItems().clear();
         cbSupplier.getItems().add("Pilih Supplier...");
 
-        String query = "SELECT ID_Supplier, Nama_Supplier FROM Supplier WHERE Status_Supplier = 'aktif' ORDER BY Nama_Supplier";
+        // PAKAI UDF f_SupplierAktif
+        String query = "SELECT ID_Supplier, Nama_Supplier FROM dbo.f_SupplierAktif() ORDER BY Nama_Supplier";
 
         try (Statement stmt = connection.createStatement();
              ResultSet rs = stmt.executeQuery(query)) {
@@ -241,8 +244,7 @@ public class PembelianStock implements Initializable {
         katalogData.clear();
 
         String query = "SELECT ID_Produk, Nama_Barang, Merk_Barang, Harga, Stok " +
-                "FROM Produk " +
-                "WHERE Kategori_Produk = 'barang' AND Status_Barang = 'tersedia' " +
+                "FROM dbo.f_CariKatalogBarangPembelian() " +
                 "ORDER BY Nama_Barang";
 
         try (Statement stmt = connection.createStatement();
@@ -270,8 +272,6 @@ public class PembelianStock implements Initializable {
             showAlert("Error", "Gagal memuat data katalog: " + e.getMessage(), Alert.AlertType.ERROR);
         }
     }
-
-
 
     private void loadNextPembelianID() {
         if (connection == null) {
@@ -358,6 +358,49 @@ public class PembelianStock implements Initializable {
         btnBayar.setOnAction(e -> handleBayar(e));
     }
 
+    // =============================================================
+    // CEK SALDO KAS - APAKAH CUKUP UNTUK PEMBELIAN
+    // =============================================================
+    private double getSaldoKas() {
+        double pendapatanSemua = 0;
+        double pengeluaranSemua = 0;
+
+        // Total Pendapatan dari Penjualan
+        String queryPendapatan = "SELECT ISNULL(SUM(Total_Harga), 0) AS Total FROM Penjualan WHERE Status_Penjualan = 'Lunas'";
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(queryPendapatan)) {
+            if (rs.next()) {
+                pendapatanSemua = rs.getDouble("Total");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        // Total Pengeluaran dari Pembelian Stok
+        String queryPengeluaranPembelian = "SELECT ISNULL(SUM(Total_Harga), 0) AS Total FROM Pembelian_Stok WHERE Status_Pembayaran = 'Lunas'";
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(queryPengeluaranPembelian)) {
+            if (rs.next()) {
+                pengeluaranSemua += rs.getDouble("Total");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        // Total Pengeluaran dari Maintenance
+        String queryPengeluaranMaintenance = "SELECT ISNULL(SUM(Biaya_Maintenance_Mesin), 0) AS Total FROM Maintenance_Mesin WHERE Status_Maintenance = 'selesai'";
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(queryPengeluaranMaintenance)) {
+            if (rs.next()) {
+                pengeluaranSemua += rs.getDouble("Total");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return pendapatanSemua - pengeluaranSemua;
+    }
+
     @FXML
     void handleBayar(ActionEvent event) {
         if (cbSupplier.getValue() == null || cbSupplier.getValue().equals("Pilih Supplier...")) {
@@ -370,16 +413,43 @@ public class PembelianStock implements Initializable {
             return;
         }
 
+        // =============================================================
+        // HITUNG TOTAL HARGA PEMBELIAN
+        // =============================================================
+        double totalHarga = 0;
+        for (DetailPembelianItem item : detailItems) {
+            totalHarga += item.getJumlah() * item.getHarga();
+        }
+
+        // =============================================================
+        // CEK SALDO KAS - APAKAH CUKUP?
+        // =============================================================
+        double saldoKas = getSaldoKas();
+
+        if (saldoKas < totalHarga) {
+            // Saldo tidak cukup
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Saldo Tidak Cukup");
+            alert.setHeaderText("❌ Pembelian Gagal");
+            alert.setContentText(
+                    "Saldo kas tidak mencukupi untuk pembelian ini!\n\n" +
+                            "💰 Saldo Kas Saat Ini: " + formatRupiah(saldoKas) + "\n" +
+                            "🛒 Total Pembelian: " + formatRupiah(totalHarga) + "\n" +
+                            "🔴 Kekurangan: " + formatRupiah(totalHarga - saldoKas) + "\n\n" +
+                            "Silakan tambahkan pendapatan terlebih dahulu."
+            );
+            alert.showAndWait();
+            return;
+        }
+
+        // =============================================================
+        // SALDO CUKUP - LANJUTKAN PROSES PEMBAYARAN
+        // =============================================================
         String supplierValue = cbSupplier.getValue();
         String idSupplier = supplierValue.split(" - ")[0];
 
-        double totalHarga = 0;
         StringBuilder detailBuilder = new StringBuilder();
-
         for (DetailPembelianItem item : detailItems) {
-            double subtotal = item.getJumlah() * item.getHarga();
-            totalHarga += subtotal;
-
             if (detailBuilder.length() > 0) {
                 detailBuilder.append("|");
             }
@@ -422,7 +492,6 @@ public class PembelianStock implements Initializable {
             try {
                 String result = processPembelian(idSupplierFinal, detailString, finalTotalHarga);
 
-                // 🔥 PAKAI Platform.runLater UNTUK SEMUA OPERASI UI 🔥
                 Platform.runLater(() -> {
                     if (result != null) {
                         showAlert("Sukses", "✅ Pembayaran telah berhasil!\nID Pembelian: " + result, Alert.AlertType.INFORMATION);
@@ -531,24 +600,20 @@ public class PembelianStock implements Initializable {
 
         TableColumn<DetailPembelianItem, String> colNama = new TableColumn<>("Nama Barang");
         colNama.setCellValueFactory(new PropertyValueFactory<>("namaBarang"));
-        colNama.setPrefWidth(180);
+        colNama.setPrefWidth(200);
 
         TableColumn<DetailPembelianItem, Integer> colJumlah = new TableColumn<>("Jumlah");
         colJumlah.setCellValueFactory(new PropertyValueFactory<>("jumlah"));
-        colJumlah.setPrefWidth(70);
+        colJumlah.setPrefWidth(80);
         colJumlah.setStyle("-fx-alignment: CENTER;");
 
         TableColumn<DetailPembelianItem, String> colHargaItem = new TableColumn<>("Harga");
         colHargaItem.setCellValueFactory(new PropertyValueFactory<>("hargaFormatted"));
-        colHargaItem.setPrefWidth(100);
+        colHargaItem.setPrefWidth(150);
         colHargaItem.setStyle("-fx-alignment: CENTER-RIGHT;");
 
-        TableColumn<DetailPembelianItem, String> colSubtotal = new TableColumn<>("Subtotal");
-        colSubtotal.setCellValueFactory(new PropertyValueFactory<>("subtotalFormatted"));
-        colSubtotal.setPrefWidth(100);
-        colSubtotal.setStyle("-fx-alignment: CENTER-RIGHT;");
-
-        detailTable.getColumns().addAll(colNama, colJumlah, colHargaItem, colSubtotal);
+        // HAPUS KOLOM SUBTOTAL
+        detailTable.getColumns().addAll(colNama, colJumlah, colHargaItem);
         detailTable.setItems(items);
 
         Separator separator2 = new Separator();
@@ -585,7 +650,7 @@ public class PembelianStock implements Initializable {
                 btnOk
         );
 
-        Scene scene = new Scene(mainBox, 550, 550);
+        Scene scene = new Scene(mainBox, 500, 500);
         detailStage.setScene(scene);
         detailStage.showAndWait();
     }
@@ -682,7 +747,6 @@ public class PembelianStock implements Initializable {
         for (DetailPembelianItem item : detailItems) {
             totalHarga += item.getJumlah() * item.getHarga();
 
-            // Card untuk setiap item
             VBox itemCard = new VBox(8);
             itemCard.setPadding(new Insets(10, 12, 10, 12));
             itemCard.setStyle(
@@ -694,7 +758,6 @@ public class PembelianStock implements Initializable {
                             "-fx-effect: dropshadow(gaussian, rgba(0,0,0,0.05), 4, 0, 0, 2);"
             );
 
-            // Baris 1: Nama barang
             HBox nameRow = new HBox(10);
             nameRow.setAlignment(Pos.CENTER_LEFT);
 
@@ -711,11 +774,9 @@ public class PembelianStock implements Initializable {
 
             nameRow.getChildren().addAll(nameLabel, spacer, subtotalLabel);
 
-            // Baris 2: Kontrol jumlah
             HBox controlRow = new HBox(8);
             controlRow.setAlignment(Pos.CENTER_LEFT);
 
-            // Tombol Minus
             Button btnMinus = new Button("−");
             btnMinus.setPrefWidth(30);
             btnMinus.setPrefHeight(30);
@@ -736,14 +797,12 @@ public class PembelianStock implements Initializable {
                 }
             });
 
-            // Label Jumlah
             Label countLabel = new Label(String.valueOf(item.getJumlah()));
             countLabel.setFont(Font.font("System", FontWeight.BOLD, 14));
             countLabel.setStyle("-fx-text-fill: #0d6efd;");
             countLabel.setPrefWidth(30);
             countLabel.setAlignment(Pos.CENTER);
 
-            // Tombol Plus
             Button btnPlus = new Button("+");
             btnPlus.setPrefWidth(30);
             btnPlus.setPrefHeight(30);
@@ -759,16 +818,13 @@ public class PembelianStock implements Initializable {
                 updateDetailUI();
             });
 
-            // Separator
             Region spacer2 = new Region();
             HBox.setHgrow(spacer2, Priority.ALWAYS);
 
-            // Harga per item
             Label priceLabel = new Label(formatRupiah(item.getHarga()) + " / item");
             priceLabel.setFont(Font.font("System", 12));
             priceLabel.setStyle("-fx-text-fill: #6c757d;");
 
-            // Tombol Hapus
             Button btnRemove = new Button("✕");
             btnRemove.setPrefWidth(30);
             btnRemove.setPrefHeight(30);
@@ -849,6 +905,5 @@ public class PembelianStock implements Initializable {
         public void setJumlah(int jumlah) { this.jumlah = jumlah; }
         public double getHarga() { return harga; }
         public String getHargaFormatted() { return String.format("Rp. %,.0f", harga); }
-        public String getSubtotalFormatted() { return String.format("Rp. %,.0f", jumlah * harga); }
     }
 }
