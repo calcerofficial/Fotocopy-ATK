@@ -695,7 +695,7 @@ public class TransaksiPenjualan implements Initializable {
     }
 
     // =========================================================
-    // BATAL TRANSAKSI - STATUS "Batal Pembayaran"
+    // BATAL TRANSAKSI - STATUS "Batal Pembayaran" (TANPA VALIDASI UANG BAYAR)
     // =========================================================
     private void batalTransaksi() {
         if (detailList.isEmpty()) {
@@ -725,8 +725,47 @@ public class TransaksiPenjualan implements Initializable {
                 metode = "Cash";
             }
 
-            // PROSES SIMPAN DENGAN STATUS "Batal Pembayaran"
-            prosesSimpanTransaksi("Batal Pembayaran", metode, 0);
+            // LANGSUNG PROSES BATAL - TANPA CEK UANG BAYAR
+            prosesBatalTransaksi(metode);
+        }
+    }
+
+    // =========================================================
+    // PROSES BATAL TRANSAKSI (TANPA VALIDASI)
+    // =========================================================
+    private void prosesBatalTransaksi(String metode) {
+        // Siapkan detail string
+        StringBuilder detailString = new StringBuilder();
+        for (DetailData data : detailList) {
+            if (detailString.length() > 0) detailString.append("|");
+            detailString.append(data.getIdProduk()).append(":")
+                    .append(data.getJumlah()).append(":")
+                    .append((long) data.getHarga());
+        }
+
+        try {
+            // Panggil SP dengan status "Batal Pembayaran" dan uangBayar = 0
+            String sql = "{call sp_TambahPenjualan(?, ?, ?, ?, ?, ?)}";
+            try (CallableStatement cstmt = conn.prepareCall(sql)) {
+                cstmt.setString(1, idPegawai);
+                cstmt.setDate(2, Date.valueOf(dpTanggal.getValue()));
+                cstmt.setString(3, metode);
+                cstmt.setString(4, "Batal Pembayaran");  // Status BATAL
+                cstmt.setDouble(5, 0);  // Uang bayar 0
+                cstmt.setString(6, detailString.toString());
+
+                cstmt.execute();
+
+                showAlert("Info", "✅ Transaksi dibatalkan dengan status BATAL PEMBAYARAN");
+
+                resetForm();
+                updateStatisticsCards();
+                generateIdPenjualan();
+
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            showAlert("Error", "Gagal membatalkan transaksi: " + e.getMessage());
         }
     }
 
@@ -761,9 +800,7 @@ public class TransaksiPenjualan implements Initializable {
 
                 cstmt.execute();
 
-                if ("Batal Pembayaran".equals(status)) {
-                    showAlert("Info", "✅ Transaksi dibatalkan dengan status BATAL PEMBAYARAN");
-                } else if ("Transfer".equals(metode)) {
+                if ("Transfer".equals(metode)) {
                     showLoadingAndSuccess();
                 } else {
                     showStruk();

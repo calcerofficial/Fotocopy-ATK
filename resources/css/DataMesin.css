@@ -695,5 +695,45 @@
 }
 
 /* ========================================
+   STATUS BADGE & TOMBOL AKTIFKAN
+   ======================================== */
+.status-badge {
+    -fx-text-fill: #ff4444;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-background-color: #fff0f0;
+    -fx-padding: 4 12;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-border-color: #ffcccc;
+    -fx-border-width: 1;
+}
+
+.btn-aktifkan {
+    -fx-background-color: #4CAF50;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 6 16;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+    -fx-font-family: "Segoe UI Semibold", sans-serif;
+    -fx-font-size: 13px;
+}
+
+.btn-aktifkan:hover {
+    -fx-background-color: #45a049;
+}
+
+.btn-aktifkan:pressed {
+    -fx-background-color: #3d8b40;
+}
+
+.btn-aktifkan:disabled {
+    -fx-background-color: #9CA3AF;
+    -fx-cursor: default;
+    -fx-opacity: 0.6;
+}
+
+/* ========================================
    END OF CSS
    ======================================== */

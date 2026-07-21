@@ -644,6 +644,9 @@ public class MaintenanceMesin implements Initializable {
         alert.showAndWait();
     }
 
+    // =============================================================
+// SHOW POPUP SELESAI - PERBAIKAN
+// =============================================================
     private void showPopupSelesai(MaintenanceData data) {
         Dialog<Void> dialog = new Dialog<>();
         dialog.setTitle("Selesaikan Maintenance");
@@ -810,14 +813,15 @@ public class MaintenanceMesin implements Initializable {
                     String idMaintenance = data.getIdMaintenance();
                     LocalDate tanggalSelesai = LocalDate.now();
 
-                    String sql = "{call sp_UpdateMaintenanceMesin(?, ?, ?, ?, ?)}";
+                    // =========================================================
+                    // 🔥 PERBAIKAN: PAKAI 4 PARAMETER (SESUAI SP)
+                    // =========================================================
+                    String sql = "{call sp_UpdateMaintenanceMesin(?, ?, ?, ?)}";
                     try (CallableStatement cstmt = conn.prepareCall(sql)) {
                         cstmt.setString(1, idMaintenance);
                         cstmt.setDate(2, Date.valueOf(tanggalSelesai));
                         cstmt.setDouble(3, biaya);
-                        cstmt.setString(4, null);
-                        cstmt.setString(5, keteranganText);
-
+                        cstmt.setString(4, keteranganText);
                         cstmt.execute();
 
                         showAlert("Sukses", "✅ Maintenance berhasil diselesaikan!\n" +

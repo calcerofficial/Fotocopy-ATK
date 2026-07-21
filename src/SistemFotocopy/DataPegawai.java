@@ -31,7 +31,12 @@ public class DataPegawai {
     @FXML private PasswordField txtPassword;
     @FXML private TextField txtPasswordVisible;
     @FXML private Button btnTogglePassword;
-    @FXML private TextField txtStatus;
+
+    // ===================== STATUS - SEMUA KOMPONEN =====================
+    @FXML private Label lblStatusLabel;   // Label "STATUS"
+    @FXML private Label lblStatusValue;   // Badge status (NonAktif)
+    @FXML private Button btnAktifkan;     // Tombol Aktifkan
+    @FXML private Label lblStatusHint;    // Hint
 
     // ===================== COMBOBOX ROLE =====================
     @FXML private ComboBox<String> cmbRole;
@@ -65,6 +70,9 @@ public class DataPegawai {
     private enum Mode { TAMBAH, UBAH }
     private Mode mode = Mode.TAMBAH;
 
+    // VARIABEL UNTUK MENYIMPAN STATUS PEGAWAI YANG SEDANG DIPILIH
+    private String statusPegawaiTerpilih = "";
+
     // ===================== PAGINATION =====================
     @FXML private Button btnPrevPage;
     @FXML private Button btnPage1;
@@ -91,30 +99,25 @@ public class DataPegawai {
     // =========================================================
     @FXML
     public void initialize() {
-        // Tambahin ini di method initialize()
         txtEmail.textProperty().addListener((obs, oldVal, newVal) -> {
             if (!newVal.contains("@") && !newVal.isEmpty()) {
-                // PAS MAU NAMPILIN
                 lblInfoEmail.setVisible(true);
                 lblInfoEmail.setManaged(true);
             } else {
-                // PAS MAU NYEMBUNYIIN
                 lblInfoEmail.setVisible(false);
                 lblInfoEmail.setManaged(false);
             }
         });
 
         txtEmail.focusedProperty().addListener((obs, oldVal, newVal) -> {
-                    if (!newVal) { // Saat fokus hilang (user pindah ke field lain)
-                        String email = txtEmail.getText().trim();
-                        if (!email.isEmpty() && !email.contains("@")) {
-                            txtEmail.setText(email + "@gmail.com");
-
-                            // Setelah diisi otomatis, labelnya sembunyiin
-                            lblInfoEmail.setVisible(false);
-                            lblInfoEmail.setManaged(false);
-                        }
-                    }
+            if (!newVal) {
+                String email = txtEmail.getText().trim();
+                if (!email.isEmpty() && !email.contains("@")) {
+                    txtEmail.setText(email + "@gmail.com");
+                    lblInfoEmail.setVisible(false);
+                    lblInfoEmail.setManaged(false);
+                }
+            }
         });
 
         setupTableColumns();
@@ -131,9 +134,14 @@ public class DataPegawai {
         // Set default button states
         btnUbah.setDisable(true);
         btnHapus.setDisable(true);
+        btnAktifkan.setVisible(false);
+        btnAktifkan.setManaged(false);
 
         // Enable sorting on status column
         setupStatusSorting();
+
+        // SEMUA KOMPONEN STATUS HILANG TOTAL AWALNYA
+        hideAllStatusComponents();
     }
 
     // =========================================================
@@ -181,32 +189,27 @@ public class DataPegawai {
                 return change;
             }
 
-            // Cek panjang maksimal 13
             if (newText.length() > 13) {
                 return null;
             }
 
-            // HARUS diawali "08" - cek 2 karakter pertama
             if (newText.length() >= 2) {
                 if (!newText.substring(0, 2).equals("08")) {
                     txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
                     return null;
                 }
             } else {
-                // Jika panjang kurang dari 2, hanya boleh angka '0'
                 if (!newText.matches("^0$")) {
                     txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
                     return null;
                 }
             }
 
-            // Cek apakah hanya angka
             if (!newText.matches("^[0-9]*$")) {
                 txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
                 return null;
             }
 
-            // Reset style jika valid
             if (newText.startsWith("08")) {
                 txtNomorTelepon.setStyle(null);
             }
@@ -231,8 +234,7 @@ public class DataPegawai {
         });
         txtAlamatLengkap.setTextFormatter(alamatFormatter);
 
-        // 5. USERNAME - Hanya huruf, angka, underscore, dash, minimal 4 max 10
-        // 5. USERNAME - HANYA HURUF (huruf besar dan kecil), minimal 4 max 10
+        // 5. USERNAME - HANYA HURUF, minimal 4 max 10
         TextFormatter<String> usernameFormatter = new TextFormatter<>(change -> {
             String newText = change.getControlNewText();
             if (newText.isEmpty()) {
@@ -240,12 +242,10 @@ public class DataPegawai {
                 return change;
             }
 
-            // Cek panjang maksimal 10
             if (newText.length() > 10) {
                 return null;
             }
 
-            // HANYA HURUF (a-z, A-Z) - TIDAK BOLEH ANGKA ATAU SIMBOL
             if (!newText.matches("^[a-zA-Z]*$")) {
                 txtUsername.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
                 return null;
@@ -322,7 +322,6 @@ public class DataPegawai {
         }
 
         // Cek Username
-        // Cek Username - HANYA HURUF
         String username = txtUsername.getText();
         if (!username.isEmpty()) {
             if (username.length() < 4 || username.length() > 10) {
@@ -355,6 +354,7 @@ public class DataPegawai {
             }
         });
     }
+
     private void generateIdOtomatis() {
         String role = cmbRole.getValue();
         String prefix = "";
@@ -368,7 +368,6 @@ public class DataPegawai {
         }
 
         try {
-            // Query ini sama dengan yang ada di SP_TambahPegawai
             String query = "SELECT COALESCE(MAX(CAST(SUBSTRING(ID_Pegawai, 4, LEN(ID_Pegawai)) AS INT)), 0) AS MaxID " +
                     "FROM Pegawai WHERE ID_Pegawai LIKE ?";
 
@@ -420,17 +419,130 @@ public class DataPegawai {
         });
     }
 
+    // =========================================================
+    // SETUP ROW SELECTION - HANYA NONAKTIF YANG TAMPIL
+    // =========================================================
     private void setupRowSelectionListener() {
         tblPegawai.getSelectionModel().selectedItemProperty().addListener((obs, oldSel, newSel) -> {
             if (newSel != null) {
+                // Simpan status pegawai yang dipilih
+                statusPegawaiTerpilih = newSel.getStatus();
+
                 isiFormDariTabel(newSel);
-                btnUbah.setDisable(false);
-                btnHapus.setDisable(false);
+
+                // CEK STATUS - Jika NonAktif
+                if ("NonAktif".equalsIgnoreCase(statusPegawaiTerpilih)) {
+                    // Disable semua text field
+                    setAllFieldsDisable(true);
+
+                    // TAMPILKAN SEMUA KOMPONEN STATUS
+                    showAllStatusComponents("NonAktif");
+
+                    // Enable button Ubah untuk mengaktifkan
+                    btnUbah.setDisable(false);
+                    btnHapus.setDisable(true);
+
+                    // Tampilkan pesan
+                    lblInfoData.setText("⚠ Pegawai NonAktif - Klik tombol 'Aktifkan' untuk mengubah status.");
+                } else {
+                    // Jika Aktif
+                    setAllFieldsDisable(false);
+
+                    // HILANGKAN SEMUA KOMPONEN STATUS
+                    hideAllStatusComponents();
+
+                    // Enable button Ubah dan Hapus
+                    btnUbah.setDisable(false);
+                    btnHapus.setDisable(false);
+
+                    // Hapus pesan peringatan
+                    lblInfoData.setText("");
+                }
             } else {
                 btnUbah.setDisable(true);
                 btnHapus.setDisable(true);
+                statusPegawaiTerpilih = "";
+                setAllFieldsDisable(false);
+
+                // HILANGKAN SEMUA KOMPONEN STATUS
+                hideAllStatusComponents();
             }
         });
+    }
+
+    // =========================================================
+    // SHOW/HIDE SEMUA KOMPONEN STATUS
+    // =========================================================
+    private void showAllStatusComponents(String status) {
+        lblStatusLabel.setVisible(true);
+        lblStatusLabel.setManaged(true);
+
+        lblStatusValue.setVisible(true);
+        lblStatusValue.setManaged(true);
+        lblStatusValue.setText("⚠ " + status);
+        lblStatusValue.setStyle("-fx-text-fill: #ff4444; -fx-font-weight: bold; -fx-font-size: 14px; -fx-background-color: #fff0f0; -fx-padding: 4 12; -fx-border-radius: 4; -fx-background-radius: 4;");
+
+        btnAktifkan.setVisible(true);
+        btnAktifkan.setManaged(true);
+        btnAktifkan.setDisable(false);
+
+        lblStatusHint.setVisible(true);
+        lblStatusHint.setManaged(true);
+    }
+
+    private void hideAllStatusComponents() {
+        lblStatusLabel.setVisible(false);
+        lblStatusLabel.setManaged(false);
+
+        lblStatusValue.setVisible(false);
+        lblStatusValue.setManaged(false);
+        lblStatusValue.setText("");
+
+        btnAktifkan.setVisible(false);
+        btnAktifkan.setManaged(false);
+        btnAktifkan.setDisable(true);
+
+        lblStatusHint.setVisible(false);
+        lblStatusHint.setManaged(false);
+        lblStatusHint.setText("");
+    }
+
+    // =========================================================
+    // METHOD UNTUK SET DISABLE SEMUA FIELD
+    // =========================================================
+    private void setAllFieldsDisable(boolean disable) {
+        // TextField
+        txtNamaLengkap.setDisable(disable);
+        txtEmail.setDisable(disable);
+        txtNomorTelepon.setDisable(disable);
+        txtUsername.setDisable(disable);
+        txtAlamatLengkap.setDisable(disable);
+        txtPassword.setDisable(disable);
+        txtPasswordVisible.setDisable(disable);
+        btnTogglePassword.setDisable(disable);
+        cmbRole.setDisable(true); // Role selalu disable saat mode UBAH
+
+        // ID selalu disable
+        txtIdPegawai.setDisable(true);
+
+        // Style untuk menunjukkan field disabled
+        if (disable) {
+            txtNamaLengkap.setStyle("-fx-opacity: 0.6;");
+            txtEmail.setStyle("-fx-opacity: 0.6;");
+            txtNomorTelepon.setStyle("-fx-opacity: 0.6;");
+            txtUsername.setStyle("-fx-opacity: 0.6;");
+            txtAlamatLengkap.setStyle("-fx-opacity: 0.6;");
+            txtPassword.setStyle("-fx-opacity: 0.6;");
+            txtPasswordVisible.setStyle("-fx-opacity: 0.6;");
+        } else {
+            txtNamaLengkap.setStyle(null);
+            txtEmail.setStyle(null);
+            txtNomorTelepon.setStyle(null);
+            txtUsername.setStyle(null);
+            txtAlamatLengkap.setStyle(null);
+            txtPassword.setStyle(null);
+            txtPasswordVisible.setStyle(null);
+        }
     }
 
     private void setupButtonListeners() {
@@ -441,6 +553,7 @@ public class DataPegawai {
             btnUbah.setDisable(true);
             btnHapus.setDisable(true);
         });
+        btnAktifkan.setOnAction(this::handleAktifkanData);
     }
 
     // =========================================================
@@ -558,7 +671,6 @@ public class DataPegawai {
     // =========================================================
     private void tampilkanData() {
         masterData.clear();
-        // Gunakan View v_TampilPegawaiTerurut
         String query = "SELECT ID_Pegawai, Nama_Pegawai, Alamat, No_Telepon, Email, Username, Status_Pegawai " +
                 "FROM v_TampilPegawaiTerurut ORDER BY UrutanStatus, Status_Pegawai, ID_Pegawai";
 
@@ -608,7 +720,11 @@ public class DataPegawai {
         int start = (currentPage - 1) * ITEMS_PER_PAGE + 1;
         int end = Math.min(start + ITEMS_PER_PAGE - 1, total);
         String displayRange = total == 0 ? "0" : start + "-" + end;
-        lblInfoData.setText("Menampilkan " + displayRange + " dari " + total + " data");
+
+        // Jangan overwrite pesan peringatan jika ada
+        if (!lblInfoData.getText().contains("⚠")) {
+            lblInfoData.setText("Menampilkan " + displayRange + " dari " + total + " data");
+        }
     }
 
     // =========================================================
@@ -616,7 +732,6 @@ public class DataPegawai {
     // =========================================================
     private void hitungDashboard() {
         try {
-            // Gunakan UDF untuk menghitung
             String query = "SELECT " +
                     "dbo.f_TotalSemuaPegawai() AS Total, " +
                     "dbo.f_TotalPegawaiAktif() AS Aktif, " +
@@ -715,6 +830,28 @@ public class DataPegawai {
     }
 
     // =========================================================
+    // AKTIFKAN DATA (Tombol Khusus untuk NonAktif)
+    // =========================================================
+    @FXML
+    void handleAktifkanData(ActionEvent event) {
+        if (txtIdPegawai.getText() == null || txtIdPegawai.getText().isEmpty()) {
+            tampilkanAlert(Alert.AlertType.WARNING, "Peringatan", "Pilih data pegawai yang akan diaktifkan!");
+            return;
+        }
+
+        Alert konfirmasi = new Alert(Alert.AlertType.CONFIRMATION);
+        konfirmasi.setTitle("Konfirmasi Aktivasi");
+        konfirmasi.setHeaderText(null);
+        konfirmasi.setContentText("Yakin ingin mengaktifkan pegawai dengan ID " + txtIdPegawai.getText() + " ?\nStatus akan berubah dari NonAktif menjadi Aktif.");
+
+        konfirmasi.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                updateStatusPegawai(txtIdPegawai.getText().trim(), "Aktif");
+            }
+        });
+    }
+
+    // =========================================================
     // UBAH DATA
     // =========================================================
     @FXML
@@ -724,11 +861,13 @@ public class DataPegawai {
             return;
         }
 
-        // ===== CEK STATUS SEBELUM UPDATE =====
-        String statusSekarang = txtStatus.getText().trim();
+        // CEK STATUS SEBELUM UPDATE
+        String statusSekarang = getStatusDariDatabase(txtIdPegawai.getText().trim());
+
+        // Jika NonAktif, tolak update biasa (harus pakai tombol Aktifkan)
         if ("NonAktif".equalsIgnoreCase(statusSekarang)) {
-            tampilkanAlert(Alert.AlertType.WARNING, "Tidak Bisa Update",
-                    "Pegawai dengan status NonAktif tidak dapat diubah. Silakan aktifkan terlebih dahulu menggunakan tombol Aktifkan.");
+            tampilkanAlert(Alert.AlertType.WARNING, "Tidak Bisa Ubah",
+                    "Pegawai dengan status NonAktif tidak dapat diubah.\nGunakan tombol 'Aktifkan' untuk mengubah status.");
             return;
         }
 
@@ -739,30 +878,28 @@ public class DataPegawai {
 
         if (!validasiInput(false)) return;
 
+        String status = getStatusDariDatabase(txtIdPegawai.getText().trim());
+        if (status.isEmpty()) {
+            status = "aktif";
+        }
+
         String query = "{call sp_UpdatePegawai(?,?,?,?,?,?,?,?)}";
 
         try {
             String passwordFinal = getPasswordText();
             if (isKosong(passwordFinal)) {
-                passwordFinal = "";  // Kosongkan agar SP menggunakan password lama
-            }
-
-            // Ambil status dari form
-            String status = txtStatus.getText().trim();
-            if (status.isEmpty()) {
-                status = "aktif"; // Default jika kosong
+                passwordFinal = "";
             }
 
             try (CallableStatement cs = dbConnection.getConnection().prepareCall(query)) {
-                cs.setString(1, txtIdPegawai.getText().trim());      // ID (tidak diubah)
+                cs.setString(1, txtIdPegawai.getText().trim());
                 cs.setString(2, txtNamaLengkap.getText().trim());
                 cs.setString(3, txtAlamatLengkap.getText().trim());
                 cs.setString(4, txtNomorTelepon.getText().trim());
                 cs.setString(5, txtEmail.getText().trim());
                 cs.setString(6, txtUsername.getText().trim());
                 cs.setString(7, passwordFinal);
-                cs.setString(8, status);  // Status BISA diupdate (tapi hanya jika status lama aktif)
-
+                cs.setString(8, status);
                 cs.execute();
             }
 
@@ -778,10 +915,36 @@ public class DataPegawai {
             String errorMsg = e.getMessage();
             if (errorMsg.contains("NonAktif tidak dapat diubah")) {
                 tampilkanAlert(Alert.AlertType.WARNING, "Tidak Bisa Update",
-                        "Pegawai dengan status NonAktif tidak dapat diubah. Silakan aktifkan terlebih dahulu.");
+                        "Pegawai dengan status NonAktif tidak dapat diubah selain status.");
             } else {
                 tampilkanAlert(Alert.AlertType.ERROR, "Gagal mengubah data", errorMsg);
             }
+        }
+    }
+
+    // =========================================================
+    // UPDATE STATUS PEGAWAI (UNTUK AKTIVASI)
+    // =========================================================
+    private void updateStatusPegawai(String idPegawai, String statusBaru) {
+        String query = "UPDATE Pegawai SET Status_Pegawai = ? WHERE ID_Pegawai = ?";
+
+        try (PreparedStatement ps = dbConnection.getConnection().prepareStatement(query)) {
+            ps.setString(1, statusBaru);
+            ps.setString(2, idPegawai);
+            int rowsAffected = ps.executeUpdate();
+
+            if (rowsAffected > 0) {
+                tampilkanAlert(Alert.AlertType.INFORMATION, "Sukses",
+                        "Pegawai dengan ID " + idPegawai + " berhasil diaktifkan.");
+                tampilkanData();
+                hitungDashboard();
+                resetForm();
+                btnUbah.setDisable(true);
+                btnHapus.setDisable(true);
+                hideAllStatusComponents();
+            }
+        } catch (SQLException e) {
+            tampilkanAlert(Alert.AlertType.ERROR, "Gagal mengaktifkan pegawai", e.getMessage());
         }
     }
 
@@ -792,6 +955,14 @@ public class DataPegawai {
     void handleHapusData(ActionEvent event) {
         if (txtIdPegawai.getText() == null || txtIdPegawai.getText().isEmpty()) {
             tampilkanAlert(Alert.AlertType.WARNING, "Peringatan", "Pilih dulu data pegawai dari tabel yang mau dihapus!");
+            return;
+        }
+
+        // CEK STATUS SEBELUM HAPUS
+        String statusSekarang = getStatusDariDatabase(txtIdPegawai.getText().trim());
+        if ("NonAktif".equalsIgnoreCase(statusSekarang)) {
+            tampilkanAlert(Alert.AlertType.WARNING, "Tidak Bisa Hapus",
+                    "Pegawai dengan status NonAktif tidak dapat dihapus.");
             return;
         }
 
@@ -825,6 +996,24 @@ public class DataPegawai {
         } catch (SQLException e) {
             tampilkanAlert(Alert.AlertType.ERROR, "Gagal menghapus data", e.getMessage());
         }
+    }
+
+    // =========================================================
+    // AMBIL STATUS DARI DATABASE
+    // =========================================================
+    private String getStatusDariDatabase(String idPegawai) {
+        String query = "SELECT Status_Pegawai FROM Pegawai WHERE ID_Pegawai = ?";
+        try (PreparedStatement ps = dbConnection.getConnection().prepareStatement(query)) {
+            ps.setString(1, idPegawai);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("Status_Pegawai");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 
     // =========================================================
@@ -864,6 +1053,7 @@ public class DataPegawai {
         btnSimpan.setDisable(false);
 
         tblPegawai.getSelectionModel().clearSelection();
+        statusPegawaiTerpilih = "";
 
         hideAllErrorLabels();
 
@@ -872,6 +1062,19 @@ public class DataPegawai {
         txtNomorTelepon.setStyle(null);
         txtAlamatLengkap.setStyle(null);
         txtUsername.setStyle(null);
+
+        // Reset semua field menjadi enabled
+        setAllFieldsDisable(false);
+
+        // HILANGKAN SEMUA KOMPONEN STATUS
+        hideAllStatusComponents();
+
+        // Reset info label
+        if (!lblInfoData.getText().contains("⚠")) {
+            updateInfoData();
+        } else {
+            lblInfoData.setText("");
+        }
     }
 
     // =========================================================
@@ -951,7 +1154,7 @@ public class DataPegawai {
             } else if (!nama.matches("^[a-zA-Z\\s]+$")) {
                 pesan.append("- Nama hanya boleh berisi huruf dan spasi.\n");
                 showErrorLabel(lblErrorNama, "Nama hanya boleh berisi huruf dan spasi");
-            } else if (isDataExist("Nama_Pegawai", nama)) { // Cek Duplikat Nama
+            } else if (isDataExist("Nama_Pegawai", nama)) {
                 pesan.append("- Nama lengkap sudah terdaftar.\n");
                 showErrorLabel(lblErrorNama, "Nama sudah terdaftar");
             } else {
@@ -968,7 +1171,7 @@ public class DataPegawai {
             if (!email.matches("^[a-z0-9@._-]+$")) {
                 pesan.append("- Format email tidak valid (hanya huruf kecil, angka, @, ., _, -).\n");
                 showErrorLabel(lblErrorEmail, "Format email tidak valid");
-            } else if (isDataExist("Email", email)) { // Cek Duplikat Email
+            } else if (isDataExist("Email", email)) {
                 pesan.append("- Email sudah digunakan.\n");
                 showErrorLabel(lblErrorEmail, "Email sudah digunakan");
             } else {
@@ -991,7 +1194,7 @@ public class DataPegawai {
             } else if (!telepon.matches("^[0-9]+$")) {
                 pesan.append("- Nomor telepon hanya boleh berisi angka.\n");
                 showErrorLabel(lblErrorTelepon, "Nomor telepon hanya boleh berisi angka");
-            }else if (isDataExist("No_Telepon", telepon)) { // Cek Duplikat No HP
+            } else if (isDataExist("No_Telepon", telepon)) {
                 pesan.append("- Nomor telepon sudah terdaftar.\n");
                 showErrorLabel(lblErrorTelepon, "Nomor telepon sudah terdaftar");
             } else {
@@ -1000,7 +1203,6 @@ public class DataPegawai {
         }
 
         // Validasi Username
-        // Validasi Username - HANYA HURUF
         if (isKosong(txtUsername.getText())) {
             pesan.append("- Username wajib diisi.\n");
             showErrorLabel(lblErrorUsername, "Username wajib diisi");
@@ -1015,10 +1217,10 @@ public class DataPegawai {
             } else if (!username.matches("^[a-zA-Z]+$")) {
                 pesan.append("- Username HANYA boleh huruf (tanpa angka/simbol).\n");
                 showErrorLabel(lblErrorUsername, "Username HANYA boleh huruf");
-            }else if (isDataExist("Username", username)) { // Cek Duplikat Username
+            } else if (isDataExist("Username", username)) {
                 pesan.append("- Username sudah dipakai.\n");
                 showErrorLabel(lblErrorUsername, "Username sudah dipakai");
-            }else {
+            } else {
                 hideErrorLabel(lblErrorUsername);
             }
         }
@@ -1067,7 +1269,6 @@ public class DataPegawai {
     }
 
     private boolean isDataExist(String column, String value) {
-        // Kita cek ke DB, tapi ID_Pegawai harus bukan ID yang lagi diedit (atau kosong jika Tambah)
         String currentId = txtIdPegawai.getText().trim();
         String query = "SELECT COUNT(*) FROM Pegawai WHERE " + column + " = ? AND ID_Pegawai != ?";
 

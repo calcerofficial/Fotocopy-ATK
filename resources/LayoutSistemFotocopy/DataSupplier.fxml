@@ -64,6 +64,7 @@
                                 <RowConstraints />
                                 <RowConstraints />
                                 <RowConstraints />
+                                <RowConstraints /> <!-- BARIS UNTUK STATUS -->
                             </rowConstraints>
 
                             <!-- KOLOM KIRI -->
@@ -101,7 +102,15 @@
                                 <Label fx:id="lblErrorAlamat" managed="false" styleClass="error-label" text="" visible="false" />
                             </VBox>
 
-                            <!-- STATUS DIHAPUS DARI SINI -->
+                            <!-- ===== STATUS - MUNCUL HANYA JIKA NONAKTIF ===== -->
+                            <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                                <Label fx:id="lblStatus" styleClass="field-label" text="STATUS" visible="false" managed="false" />
+                                <HBox spacing="12.0" alignment="CENTER_LEFT">
+                                    <TextField fx:id="txtStatus" disable="true" styleClass="text-field-disabled" prefWidth="200.0" visible="false" managed="false" />
+                                    <Button fx:id="btnAktifkan" onAction="#handleAktifkanData" styleClass="btn-success" text="✅ Aktifkan" visible="false" managed="false" />
+                                </HBox>
+                            </VBox>
+
                         </GridPane>
                     </VBox>
 
@@ -121,10 +130,10 @@
                             <columns>
                                 <TableColumn fx:id="colIdSupplier" prefWidth="130.0" text="ID SUPPLIER" />
                                 <TableColumn fx:id="colNamaSupplier" prefWidth="160.0" text="NAMA SUPPLIER" />
-                                <TableColumn fx:id="colAlamat" prefWidth="170.0" text="          ALAMAT" />
-                                <TableColumn fx:id="colNoTelepon" prefWidth="140.0" text="        NO_TELEPON" />
-                                <TableColumn fx:id="colEmail" prefWidth="170.0" text="           EMAIL" />
-                                <TableColumn fx:id="colStatus" prefWidth="110.0" text="           STATUS" />
+                                <TableColumn fx:id="colAlamat" prefWidth="170.0" text="ALAMAT" />
+                                <TableColumn fx:id="colNoTelepon" prefWidth="140.0" text="NO_TELEPON" />
+                                <TableColumn fx:id="colEmail" prefWidth="170.0" text="EMAIL" />
+                                <TableColumn fx:id="colStatus" prefWidth="110.0" text="STATUS" />
                             </columns>
                             <columnResizePolicy>
                                 <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />

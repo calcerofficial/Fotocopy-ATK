@@ -24,6 +24,7 @@ public class DataSupplier {
     @FXML private Button btnPrevPage;
     @FXML private Button btnSimpan;
     @FXML private Button btnUbah;
+    @FXML private Button btnAktifkan;
 
     @FXML private TableColumn<Supplier, String> colAlamat;
     @FXML private TableColumn<Supplier, String> colEmail;
@@ -45,6 +46,10 @@ public class DataSupplier {
     @FXML private TextField txtIdSupplier;
     @FXML private TextField txtNamaSupplier;
     @FXML private TextField txtNomorTelepon;
+    @FXML private TextField txtStatus;
+
+    // ===== TAMBAHKAN LABEL STATUS =====
+    @FXML private Label lblStatus;
 
     @FXML private Label lblErrorNama;
     @FXML private Label lblErrorEmail;
@@ -56,6 +61,7 @@ public class DataSupplier {
     private int currentPage = 1;
     private final int rowsPerPage = 10;
     private ObservableList<Supplier> masterData = FXCollections.observableArrayList();
+    private String currentStatus = "";
 
     // =========================================================
     // MODEL SUPPLIER
@@ -99,6 +105,14 @@ public class DataSupplier {
     public void initialize() {
         btnUbah.setDisable(true);
         btnHapus.setDisable(true);
+
+        // ===== STATUS & TOMBOL AKTIFKAN DEFAULT SEMBUNYI =====
+        txtStatus.setVisible(false);
+        txtStatus.setManaged(false);
+        lblStatus.setVisible(false);
+        lblStatus.setManaged(false);
+        btnAktifkan.setVisible(false);
+        btnAktifkan.setManaged(false);
 
         colIdSupplier.setCellValueFactory(cellData -> cellData.getValue().idProperty());
         colNamaSupplier.setCellValueFactory(cellData -> cellData.getValue().namaProperty());
@@ -145,19 +159,45 @@ public class DataSupplier {
                 txtNomorTelepon.setText(newVal.getTelepon());
                 txtEmail.setText(newVal.getEmail());
 
+                currentStatus = newVal.getStatus();
+
                 btnSimpan.setDisable(true);
                 btnUbah.setDisable(false);
                 btnHapus.setDisable(false);
 
-                // Reset error labels saat pilih data baru
+                // ===== STATUS DAN TOMBOL AKTIFKAN =====
+                boolean isNonAktif = "NonAktif".equalsIgnoreCase(currentStatus);
+
+                // Tampilkan status dan tombol hanya jika NonAktif
+                txtStatus.setVisible(isNonAktif);
+                txtStatus.setManaged(isNonAktif);
+                lblStatus.setVisible(isNonAktif);
+                lblStatus.setManaged(isNonAktif);
+                btnAktifkan.setVisible(isNonAktif);
+                btnAktifkan.setManaged(isNonAktif);
+
+                if (isNonAktif) {
+                    txtStatus.setText(currentStatus);
+                    btnAktifkan.setDisable(false);
+                }
+
                 hideAllErrorLabels();
                 resetStyle();
+            } else {
+                // Sembunyikan semua
+                txtStatus.setVisible(false);
+                txtStatus.setManaged(false);
+                lblStatus.setVisible(false);
+                lblStatus.setManaged(false);
+                btnAktifkan.setVisible(false);
+                btnAktifkan.setManaged(false);
+                txtStatus.clear();
             }
         });
     }
 
     // =========================================================
-    // LOAD DATA - PAKAI VIEW ✅
+    // LOAD DATA
     // =========================================================
     private void loadData() {
         masterData.clear();
@@ -189,7 +229,7 @@ public class DataSupplier {
     }
 
     // =========================================================
-    // HITUNG STATISTIK - PAKAI UDF ✅
+    // HITUNG STATISTIK
     // =========================================================
     private void hitungStatistikSupplier() {
         try {
@@ -212,7 +252,7 @@ public class DataSupplier {
     }
 
     // =========================================================
-    // CARI SUPPLIER - PAKAI UDF ✅
+    // CARI SUPPLIER
     // =========================================================
     private void cariSupplier(String keyword) {
         ObservableList<Supplier> list = FXCollections.observableArrayList();
@@ -237,6 +277,24 @@ public class DataSupplier {
         } catch (SQLException e) {
             System.out.println("Gagal mencari data: " + e.getMessage());
         }
+    }
+
+    // =========================================================
+    // GET STATUS DARI DATABASE
+    // =========================================================
+    private String getStatusDariDatabase(String idSupplier) {
+        String query = "SELECT Status_Supplier FROM Supplier WHERE ID_Supplier = ?";
+        try (PreparedStatement ps = db.getConnection().prepareStatement(query)) {
+            ps.setString(1, idSupplier);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("Status_Supplier");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "aktif";
     }
 
     // =========================================================
@@ -362,14 +420,12 @@ public class DataSupplier {
     // VALIDASI INPUT - FINAL
     // =========================================================
     private boolean validasiInput() {
-        // RESET semua error label dan style TERLEBIH DAHULU
         hideAllErrorLabels();
         resetStyle();
 
         StringBuilder pesan = new StringBuilder();
         String currentId = txtIdSupplier.getText().trim();
 
-        // Nama
         if (isKosong(txtNamaSupplier.getText())) {
             pesan.append("- Nama supplier wajib diisi.\n");
             showErrorLabel(lblErrorNama, "Wajib diisi");
@@ -388,7 +444,6 @@ public class DataSupplier {
             txtNamaSupplier.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
         }
 
-        // Email
         if (isKosong(txtEmail.getText())) {
             pesan.append("- Email wajib diisi.\n");
             showErrorLabel(lblErrorEmail, "Wajib diisi");
@@ -403,7 +458,6 @@ public class DataSupplier {
             txtEmail.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
         }
 
-        // Telepon
         String telp = txtNomorTelepon.getText().trim();
         if (isKosong(telp)) {
             pesan.append("- Nomor telepon wajib diisi.\n");
@@ -427,7 +481,6 @@ public class DataSupplier {
             txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
         }
 
-        // Alamat
         if (isKosong(txtAlamatLengkap.getText())) {
             pesan.append("- Alamat wajib diisi.\n");
             showErrorLabel(lblErrorAlamat, "Wajib diisi");
@@ -500,13 +553,24 @@ public class DataSupplier {
         lblInfoEmail.setVisible(false);
         txtNomorTelepon.clear();
         txtAlamatLengkap.clear();
+        txtStatus.clear();
+
         btnSimpan.setDisable(false);
         btnUbah.setDisable(true);
         btnHapus.setDisable(true);
+
+        // ===== SEMBUNYIKAN STATUS DAN TOMBOL AKTIFKAN =====
+        txtStatus.setVisible(false);
+        txtStatus.setManaged(false);
+        lblStatus.setVisible(false);
+        lblStatus.setManaged(false);
+        btnAktifkan.setVisible(false);
+        btnAktifkan.setManaged(false);
+
+        currentStatus = "";
         generateIdOtomatis();
         loadData();
         hitungStatistikSupplier();
-
         hideAllErrorLabels();
         resetStyle();
     }
@@ -536,6 +600,16 @@ public class DataSupplier {
             return;
         }
 
+        String idSupplier = txtIdSupplier.getText().trim();
+        String statusSekarang = getStatusDariDatabase(idSupplier);
+
+        if ("NonAktif".equalsIgnoreCase(statusSekarang)) {
+            showAlert(Alert.AlertType.WARNING, "Tidak Bisa Update",
+                    "Supplier dengan status NonAktif tidak dapat diubah. " +
+                            "Silakan aktifkan terlebih dahulu menggunakan tombol Aktifkan.");
+            return;
+        }
+
         if (!validasiInput()) return;
 
         String query = "{call sp_UpdateSupplier(?,?,?,?,?,?)}";
@@ -545,7 +619,7 @@ public class DataSupplier {
             cs.setString(3, txtAlamatLengkap.getText().trim());
             cs.setString(4, txtNomorTelepon.getText().trim());
             cs.setString(5, txtEmail.getText().trim());
-            cs.setString(6, "aktif");
+            cs.setString(6, statusSekarang);
             cs.execute();
             showAlert(Alert.AlertType.INFORMATION, "Sukses", "Data berhasil diubah.");
             handleBatal(null);
@@ -561,14 +635,71 @@ public class DataSupplier {
             return;
         }
 
+        Alert konfirmasi = new Alert(Alert.AlertType.CONFIRMATION);
+        konfirmasi.setTitle("Konfirmasi Hapus");
+        konfirmasi.setHeaderText(null);
+        konfirmasi.setContentText("Yakin mau menonaktifkan supplier dengan ID " + txtIdSupplier.getText() + " ?");
+
+        konfirmasi.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                eksekusiHapus(txtIdSupplier.getText().trim());
+            }
+        });
+    }
+
+    private void eksekusiHapus(String idSupplier) {
         String query = "{call sp_DeleteSupplierSoft(?)}";
         try (CallableStatement cs = db.getConnection().prepareCall(query)) {
-            cs.setString(1, txtIdSupplier.getText());
+            cs.setString(1, idSupplier);
             cs.execute();
-            showAlert(Alert.AlertType.INFORMATION, "Sukses", "Data berhasil dinonaktifkan.");
+            showAlert(Alert.AlertType.INFORMATION, "Sukses", "Supplier berhasil dinonaktifkan.");
             handleBatal(null);
         } catch (SQLException e) {
             showAlert(Alert.AlertType.ERROR, "Gagal", e.getMessage());
+        }
+    }
+
+    @FXML
+    void handleAktifkanData(ActionEvent event) {
+        if (txtIdSupplier.getText().isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "Peringatan", "Pilih data yang ingin diaktifkan terlebih dahulu.");
+            return;
+        }
+
+        String idSupplier = txtIdSupplier.getText().trim();
+        String statusSekarang = getStatusDariDatabase(idSupplier);
+
+        if ("aktif".equalsIgnoreCase(statusSekarang)) {
+            showAlert(Alert.AlertType.INFORMATION, "Info", "Supplier sudah dalam status Aktif.");
+            return;
+        }
+
+        Alert konfirmasi = new Alert(Alert.AlertType.CONFIRMATION);
+        konfirmasi.setTitle("Konfirmasi Aktifkan");
+        konfirmasi.setHeaderText(null);
+        konfirmasi.setContentText("Yakin mau mengaktifkan supplier dengan ID " + idSupplier + " ?");
+
+        konfirmasi.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                eksekusiAktifkan(idSupplier);
+            }
+        });
+    }
+
+    private void eksekusiAktifkan(String idSupplier) {
+        String query = "UPDATE Supplier SET Status_Supplier = 'aktif' WHERE ID_Supplier = ?";
+        try (PreparedStatement ps = db.getConnection().prepareStatement(query)) {
+            ps.setString(1, idSupplier);
+            int rows = ps.executeUpdate();
+
+            if (rows > 0) {
+                showAlert(Alert.AlertType.INFORMATION, "Sukses", "Supplier berhasil diaktifkan.");
+                handleBatal(null);
+            } else {
+                showAlert(Alert.AlertType.WARNING, "Gagal", "Supplier tidak ditemukan.");
+            }
+        } catch (SQLException e) {
+            showAlert(Alert.AlertType.ERROR, "Gagal Aktifkan", e.getMessage());
         }
     }
 

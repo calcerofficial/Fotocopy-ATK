@@ -67,14 +67,20 @@ public class DataProduk {
     @FXML private Button btnPrevPage;
     @FXML private Button btnSimpan;
     @FXML private Button btnUbah;
+    @FXML private Button btnAktifkan;
+
     @FXML private ComboBox<String> cmbKategoriProduk;
-    @FXML private ComboBox<String> cmbStatus;
 
     // ERROR LABELS
     @FXML private Label lblErrorNama;
     @FXML private Label lblErrorHarga;
     @FXML private Label lblErrorStock;
     @FXML private Label lblErrorMerk;
+
+    // STATUS - SEMUA KOMPONEN STATUS
+    @FXML private Label lblStatusLabel;
+    @FXML private Label lblStatusValue;
+    @FXML private Label lblStatusHint;
 
     @FXML private TableView<Produk> tblProduk;
     @FXML private TableColumn<Produk, String> colIdBarang;
@@ -105,8 +111,9 @@ public class DataProduk {
     private int currentPage = 1;
     private final int rowsPerPage = 10;
 
-    // Flag untuk mencegah loop saat update text
     private boolean isUpdatingHarga = false;
+    private boolean isUpdatingKategori = false;
+    private String statusProdukTerpilih = "";
 
     @FXML
     public void initialize() {
@@ -116,7 +123,11 @@ public class DataProduk {
         btnHapus.setDisable(true);
 
         txtIdBarang.setDisable(true);
-        cmbStatus.setDisable(true); // ← STATUS DISABLED
+
+        // =============================================
+        // SEMUA KOMPONEN STATUS HILANG TOTAL AWALNYA
+        // =============================================
+        hideAllStatusComponents();
 
         // BINDING KOLOM TABEL
         colIdBarang.setCellValueFactory(cellData -> cellData.getValue().idProdukProperty());
@@ -140,73 +151,119 @@ public class DataProduk {
         });
 
         cmbKategoriProduk.setItems(FXCollections.observableArrayList("Barang", "Layanan"));
-        cmbStatus.setItems(FXCollections.observableArrayList("Tersedia", "NonTersedia"));
 
-        // =========================================================
-        // VALIDASI INPUT
-        // =========================================================
         setupInputValidation();
 
-        // LISTENER KATEGORI
         cmbKategoriProduk.getSelectionModel().selectedItemProperty().addListener((options, oldValue, newValue) -> {
-            txtStockBarang.setStyle(null);
-            txtMerk.setStyle(null);
+            if (isUpdatingKategori) return;
+
             hideErrorLabel(lblErrorStock);
             hideErrorLabel(lblErrorMerk);
+            hideErrorLabel(lblErrorNama);
+            hideErrorLabel(lblErrorHarga);
+
+            txtStockBarang.setStyle(null);
+            txtMerk.setStyle(null);
+            txtNamaBarang.setStyle(null);
+            txtHargaBarang.setStyle(null);
+
+            updateStockMerkState(newValue);
 
             if (newValue != null && tblProduk.getSelectionModel().getSelectedItem() == null) {
                 generateIdOtomatis();
-                cmbStatus.setValue("Tersedia");
-                cmbStatus.setDisable(true); // ← STATUS TETAP DISABLED
-
-                if ("Layanan".equalsIgnoreCase(newValue)) {
-                    txtStockBarang.setText("-");
-                    txtMerk.setText("-");
-                    txtStockBarang.setDisable(true);
-                    txtMerk.setDisable(true);
-                } else {
-                    if ("-".equals(txtStockBarang.getText())) txtStockBarang.clear();
-                    if ("-".equals(txtMerk.getText())) txtMerk.clear();
-                    txtStockBarang.setDisable(false);
-                    txtMerk.setDisable(false);
-                }
+                hideAllStatusComponents();
             }
         });
         loadDataProduk();
 
-        // LISTENER KLIK TABEL
+        // =========================================================
+        // LISTENER KLIK TABEL - PERBAIKAN UTAMA
+        // =========================================================
         tblProduk.getSelectionModel().selectedItemProperty().addListener((obs, oldSelection, newSelection) -> {
             if (newSelection != null) {
+                statusProdukTerpilih = newSelection.getStatus();
+
                 btnSimpan.setDisable(true);
-                btnUbah.setDisable(false);
-                btnHapus.setDisable(false);
 
                 txtIdBarang.setText(newSelection.getIdProduk());
                 txtNamaBarang.setText(newSelection.getNamaProduk());
-                txtMerk.setText(newSelection.getMerk());
+
+                isUpdatingKategori = true;
                 cmbKategoriProduk.setValue(newSelection.getKategori());
+                isUpdatingKategori = false;
 
                 isUpdatingHarga = true;
                 txtHargaBarang.setText(formatRupiah(newSelection.getHarga()));
                 isUpdatingHarga = false;
 
                 // =============================================
-                // STATUS HANYA DITAMPILKAN, TIDAK BISA DIUBAH
+                // CEK STATUS - HANYA NONTERSEDIA YANG TAMPIL
                 // =============================================
-                cmbStatus.setValue(newSelection.getStatus());
-                cmbStatus.setDisable(true); // ← SELALU DISABLED!
+                if ("NonTersedia".equalsIgnoreCase(statusProdukTerpilih)) {
+                    // Disable semua field
+                    setAllFieldsDisable(true);
 
-                if ("layanan".equalsIgnoreCase(newSelection.getKategori())) {
-                    txtStockBarang.setText("-");
-                    txtStockBarang.setDisable(true);
-                    txtMerk.setDisable(true);
+                    // TAMPILKAN SEMUA KOMPONEN STATUS
+                    showAllStatusComponents("NonTersedia");
+
+                    // Disable tombol Hapus dan Ubah
+                    btnHapus.setDisable(true);
+                    btnUbah.setDisable(true);
+
+                    // Tampilkan pesan
+                    lblInfoData.setText("⚠ Produk NonTersedia - Klik tombol 'Aktifkan' untuk mengubah status.");
+
                 } else {
-                    txtStockBarang.setText(String.valueOf(newSelection.getStok()));
-                    txtStockBarang.setDisable(false);
-                    txtMerk.setDisable(false);
+                    // STATUS TERSEDIA - HILANGKAN SEMUA KOMPONEN STATUS
+                    hideAllStatusComponents();
+
+                    // Enable button Ubah dan Hapus
+                    btnUbah.setDisable(false);
+                    btnHapus.setDisable(false);
+
+                    // Hapus pesan peringatan
+                    lblInfoData.setText("");
+
+                    // ===== PERBAIKAN: SET FIELD BERDASARKAN KATEGORI =====
+                    String kategori = newSelection.getKategori();
+
+                    // ENABLE semua field untuk diubah
+                    setAllFieldsEditable(true);
+
+                    // STOCK - DISABLE jika Layanan / Barang (Stok barang tidak bisa diubah langsung dari form produk)
+                    if ("layanan".equalsIgnoreCase(kategori)) {
+                        txtStockBarang.setText("-");
+                        txtStockBarang.setDisable(true);
+                        txtMerk.setText("-");
+                        txtMerk.setDisable(true);
+                    } else {
+                        txtStockBarang.setText(String.valueOf(newSelection.getStok()));
+                        txtStockBarang.setDisable(true); // STOCK TIDAK BISA DIUBAH LANGSUNG
+                        txtMerk.setText(newSelection.getMerk());
+                        txtMerk.setDisable(false);
+                    }
+
+                    txtStockBarang.setStyle(null);
+                    txtMerk.setStyle(null);
                 }
 
                 hideAllErrorLabels();
+            } else {
+                // TIDAK ADA SELEKSI - HILANGKAN SEMUA
+                btnUbah.setDisable(true);
+                btnHapus.setDisable(true);
+                statusProdukTerpilih = "";
+                setAllFieldsEditable(true);
+                setAllFieldsDisable(false);
+
+                // HILANGKAN SEMUA KOMPONEN STATUS
+                hideAllStatusComponents();
+
+                if (!lblInfoData.getText().contains("⚠")) {
+                    updateInfoData();
+                } else {
+                    lblInfoData.setText("");
+                }
             }
         });
 
@@ -216,7 +273,106 @@ public class DataProduk {
     }
 
     // =========================================================
-    // HITUNG STATISTIK PAKAI UDF
+    // METHOD UNTUK SET EDITABLE SEMUA FIELD
+    // =========================================================
+    private void setAllFieldsEditable(boolean editable) {
+        txtNamaBarang.setDisable(!editable);
+        txtHargaBarang.setDisable(!editable);
+        // STOCK dan MERK diatur terpisah berdasarkan kategori
+        cmbKategoriProduk.setDisable(!editable);
+    }
+
+    // =========================================================
+    // METHOD UNTUK SET DISABLE SEMUA FIELD
+    // =========================================================
+    private void setAllFieldsDisable(boolean disable) {
+        txtNamaBarang.setDisable(disable);
+        txtHargaBarang.setDisable(disable);
+        txtStockBarang.setDisable(disable);
+        txtMerk.setDisable(disable);
+        cmbKategoriProduk.setDisable(true);
+        txtIdBarang.setDisable(true);
+
+        if (disable) {
+            txtNamaBarang.setStyle("-fx-opacity: 0.6;");
+            txtHargaBarang.setStyle("-fx-opacity: 0.6;");
+            txtStockBarang.setStyle("-fx-opacity: 0.6;");
+            txtMerk.setStyle("-fx-opacity: 0.6;");
+        } else {
+            txtNamaBarang.setStyle(null);
+            txtHargaBarang.setStyle(null);
+            txtStockBarang.setStyle(null);
+            txtMerk.setStyle(null);
+        }
+    }
+
+    // =========================================================
+    // SHOW/HIDE SEMUA KOMPONEN STATUS
+    // =========================================================
+    private void showAllStatusComponents(String status) {
+        lblStatusLabel.setVisible(true);
+        lblStatusLabel.setManaged(true);
+
+        lblStatusValue.setVisible(true);
+        lblStatusValue.setManaged(true);
+        lblStatusValue.setText("⚠ " + status);
+        lblStatusValue.setStyle("-fx-text-fill: #ff4444; -fx-font-weight: bold; -fx-font-size: 14px; -fx-background-color: #fff0f0; -fx-padding: 4 12; -fx-border-radius: 4; -fx-background-radius: 4;");
+
+        lblStatusHint.setVisible(true);
+        lblStatusHint.setManaged(true);
+
+        btnAktifkan.setVisible(true);
+        btnAktifkan.setManaged(true);
+        btnAktifkan.setDisable(false);
+    }
+
+    private void hideAllStatusComponents() {
+        lblStatusLabel.setVisible(false);
+        lblStatusLabel.setManaged(false);
+
+        lblStatusValue.setVisible(false);
+        lblStatusValue.setManaged(false);
+        lblStatusValue.setText("");
+
+        lblStatusHint.setVisible(false);
+        lblStatusHint.setManaged(false);
+        lblStatusHint.setText("");
+
+        btnAktifkan.setVisible(false);
+        btnAktifkan.setManaged(false);
+        btnAktifkan.setDisable(true);
+    }
+
+    // =========================================================
+    // UPDATE STOCK & MERK STATE
+    // =========================================================
+    private void updateStockMerkState(String kategori) {
+        if ("Layanan".equalsIgnoreCase(kategori)) {
+            txtStockBarang.setText("-");
+            txtMerk.setText("-");
+            txtStockBarang.setDisable(true);
+            txtMerk.setDisable(true);
+            txtStockBarang.setStyle(null);
+            txtMerk.setStyle(null);
+            hideErrorLabel(lblErrorStock);
+            hideErrorLabel(lblErrorMerk);
+        } else if ("Barang".equalsIgnoreCase(kategori)) {
+            if ("-".equals(txtStockBarang.getText())) txtStockBarang.clear();
+            if ("-".equals(txtMerk.getText())) txtMerk.clear();
+            // Jika sedang memilih/mengubah data produk yang sudah ada, disable input stok
+            if (tblProduk.getSelectionModel().getSelectedItem() != null) {
+                txtStockBarang.setDisable(true);
+            } else {
+                txtStockBarang.setDisable(false);
+            }
+            txtMerk.setDisable(false);
+            txtStockBarang.setStyle(null);
+            txtMerk.setStyle(null);
+        }
+    }
+
+    // =========================================================
+    // HITUNG STATISTIK
     // =========================================================
     private void hitungStatistikProduk() {
         try {
@@ -239,7 +395,7 @@ public class DataProduk {
     }
 
     // =========================================================
-    // VALIDASI Duplikat nama
+    // VALIDASI Duplikat
     // =========================================================
     private boolean isNamaProdukDuplikat(String nama, String idKecuali) {
         String query = "SELECT COUNT(*) FROM Produk WHERE Nama_Barang = ? AND ID_Produk != ?";
@@ -261,7 +417,6 @@ public class DataProduk {
     // VALIDASI INPUT
     // =========================================================
     private void setupInputValidation() {
-        // 1. NAMA PRODUK - Huruf, angka, spasi (TIDAK BOLEH SIMBOL)
         TextFormatter<String> namaFormatter = new TextFormatter<>(change -> {
             String newText = change.getControlNewText();
             if (newText.isEmpty()) {
@@ -277,7 +432,6 @@ public class DataProduk {
         });
         txtNamaBarang.setTextFormatter(namaFormatter);
 
-        // 2. HARGA - Format Rupiah otomatis, minimal 1000, maksimal 100000
         txtHargaBarang.textProperty().addListener((observable, oldValue, newValue) -> {
             if (isUpdatingHarga) return;
 
@@ -337,9 +491,8 @@ public class DataProduk {
             }
         });
 
-        // 3. STOCK - Hanya angka, minimal 10
         txtStockBarang.textProperty().addListener((observable, oldValue, newValue) -> {
-            if ("Layanan".equalsIgnoreCase(cmbKategoriProduk.getValue())) {
+            if (txtStockBarang.isDisabled()) {
                 txtStockBarang.setStyle(null);
                 hideErrorLabel(lblErrorStock);
                 return;
@@ -385,9 +538,8 @@ public class DataProduk {
             }
         });
 
-        // 4. MERK - Huruf, angka, dan spasi (TIDAK BOLEH SIMBOL)
         TextFormatter<String> merkFormatter = new TextFormatter<>(change -> {
-            if (txtMerk.isDisabled() || "Layanan".equalsIgnoreCase(cmbKategoriProduk.getValue())) {
+            if (txtMerk.isDisabled()) {
                 txtMerk.setStyle(null);
                 return change;
             }
@@ -409,12 +561,11 @@ public class DataProduk {
     }
 
     // =========================================================
-    // CHECK INPUT ERRORS - FINAL
+    // CHECK INPUT ERRORS
     // =========================================================
     private boolean checkInputErrors() {
         boolean hasError = false;
 
-        // Cek Nama Produk
         String nama = txtNamaBarang.getText();
         if (!nama.isEmpty() && !nama.matches("^[a-zA-Z0-9\\s]+$")) {
             txtNamaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
@@ -425,7 +576,6 @@ public class DataProduk {
             hideErrorLabel(lblErrorNama);
         }
 
-        // Cek Harga
         String hargaText = txtHargaBarang.getText();
         if (!hargaText.isEmpty()) {
             try {
@@ -445,11 +595,14 @@ public class DataProduk {
             }
         }
 
-        // Cek Stock (hanya jika kategori Barang)
         String kategori = cmbKategoriProduk.getValue();
-        if ("Barang".equalsIgnoreCase(kategori)) {
+        if ("Barang".equalsIgnoreCase(kategori) && !txtStockBarang.isDisabled()) {
             String stockText = txtStockBarang.getText();
-            if (!stockText.isEmpty() && !stockText.equals("-")) {
+            if (stockText == null || stockText.isEmpty()) {
+                txtStockBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                showErrorLabel(lblErrorStock, "Stock wajib diisi");
+                hasError = true;
+            } else if (!stockText.equals("-")) {
                 try {
                     int stock = Integer.parseInt(stockText);
                     if (stock < 10) {
@@ -466,12 +619,18 @@ public class DataProduk {
                     hasError = true;
                 }
             }
+        } else {
+            hideErrorLabel(lblErrorStock);
+            txtStockBarang.setStyle(null);
         }
 
-        // Cek Merk (hanya jika kategori Barang) - DENGAN SPASI
-        if ("Barang".equalsIgnoreCase(kategori)) {
+        if ("Barang".equalsIgnoreCase(kategori) && !txtMerk.isDisabled()) {
             String merk = txtMerk.getText();
-            if (!merk.isEmpty() && !merk.matches("^[a-zA-Z0-9\\s]+$")) {
+            if (merk == null || merk.isEmpty()) {
+                txtMerk.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                showErrorLabel(lblErrorMerk, "Merk wajib diisi");
+                hasError = true;
+            } else if (!merk.matches("^[a-zA-Z0-9\\s]+$")) {
                 txtMerk.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
                 showErrorLabel(lblErrorMerk, "Merk hanya boleh huruf, angka, dan spasi");
                 hasError = true;
@@ -479,6 +638,9 @@ public class DataProduk {
                 txtMerk.setStyle(null);
                 hideErrorLabel(lblErrorMerk);
             }
+        } else {
+            hideErrorLabel(lblErrorMerk);
+            txtMerk.setStyle(null);
         }
 
         return hasError;
@@ -564,7 +726,6 @@ public class DataProduk {
                 filteredList.setAll(listProduk);
                 currentPage = 1;
                 updateTableAndPagination();
-
                 hitungStatistikProduk();
 
             }
@@ -645,12 +806,12 @@ public class DataProduk {
         }
 
         if ("Barang".equalsIgnoreCase(kategori)) {
-            if (txtStockBarang.getText().isEmpty()) {
+            if (txtStockBarang.getText().isEmpty() || txtStockBarang.getText().equals("-")) {
                 showErrorLabel(lblErrorStock, "Stock wajib diisi");
                 showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Stock wajib diisi");
                 return;
             }
-            if (txtMerk.getText().isEmpty()) {
+            if (txtMerk.getText().isEmpty() || txtMerk.getText().equals("-")) {
                 showErrorLabel(lblErrorMerk, "Merk wajib diisi");
                 showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Merk wajib diisi");
                 return;
@@ -695,13 +856,42 @@ public class DataProduk {
     }
 
     // =========================================================
-    // UBAH DATA - 6 PARAMETER (TANPA STATUS)
+    // AKTIFKAN DATA
+    // =========================================================
+    @FXML
+    void handleAktifkanData(ActionEvent event) {
+        if (txtIdBarang.getText() == null || txtIdBarang.getText().isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "Peringatan", "Pilih data produk yang akan diaktifkan!");
+            return;
+        }
+
+        Alert konfirmasi = new Alert(Alert.AlertType.CONFIRMATION);
+        konfirmasi.setTitle("Konfirmasi Aktivasi");
+        konfirmasi.setHeaderText(null);
+        konfirmasi.setContentText("Yakin ingin mengaktifkan produk dengan ID " + txtIdBarang.getText() + " ?\nStatus akan berubah dari NonTersedia menjadi Tersedia.");
+
+        konfirmasi.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                updateStatusProduk(txtIdBarang.getText().trim(), "Tersedia");
+            }
+        });
+    }
+
+    // =========================================================
+    // UBAH DATA
     // =========================================================
     @FXML
     void handleUbahData(ActionEvent event) {
         Produk produkTerpilih = tblProduk.getSelectionModel().getSelectedItem();
         if (produkTerpilih == null) {
             showAlert(Alert.AlertType.WARNING, "Peringatan", "Pilih data produk di tabel yang ingin diubah!");
+            return;
+        }
+
+        String statusSekarang = getStatusDariDatabase(txtIdBarang.getText().trim());
+        if ("NonTersedia".equalsIgnoreCase(statusSekarang)) {
+            showAlert(Alert.AlertType.WARNING, "Tidak Bisa Ubah",
+                    "Produk dengan status NonTersedia tidak dapat diubah.\nGunakan tombol 'Aktifkan' untuk mengubah status.");
             return;
         }
 
@@ -716,9 +906,6 @@ public class DataProduk {
             return;
         }
 
-        // =============================================
-        // 6 PARAMETER (TANPA STATUS - OTOMATIS DARI SP)
-        // =============================================
         String sqlProcedure = "{CALL sp_UpdateProduk(?, ?, ?, ?, ?, ?)}";
         try {
             try (CallableStatement cs = db.getConnection().prepareCall(sqlProcedure)) {
@@ -748,7 +935,48 @@ public class DataProduk {
     }
 
     // =========================================================
-    // HAPUS DATA (SOFT DELETE)
+    // UPDATE STATUS PRODUK
+    // =========================================================
+    private void updateStatusProduk(String idProduk, String statusBaru) {
+        String query = "UPDATE Produk SET Status_Barang = ? WHERE ID_Produk = ?";
+
+        try (PreparedStatement ps = db.getConnection().prepareStatement(query)) {
+            ps.setString(1, statusBaru);
+            ps.setString(2, idProduk);
+            int rowsAffected = ps.executeUpdate();
+
+            if (rowsAffected > 0) {
+                showAlert(Alert.AlertType.INFORMATION, "Sukses",
+                        "Produk dengan ID " + idProduk + " berhasil diaktifkan.");
+                loadDataProduk();
+                hitungStatistikProduk();
+                handleBatal(null);
+            }
+        } catch (SQLException e) {
+            showAlert(Alert.AlertType.ERROR, "Gagal mengaktifkan produk", e.getMessage());
+        }
+    }
+
+    // =========================================================
+    // AMBIL STATUS DARI DATABASE
+    // =========================================================
+    private String getStatusDariDatabase(String idProduk) {
+        String query = "SELECT Status_Barang FROM Produk WHERE ID_Produk = ?";
+        try (PreparedStatement ps = db.getConnection().prepareStatement(query)) {
+            ps.setString(1, idProduk);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("Status_Barang");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "";
+    }
+
+    // =========================================================
+    // HAPUS DATA
     // =========================================================
     @FXML
     void handleHapusData(ActionEvent event) {
@@ -758,14 +986,35 @@ public class DataProduk {
             return;
         }
 
+        String statusSekarang = getStatusDariDatabase(txtIdBarang.getText().trim());
+        if ("NonTersedia".equalsIgnoreCase(statusSekarang)) {
+            showAlert(Alert.AlertType.WARNING, "Tidak Bisa Hapus",
+                    "Produk dengan status NonTersedia tidak dapat dihapus.");
+            return;
+        }
+
+        Alert konfirmasi = new Alert(Alert.AlertType.CONFIRMATION);
+        konfirmasi.setTitle("Konfirmasi Hapus");
+        konfirmasi.setHeaderText(null);
+        konfirmasi.setContentText("Yakin mau menonaktifkan produk dengan ID " + produkTerpilih.getIdProduk() + " ?");
+
+        konfirmasi.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                eksekusiHapus(produkTerpilih.getIdProduk());
+            }
+        });
+    }
+
+    private void eksekusiHapus(String idProduk) {
         String sqlProcedure = "{CALL sp_DeleteProdukSoft(?)}";
         try {
             try (CallableStatement cs = db.getConnection().prepareCall(sqlProcedure)) {
-                cs.setString(1, produkTerpilih.getIdProduk());
+                cs.setString(1, idProduk);
                 cs.execute();
 
                 showAlert(Alert.AlertType.INFORMATION, "Sukses", "Produk berhasil dinonaktifkan!");
                 loadDataProduk();
+                hitungStatistikProduk();
                 handleBatal(null);
             }
         } catch (Exception e) {
@@ -785,15 +1034,19 @@ public class DataProduk {
         cmbKategoriProduk.setValue(null);
         txtHargaBarang.clear();
         txtStockBarang.clear();
-        cmbStatus.setValue(null);
-        cmbStatus.setDisable(true); // ← TETAP DISABLED
+
+        // HILANGKAN SEMUA KOMPONEN STATUS
+        hideAllStatusComponents();
 
         txtStockBarang.setDisable(false);
         txtMerk.setDisable(false);
+        txtStockBarang.setStyle(null);
+        txtMerk.setStyle(null);
 
         btnSimpan.setDisable(false);
         btnUbah.setDisable(true);
         btnHapus.setDisable(true);
+        statusProdukTerpilih = "";
 
         hideAllErrorLabels();
 
@@ -801,10 +1054,27 @@ public class DataProduk {
         txtHargaBarang.setStyle(null);
         txtStockBarang.setStyle(null);
         txtMerk.setStyle(null);
+
+        if (!lblInfoData.getText().contains("⚠")) {
+            updateInfoData();
+        } else {
+            lblInfoData.setText("");
+        }
+    }
+
+    private void updateInfoData() {
+        int totalRows = filteredList.size();
+        if (totalRows == 0) {
+            lblInfoData.setText("Menampilkan 0 dari 0 data");
+        } else {
+            int fromIndex = (currentPage - 1) * rowsPerPage;
+            int toIndex = Math.min(fromIndex + rowsPerPage, totalRows);
+            lblInfoData.setText("Menampilkan " + (fromIndex + 1) + "-" + toIndex + " dari " + totalRows + " data");
+        }
     }
 
     // =========================================================
-    // CARI DATA PRODUK
+    // CARI DATA
     // =========================================================
     private void cariDataProduk(String keyword) {
         if (keyword == null || keyword.isEmpty()) {

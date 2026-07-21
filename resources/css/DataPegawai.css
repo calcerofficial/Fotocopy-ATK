@@ -409,3 +409,35 @@
     -fx-border-width: 2px;
     -fx-border-radius: 4px;
 }
+
+/* ===================== STATUS BADGE & TOMBOL AKTIFKAN ===================== */
+.status-badge {
+    -fx-text-fill: #ff4444;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-background-color: #fff0f0;
+    -fx-padding: 4 12;
+    -fx-border-radius: 4;
+    -fx-background-radius: 4;
+    -fx-border-color: #ffcccc;
+    -fx-border-width: 1;
+}
+
+.btn-aktifkan {
+    -fx-background-color: #4CAF50;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-padding: 6 16;
+    -fx-background-radius: 4;
+    -fx-cursor: hand;
+    -fx-font-family: "Hanken Grotesk";
+    -fx-font-size: 14px;
+}
+
+.btn-aktifkan:hover {
+    -fx-background-color: #45a049;
+}
+
+.btn-aktifkan:pressed {
+    -fx-background-color: #3d8b40;
+}

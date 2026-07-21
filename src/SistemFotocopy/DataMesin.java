@@ -25,7 +25,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 public class DataMesin {
@@ -42,6 +41,12 @@ public class DataMesin {
     @FXML private Label lblErrorNama;
     @FXML private Label lblErrorMerk;
     @FXML private Label lblErrorMerk1;
+
+    // ===== STATUS COMPONENTS =====
+    @FXML private Label lblStatusLabel;
+    @FXML private Label lblStatusValue;
+    @FXML private Button btnAktifkan;
+    @FXML private Label lblStatusHint;
 
     @FXML private Button BrtSimpan;
     @FXML private Button BtUbah;
@@ -80,6 +85,8 @@ public class DataMesin {
     private static final int ITEMS_PER_PAGE = 5;
     private int currentPage = 1;
     private List<MesinModel> halamanSaatIni = new ArrayList<>();
+    private String statusMesinTerpilih = "";
+    private String idMesinTerpilih = "";
 
     // =====================================================================
     // INITIALIZE
@@ -94,22 +101,102 @@ public class DataMesin {
         setupInputValidation();
         setupKolomAksi();
 
+        hideAllStatusComponents();
+
         loadDataMesin();
         loadNamaLayanan();
         hitungStatCard();
         resetForm();
+    }
 
-        Platform.runLater(() -> {
-            if (!tableMesin.getItems().isEmpty()) {
-                MesinModel mesinPertama = tableMesin.getItems().get(0);
-                System.out.println("=== AUTO LOAD RIWAYAT ===");
-                System.out.println("ID Mesin Pertama: " + mesinPertama.getIdMesin());
-                loadRiwayatMesin(mesinPertama.getIdMesin());
+    // =====================================================================
+    // RESET RIWAYAT
+    // =====================================================================
 
-                // Optional: select row pertama biar form terisi
-                tableMesin.getSelectionModel().select(0);
+    private void resetRiwayat() {
+        tableRiwayat.setItems(FXCollections.observableArrayList());
+
+        Label emptyLabel = new Label("Pilih mesin untuk melihat riwayat maintenance");
+        emptyLabel.setStyle("-fx-text-fill: #888; -fx-font-style: italic; -fx-font-size: 13px;");
+        tableRiwayat.setPlaceholder(emptyLabel);
+    }
+
+    // =====================================================================
+    // SHOW/HIDE STATUS COMPONENTS
+    // =====================================================================
+
+    private void showAllStatusComponents(String status) {
+        lblStatusLabel.setVisible(true);
+        lblStatusLabel.setManaged(true);
+
+        lblStatusValue.setVisible(true);
+        lblStatusValue.setManaged(true);
+        lblStatusValue.setText("⚠ " + status);
+        lblStatusValue.setStyle("-fx-text-fill: #ff4444; -fx-font-weight: bold; -fx-font-size: 14px; -fx-background-color: #fff0f0; -fx-padding: 4 12; -fx-border-radius: 4; -fx-background-radius: 4;");
+
+        btnAktifkan.setVisible(true);
+        btnAktifkan.setManaged(true);
+        btnAktifkan.setDisable(false);
+        btnAktifkan.setStyle(null);
+
+        lblStatusHint.setVisible(true);
+        lblStatusHint.setManaged(true);
+        lblStatusHint.setText("Klik tombol Aktifkan untuk mengubah status");
+    }
+
+    private void hideAllStatusComponents() {
+        lblStatusLabel.setVisible(false);
+        lblStatusLabel.setManaged(false);
+
+        lblStatusValue.setVisible(false);
+        lblStatusValue.setManaged(false);
+        lblStatusValue.setText("");
+
+        btnAktifkan.setVisible(false);
+        btnAktifkan.setManaged(false);
+        btnAktifkan.setDisable(true);
+
+        lblStatusHint.setVisible(false);
+        lblStatusHint.setManaged(false);
+        lblStatusHint.setText("");
+    }
+
+    // =====================================================================
+    // CEK APAKAH MESIN ADA DI MAINTENANCE (RUSAK)
+    // =====================================================================
+
+    private boolean isMesinRusak(String idMesin) {
+        String sql = "SELECT COUNT(*) FROM Maintenance_Mesin " +
+                "WHERE ID_Mesin = ? AND Status_Maintenance = 'rusak'";
+
+        try (PreparedStatement ps = db.getConnection().prepareStatement(sql)) {
+            ps.setString(1, idMesin);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
             }
-        });
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    private boolean isMesinDalamMaintenance(String idMesin) {
+        String sql = "SELECT COUNT(*) FROM Maintenance_Mesin " +
+                "WHERE ID_Mesin = ? AND Status_Maintenance != 'selesai'";
+
+        try (PreparedStatement ps = db.getConnection().prepareStatement(sql)) {
+            ps.setString(1, idMesin);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
     // =====================================================================
@@ -145,6 +232,8 @@ public class DataMesin {
         colRiwayatId.setCellValueFactory(d -> d.getValue().idMesinProperty());
         colRiwayatTanggal.setCellValueFactory(d -> d.getValue().tanggalProperty());
         colRiwayatKeterangan.setCellValueFactory(d -> d.getValue().keteranganProperty());
+
+        // Placeholder akan di-set melalui resetRiwayat()
     }
 
     // =====================================================================
@@ -274,26 +363,6 @@ public class DataMesin {
     }
 
     // =====================================================================
-    // CEK STATUS MAINTENANCE
-    // =====================================================================
-
-    private boolean isMesinRusak(String idMesin) {
-        String sql = "SELECT dbo.f_CekMesinRusak(?) AS IsRusak";
-
-        try (PreparedStatement ps = db.getConnection().prepareStatement(sql)) {
-            ps.setString(1, idMesin);
-            try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getBoolean("IsRusak");
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    // =====================================================================
     // INPUT VALIDATION
     // =====================================================================
 
@@ -407,16 +476,73 @@ public class DataMesin {
     }
 
     // =====================================================================
-    // ROW SELECTION
+    // ROW SELECTION - DENGAN STATUS
     // =====================================================================
 
     private void setupRowSelection() {
         tableMesin.getSelectionModel().selectedItemProperty().addListener((obs, lama, baru) -> {
             if (baru != null) {
+                statusMesinTerpilih = baru.getStatusMesin();
+                idMesinTerpilih = baru.getIdMesin();
                 isiFormDariTabel(baru);
                 hideAllErrorLabels();
+
+                boolean isRusak = isMesinRusak(idMesinTerpilih);
+                boolean inMaintenance = isMesinDalamMaintenance(idMesinTerpilih);
+
+                if ("NonAktif".equalsIgnoreCase(statusMesinTerpilih)) {
+                    setAllFieldsDisable(true);
+
+                    if (isRusak || inMaintenance) {
+                        hideAllStatusComponents();
+                        BtUbah.setDisable(true);
+                        BtHapus.setDisable(true);
+                        lblInfoData.setText("⚠ Mesin NonAktif dan sedang dalam maintenance - tidak dapat diubah.");
+                    } else {
+                        showAllStatusComponents("NonAktif");
+                        btnAktifkan.setDisable(false);
+                        btnAktifkan.setStyle(null);
+                        BtUbah.setDisable(true);
+                        BtHapus.setDisable(true);
+                        lblInfoData.setText("⚠ Mesin NonAktif - Klik tombol 'Aktifkan' untuk mengaktifkan.");
+                    }
+
+                } else {
+                    setAllFieldsDisable(false);
+                    hideAllStatusComponents();
+                    BtUbah.setDisable(false);
+                    BtHapus.setDisable(false);
+                    lblInfoData.setText("");
+                }
+            } else {
+                BtUbah.setDisable(true);
+                BtHapus.setDisable(true);
+                statusMesinTerpilih = "";
+                idMesinTerpilih = "";
+                setAllFieldsDisable(false);
+                hideAllStatusComponents();
+                resetRiwayat();
             }
         });
+    }
+
+    // =====================================================================
+    // SET ALL FIELDS DISABLE
+    // =====================================================================
+
+    private void setAllFieldsDisable(boolean disable) {
+        txtNamaMesin.setDisable(disable);
+        txtMerkMesin.setDisable(disable);
+        cbNamaLayanan.setDisable(disable);
+        txtIdMesin.setDisable(true);
+
+        if (disable) {
+            txtNamaMesin.setStyle("-fx-opacity: 0.6;");
+            txtMerkMesin.setStyle("-fx-opacity: 0.6;");
+        } else {
+            txtNamaMesin.setStyle(null);
+            txtMerkMesin.setStyle(null);
+        }
     }
 
     private void isiFormDariTabel(MesinModel m) {
@@ -431,8 +557,6 @@ public class DataMesin {
         BtUbah.setDisable(false);
         BtHapus.setDisable(false);
 
-        System.out.println("=== KLIK MESIN ===");
-        System.out.println("ID Mesin: " + m.getIdMesin());
         loadRiwayatMesin(m.getIdMesin());
     }
 
@@ -459,24 +583,21 @@ public class DataMesin {
 
             filteredData = new FilteredList<>(masterData, p -> true);
 
-            sortedData = new SortedList<>(filteredData, new Comparator<MesinModel>() {
-                @Override
-                public int compare(MesinModel o1, MesinModel o2) {
-                    String status1 = o1.getStatusMesin();
-                    String status2 = o2.getStatusMesin();
+            sortedData = new SortedList<>(filteredData, (o1, o2) -> {
+                String status1 = o1.getStatusMesin();
+                String status2 = o2.getStatusMesin();
 
-                    if (status1.equalsIgnoreCase(status2)) {
-                        return o1.getIdMesin().compareTo(o2.getIdMesin());
-                    }
-
-                    boolean isAktif1 = status1.equalsIgnoreCase("Aktif");
-                    boolean isAktif2 = status2.equalsIgnoreCase("Aktif");
-
-                    if (isAktif1 && !isAktif2) return -1;
-                    if (!isAktif1 && isAktif2) return 1;
-
-                    return 0;
+                if (status1.equalsIgnoreCase(status2)) {
+                    return o1.getIdMesin().compareTo(o2.getIdMesin());
                 }
+
+                boolean isAktif1 = status1.equalsIgnoreCase("Aktif");
+                boolean isAktif2 = status2.equalsIgnoreCase("Aktif");
+
+                if (isAktif1 && !isAktif2) return -1;
+                if (!isAktif1 && isAktif2) return 1;
+
+                return 0;
             });
 
             currentPage = 1;
@@ -494,35 +615,38 @@ public class DataMesin {
     private void loadRiwayatMesin(String idMesin) {
         ObservableList<RiwayatModel> riwayatList = FXCollections.observableArrayList();
 
-        System.out.println("=== LOAD RIWAYAT ===");
-        System.out.println("ID Mesin: " + idMesin);
+        if (idMesin == null || idMesin.isEmpty()) {
+            resetRiwayat();
+            return;
+        }
 
         String sql = "SELECT " +
                 "mm.ID_Mesin, " +
                 "CONVERT(VARCHAR, mm.Tanggal_Maintenance_Mesin, 103) AS Tanggal, " +
-                "ISNULL(mm.Keterangan_Perbaikan, mm.Jenis_Kerusakan_Mesin) AS Keterangan " +
+                "ISNULL(mm.Keterangan_Perbaikan, mm.Jenis_Kerusakan_Mesin) AS Keterangan, " +
+                "mm.Status_Maintenance " +
                 "FROM Maintenance_Mesin mm " +
                 "WHERE mm.ID_Mesin = ? " +
                 "ORDER BY mm.Tanggal_Maintenance_Mesin DESC";
 
         try (PreparedStatement ps = db.getConnection().prepareStatement(sql)) {
             ps.setString(1, idMesin);
-            System.out.println("Parameter: " + idMesin);
 
             ResultSet rs = ps.executeQuery();
-            int count = 0;
             while (rs.next()) {
-                count++;
+                String status = rs.getString("Status_Maintenance");
+                String keterangan = rs.getString("Keterangan");
+                if (status != null && !status.equalsIgnoreCase("selesai")) {
+                    keterangan = keterangan + " (Status: " + status + ")";
+                }
                 riwayatList.add(new RiwayatModel(
                         rs.getString("ID_Mesin"),
                         rs.getString("Tanggal"),
-                        rs.getString("Keterangan")
+                        keterangan
                 ));
-                System.out.println("Data ke-" + count + ": " + rs.getString("Keterangan"));
             }
             rs.close();
 
-            System.out.println("Total data ditemukan: " + count);
             tableRiwayat.setItems(riwayatList);
 
             if (riwayatList.isEmpty()) {
@@ -534,8 +658,8 @@ public class DataMesin {
             }
 
         } catch (SQLException e) {
-            System.out.println("ERROR: " + e.getMessage());
             e.printStackTrace();
+            resetRiwayat();
         }
     }
 
@@ -610,6 +734,69 @@ public class DataMesin {
     }
 
     // =====================================================================
+    // AKTIFKAN DATA
+    // =====================================================================
+
+    @FXML
+    void handleAktifkanData(ActionEvent event) {
+        if (txtIdMesin.getText() == null || txtIdMesin.getText().isEmpty()) {
+            tampilAlert(Alert.AlertType.WARNING, "Peringatan", "Pilih data mesin yang akan diaktifkan!");
+            return;
+        }
+
+        String idMesin = txtIdMesin.getText().trim();
+
+        if (isMesinRusak(idMesin)) {
+            tampilAlert(Alert.AlertType.WARNING, "Tidak Bisa Aktifkan",
+                    "Mesin " + idMesin + " sedang dalam status maintenance (RUSAK)!\n\n" +
+                            "Mesin yang sedang dalam maintenance tidak dapat diaktifkan.\n" +
+                            "Harap selesaikan maintenance terlebih dahulu di menu Maintenance Mesin.\n\n" +
+                            "Status maintenance harus diubah menjadi 'Selesai' terlebih dahulu.");
+            return;
+        }
+
+        if (isMesinDalamMaintenance(idMesin)) {
+            tampilAlert(Alert.AlertType.WARNING, "Tidak Bisa Aktifkan",
+                    "Mesin " + idMesin + " sedang dalam proses maintenance!\n\n" +
+                            "Harap selesaikan maintenance terlebih dahulu di menu Maintenance Mesin.\n\n" +
+                            "Status maintenance harus diubah menjadi 'Selesai' terlebih dahulu.");
+            return;
+        }
+
+        Alert konfirmasi = new Alert(Alert.AlertType.CONFIRMATION);
+        konfirmasi.setTitle("Konfirmasi Aktivasi");
+        konfirmasi.setHeaderText(null);
+        konfirmasi.setContentText("Yakin ingin mengaktifkan mesin dengan ID " + idMesin + " ?\nStatus akan berubah dari NonAktif menjadi Aktif.");
+
+        konfirmasi.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.OK) {
+                updateStatusMesin(idMesin, "Aktif");
+            }
+        });
+    }
+
+    private void updateStatusMesin(String idMesin, String statusBaru) {
+        String query = "UPDATE Mesin SET Status_Mesin = ? WHERE ID_Mesin = ?";
+
+        try (PreparedStatement ps = db.getConnection().prepareStatement(query)) {
+            ps.setString(1, statusBaru);
+            ps.setString(2, idMesin);
+            int rowsAffected = ps.executeUpdate();
+
+            if (rowsAffected > 0) {
+                tampilAlert(Alert.AlertType.INFORMATION, "Sukses",
+                        "Mesin dengan ID " + idMesin + " berhasil diaktifkan.");
+                loadDataMesin();
+                hitungStatCard();
+                resetForm();
+                hideAllStatusComponents();
+            }
+        } catch (SQLException e) {
+            tampilAlert(Alert.AlertType.ERROR, "Gagal mengaktifkan mesin", e.getMessage());
+        }
+    }
+
+    // =====================================================================
     // SIMPAN DATA
     // =====================================================================
 
@@ -662,6 +849,21 @@ public class DataMesin {
             return;
         }
 
+        String statusSekarang = getStatusDariDatabase(id);
+        if ("NonAktif".equalsIgnoreCase(statusSekarang)) {
+            tampilAlert(Alert.AlertType.WARNING, "Tidak Bisa Ubah",
+                    "Mesin dengan status NonAktif tidak dapat diubah.\nGunakan tombol 'Aktifkan' untuk mengaktifkan terlebih dahulu.");
+            return;
+        }
+
+        if (isMesinRusak(id) || isMesinDalamMaintenance(id)) {
+            tampilAlert(Alert.AlertType.WARNING, "Tidak Bisa Ubah",
+                    "Mesin " + id + " sedang dalam maintenance!\n\n" +
+                            "Mesin yang sedang dalam maintenance tidak dapat diubah.\n" +
+                            "Harap selesaikan maintenance terlebih dahulu di menu Maintenance Mesin.");
+            return;
+        }
+
         if (checkInputErrors()) {
             tampilAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Mohon perbaiki input yang ditandai merah");
             return;
@@ -676,13 +878,13 @@ public class DataMesin {
         dialog.setContentText("Status Mesin untuk " + id + ":");
 
         dialog.showAndWait().ifPresent(statusBaru -> {
-            if (statusBaru.equalsIgnoreCase("Aktif") && isMesinRusak(id)) {
+            if (statusBaru.equalsIgnoreCase("Aktif") && (isMesinRusak(id) || isMesinDalamMaintenance(id))) {
                 Alert warningAlert = new Alert(Alert.AlertType.WARNING);
                 warningAlert.setTitle("Tidak Dapat Mengubah Status");
-                warningAlert.setHeaderText("❌ Mesin Sedang Rusak");
+                warningAlert.setHeaderText("❌ Mesin Sedang Maintenance");
                 warningAlert.setContentText(
-                        "Mesin " + id + " sedang dalam status RUSAK di tabel Maintenance!\n\n" +
-                                "⚠️ Mesin yang sedang rusak tidak dapat diubah menjadi AKTIF.\n" +
+                        "Mesin " + id + " sedang dalam proses maintenance!\n\n" +
+                                "⚠️ Mesin yang sedang maintenance tidak dapat diubah menjadi AKTIF.\n" +
                                 "Harap selesaikan maintenance terlebih dahulu di menu Maintenance Mesin.\n\n" +
                                 "Status yang diperbolehkan: NonAktif"
                 );
@@ -715,6 +917,21 @@ public class DataMesin {
         });
     }
 
+    private String getStatusDariDatabase(String idMesin) {
+        String query = "SELECT Status_Mesin FROM Mesin WHERE ID_Mesin = ?";
+        try (PreparedStatement ps = db.getConnection().prepareStatement(query)) {
+            ps.setString(1, idMesin);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("Status_Mesin");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "";
+    }
+
     // =====================================================================
     // HAPUS DATA
     // =====================================================================
@@ -727,13 +944,20 @@ public class DataMesin {
             return;
         }
 
-        if (isMesinRusak(id)) {
+        String statusSekarang = getStatusDariDatabase(id);
+        if ("NonAktif".equalsIgnoreCase(statusSekarang)) {
+            tampilAlert(Alert.AlertType.WARNING, "Tidak Bisa Hapus",
+                    "Mesin dengan status NonAktif tidak dapat dihapus.");
+            return;
+        }
+
+        if (isMesinRusak(id) || isMesinDalamMaintenance(id)) {
             Alert warningAlert = new Alert(Alert.AlertType.WARNING);
             warningAlert.setTitle("Peringatan");
-            warningAlert.setHeaderText("⚠️ Mesin Sedang Rusak");
+            warningAlert.setHeaderText("⚠️ Mesin Sedang Maintenance");
             warningAlert.setContentText(
-                    "Mesin " + id + " sedang dalam status RUSAK!\n\n" +
-                            "Menonaktifkan mesin yang sedang rusak tidak disarankan.\n" +
+                    "Mesin " + id + " sedang dalam proses maintenance!\n\n" +
+                            "Menonaktifkan mesin yang sedang maintenance tidak disarankan.\n" +
                             "Harap selesaikan maintenance terlebih dahulu.\n\n" +
                             "Apakah Anda tetap ingin melanjutkan?"
             );
@@ -797,10 +1021,14 @@ public class DataMesin {
         BtUbah.setDisable(true);
         BtHapus.setDisable(true);
 
-        tableRiwayat.setItems(FXCollections.observableArrayList());
+        resetRiwayat();
         tableMesin.getSelectionModel().clearSelection();
 
         hideAllErrorLabels();
+        hideAllStatusComponents();
+        setAllFieldsDisable(false);
+
+        lblInfoData.setText("");
     }
 
     // =====================================================================
@@ -855,7 +1083,7 @@ public class DataMesin {
     }
 
     // =====================================================================
-    // HELPER ALERT - PERBAIKAN ✅
+    // HELPER ALERT
     // =====================================================================
 
     private void tampilAlert(Alert.AlertType tipe, String judul, String pesan) {
@@ -884,19 +1112,12 @@ public class DataMesin {
         }
 
         public String getIdMesin() { return idMesin.get(); }
-
         public StringProperty idMesinProperty() { return idMesin; }
-
         public String getNamaMesin() { return namaMesin.get(); }
-
         public StringProperty namaMesinProperty() { return namaMesin; }
-
         public String getMerkMesin() { return merkMesin.get(); }
-
         public StringProperty merkMesinProperty() { return merkMesin; }
-
         public String getStatusMesin() { return statusMesin.get(); }
-
         public StringProperty statusMesinProperty() { return statusMesin; }
     }
 
@@ -916,9 +1137,7 @@ public class DataMesin {
         }
 
         public StringProperty idMesinProperty() { return idMesin; }
-
         public StringProperty tanggalProperty() { return tanggal; }
-
         public StringProperty keteranganProperty() { return keterangan; }
     }
 
@@ -940,11 +1159,8 @@ public class DataMesin {
         }
 
         public StringProperty namaProdukProperty() { return namaProduk; }
-
         public StringProperty kategoriProperty() { return kategori; }
-
         public StringProperty merkBarangProperty() { return merkBarang; }
-
         public DoubleProperty hargaProperty() { return harga; }
     }
 }

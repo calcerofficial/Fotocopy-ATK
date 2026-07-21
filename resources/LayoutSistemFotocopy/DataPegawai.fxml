@@ -120,7 +120,16 @@
                                 <Label fx:id="lblErrorPassword" managed="false" styleClass="error-label" text="" visible="false" />
                             </VBox>
 
-                            <!-- STATUS dihapus karena otomatis dari database -->
+                            <!-- ===== STATUS - HANYA TAMPIL SAAT NONAKTIF ===== -->
+                            <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="3">
+                                <Label fx:id="lblStatusLabel" styleClass="field-label" text="STATUS" />
+                                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                                    <Label fx:id="lblStatusValue" styleClass="status-badge" text="NonAktif" />
+                                    <Button fx:id="btnAktifkan" onAction="#handleAktifkanData" styleClass="btn-aktifkan" text="✅ Aktifkan" />
+                                </HBox>
+                                <Label fx:id="lblStatusHint" styleClass="field-hint" text="Klik tombol Aktifkan untuk mengubah status" />
+                            </VBox>
+
                         </GridPane>
                     </VBox>
 
