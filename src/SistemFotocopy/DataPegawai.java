@@ -32,6 +32,12 @@ public class DataPegawai {
     @FXML private TextField txtPasswordVisible;
     @FXML private Button btnTogglePassword;
 
+    // ===================== KONFIRMASI PASSWORD =====================
+    @FXML private PasswordField txtKonfirmasiPassword;
+    @FXML private TextField txtKonfirmasiPasswordVisible;
+    @FXML private Button btnToggleKonfirmasiPassword;
+    @FXML private Label lblErrorKonfirmasiPassword;
+
     // ===================== STATUS - SEMUA KOMPONEN =====================
     @FXML private Label lblStatusLabel;   // Label "STATUS"
     @FXML private Label lblStatusValue;   // Badge status (NonAktif)
@@ -93,32 +99,18 @@ public class DataPegawai {
     private final ObservableList<PegawaiModel> masterData = FXCollections.observableArrayList();
     private FilteredList<PegawaiModel> filteredData;
     private boolean statusTampilPassword = false;
+    private boolean statusTampilKonfirmasiPassword = false;
 
     // =========================================================
     // INITIALIZE
     // =========================================================
     @FXML
     public void initialize() {
-        txtEmail.textProperty().addListener((obs, oldVal, newVal) -> {
-            if (!newVal.contains("@") && !newVal.isEmpty()) {
-                lblInfoEmail.setVisible(true);
-                lblInfoEmail.setManaged(true);
-            } else {
-                lblInfoEmail.setVisible(false);
-                lblInfoEmail.setManaged(false);
-            }
-        });
-
-        txtEmail.focusedProperty().addListener((obs, oldVal, newVal) -> {
-            if (!newVal) {
-                String email = txtEmail.getText().trim();
-                if (!email.isEmpty() && !email.contains("@")) {
-                    txtEmail.setText(email + "@gmail.com");
-                    lblInfoEmail.setVisible(false);
-                    lblInfoEmail.setManaged(false);
-                }
-            }
-        });
+        // Hapus listener auto-complete @gmail.com, ganti dengan info format email
+        lblInfoEmail.setText("Format: @gmail.com, @yahoo.com, @outlook.com, @icloud.com, @ac.id, @edu, @student.(kampus).ac.id");
+        lblInfoEmail.setStyle("-fx-text-fill: #666; -fx-font-size: 10px; -fx-font-style: italic;");
+        lblInfoEmail.setVisible(true);
+        lblInfoEmail.setManaged(true);
 
         setupTableColumns();
         setupSearchListener();
@@ -278,11 +270,11 @@ public class DataPegawai {
             hideErrorLabel(lblErrorNama);
         }
 
-        // Cek Email
+        // Cek Email dengan validasi domain
         String email = txtEmail.getText();
-        if (!email.isEmpty() && !email.matches("^[a-z0-9@._-]+$")) {
+        if (!email.isEmpty() && !isValidEmail(email)) {
             txtEmail.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-            showErrorLabel(lblErrorEmail, "Email hanya boleh huruf kecil, angka, @, ., _, -");
+            showErrorLabel(lblErrorEmail, "Format email tidak valid. Gunakan domain yang diizinkan");
             hasError = true;
         } else {
             txtEmail.setStyle(null);
@@ -342,15 +334,47 @@ public class DataPegawai {
     }
 
     // =========================================================
+    // VALIDASI EMAIL - DOMAIN YANG DIIZINKAN
+    // =========================================================
+    private boolean isValidEmail(String email) {
+        if (isKosong(email)) return false;
+
+        email = email.trim().toLowerCase();
+
+        // Domain yang diizinkan
+        String[] allowedDomains = {
+                "@gmail.com",
+                "@yahoo.com",
+                "@outlook.com",
+                "@icloud.com",
+                "@ac.id",
+                "@edu"
+        };
+
+        // Cek domain standar
+        for (String domain : allowedDomains) {
+            if (email.endsWith(domain)) {
+                String prefix = email.substring(0, email.length() - domain.length());
+                return !prefix.isEmpty() && prefix.matches("^[a-z0-9._-]+$");
+            }
+        }
+
+        // Cek domain student.(kampus).ac.id
+        if (email.matches("^[a-z0-9._-]+@student\\.[a-z]+\\.ac\\.id$")) {
+            return true;
+        }
+
+        return false;
+    }
+
+    // =========================================================
     // SETUP ROLE COMBOBOX
     // =========================================================
     private void setupRoleComboBox() {
         cmbRole.setItems(FXCollections.observableArrayList("Pegawai", "Admin"));
         cmbRole.setValue("Pegawai");
 
-        // 🔥 PERBAIKAN: Saat role berubah, generate ID otomatis
         cmbRole.setOnAction(event -> {
-            // Hanya generate ID jika mode TAMBAH
             if (mode == Mode.TAMBAH) {
                 generateIdOtomatis();
             }
@@ -385,7 +409,6 @@ public class DataPegawai {
                 }
             }
         } catch (SQLException e) {
-            // Fallback jika query gagal
             if ("Admin".equals(role)) {
                 txtIdPegawai.setText("ADM001");
             } else {
@@ -423,42 +446,25 @@ public class DataPegawai {
     }
 
     // =========================================================
-    // SETUP ROW SELECTION - HANYA NONAKTIF YANG TAMPIL
+    // SETUP ROW SELECTION
     // =========================================================
     private void setupRowSelectionListener() {
         tblPegawai.getSelectionModel().selectedItemProperty().addListener((obs, oldSel, newSel) -> {
             if (newSel != null) {
-                // Simpan status pegawai yang dipilih
                 statusPegawaiTerpilih = newSel.getStatus();
-
                 isiFormDariTabel(newSel);
 
-                // CEK STATUS - Jika NonAktif
                 if ("NonAktif".equalsIgnoreCase(statusPegawaiTerpilih)) {
-                    // Disable semua text field
                     setAllFieldsDisable(true);
-
-                    // TAMPILKAN SEMUA KOMPONEN STATUS
                     showAllStatusComponents("NonAktif");
-
-                    // Enable button Ubah untuk mengaktifkan
                     btnUbah.setDisable(false);
                     btnHapus.setDisable(true);
-
-                    // Tampilkan pesan
                     lblInfoData.setText("⚠ Pegawai NonAktif - Klik tombol 'Aktifkan' untuk mengubah status.");
                 } else {
-                    // Jika Aktif
                     setAllFieldsDisable(false);
-
-                    // HILANGKAN SEMUA KOMPONEN STATUS
                     hideAllStatusComponents();
-
-                    // Enable button Ubah dan Hapus
                     btnUbah.setDisable(false);
                     btnHapus.setDisable(false);
-
-                    // Hapus pesan peringatan
                     lblInfoData.setText("");
                 }
             } else {
@@ -466,8 +472,6 @@ public class DataPegawai {
                 btnHapus.setDisable(true);
                 statusPegawaiTerpilih = "";
                 setAllFieldsDisable(false);
-
-                // HILANGKAN SEMUA KOMPONEN STATUS
                 hideAllStatusComponents();
             }
         });
@@ -514,7 +518,6 @@ public class DataPegawai {
     // METHOD UNTUK SET DISABLE SEMUA FIELD
     // =========================================================
     private void setAllFieldsDisable(boolean disable) {
-        // TextField
         txtNamaLengkap.setDisable(disable);
         txtEmail.setDisable(disable);
         txtNomorTelepon.setDisable(disable);
@@ -522,19 +525,19 @@ public class DataPegawai {
         txtAlamatLengkap.setDisable(disable);
         txtPassword.setDisable(disable);
         txtPasswordVisible.setDisable(disable);
+        txtKonfirmasiPassword.setDisable(disable);
+        txtKonfirmasiPasswordVisible.setDisable(disable);
         btnTogglePassword.setDisable(disable);
+        btnToggleKonfirmasiPassword.setDisable(disable);
 
-        // 🔥 PERBAIKAN: Role selalu disable saat mode UBAH, tapi ENABLE saat mode TAMBAH
         if (mode == Mode.UBAH) {
             cmbRole.setDisable(true);
         } else {
             cmbRole.setDisable(false);
         }
 
-        // ID selalu disable
         txtIdPegawai.setDisable(true);
 
-        // Style untuk menunjukkan field disabled
         if (disable) {
             txtNamaLengkap.setStyle("-fx-opacity: 0.6;");
             txtEmail.setStyle("-fx-opacity: 0.6;");
@@ -543,6 +546,8 @@ public class DataPegawai {
             txtAlamatLengkap.setStyle("-fx-opacity: 0.6;");
             txtPassword.setStyle("-fx-opacity: 0.6;");
             txtPasswordVisible.setStyle("-fx-opacity: 0.6;");
+            txtKonfirmasiPassword.setStyle("-fx-opacity: 0.6;");
+            txtKonfirmasiPasswordVisible.setStyle("-fx-opacity: 0.6;");
         } else {
             txtNamaLengkap.setStyle(null);
             txtEmail.setStyle(null);
@@ -551,6 +556,8 @@ public class DataPegawai {
             txtAlamatLengkap.setStyle(null);
             txtPassword.setStyle(null);
             txtPasswordVisible.setStyle(null);
+            txtKonfirmasiPassword.setStyle(null);
+            txtKonfirmasiPasswordVisible.setStyle(null);
         }
     }
 
@@ -730,7 +737,6 @@ public class DataPegawai {
         int end = Math.min(start + ITEMS_PER_PAGE - 1, total);
         String displayRange = total == 0 ? "0" : start + "-" + end;
 
-        // Jangan overwrite pesan peringatan jika ada
         if (!lblInfoData.getText().contains("⚠")) {
             lblInfoData.setText("Menampilkan " + displayRange + " dari " + total + " data");
         }
@@ -779,13 +785,16 @@ public class DataPegawai {
             cmbRole.setValue("Pegawai");
         }
 
-        // 🔥 PERBAIKAN: Role DISABLE saat mode UBAH
         cmbRole.setDisable(true);
 
         txtPassword.clear();
         txtPasswordVisible.clear();
+        txtKonfirmasiPassword.clear();
+        txtKonfirmasiPasswordVisible.clear();
         txtPassword.setPromptText("Kosongkan jika tidak ganti password");
         txtPasswordVisible.setPromptText("Kosongkan jika tidak ganti password");
+        txtKonfirmasiPassword.setPromptText("Kosongkan jika tidak ganti password");
+        txtKonfirmasiPasswordVisible.setPromptText("Kosongkan jika tidak ganti password");
 
         btnSimpan.setDisable(true);
 
@@ -841,7 +850,7 @@ public class DataPegawai {
     }
 
     // =========================================================
-    // AKTIFKAN DATA (Tombol Khusus untuk NonAktif)
+    // AKTIFKAN DATA
     // =========================================================
     @FXML
     void handleAktifkanData(ActionEvent event) {
@@ -872,10 +881,8 @@ public class DataPegawai {
             return;
         }
 
-        // CEK STATUS SEBELUM UPDATE
         String statusSekarang = getStatusDariDatabase(txtIdPegawai.getText().trim());
 
-        // Jika NonAktif, tolak update biasa (harus pakai tombol Aktifkan)
         if ("NonAktif".equalsIgnoreCase(statusSekarang)) {
             tampilkanAlert(Alert.AlertType.WARNING, "Tidak Bisa Ubah",
                     "Pegawai dengan status NonAktif tidak dapat diubah.\nGunakan tombol 'Aktifkan' untuk mengubah status.");
@@ -934,7 +941,7 @@ public class DataPegawai {
     }
 
     // =========================================================
-    // UPDATE STATUS PEGAWAI (UNTUK AKTIVASI)
+    // UPDATE STATUS PEGAWAI
     // =========================================================
     private void updateStatusPegawai(String idPegawai, String statusBaru) {
         String query = "UPDATE Pegawai SET Status_Pegawai = ? WHERE ID_Pegawai = ?";
@@ -969,7 +976,6 @@ public class DataPegawai {
             return;
         }
 
-        // CEK STATUS SEBELUM HAPUS
         String statusSekarang = getStatusDariDatabase(txtIdPegawai.getText().trim());
         if ("NonAktif".equalsIgnoreCase(statusSekarang)) {
             tampilkanAlert(Alert.AlertType.WARNING, "Tidak Bisa Hapus",
@@ -1034,7 +1040,7 @@ public class DataPegawai {
     void handleBatal(ActionEvent event) {
         resetForm();
         if (lblInfoEmail != null) {
-            lblInfoEmail.setVisible(false);
+            lblInfoEmail.setVisible(true);
         }
 
         btnSimpan.setDisable(false);
@@ -1048,16 +1054,18 @@ public class DataPegawai {
         txtIdPegawai.clear();
         txtNamaLengkap.clear();
         txtEmail.clear();
-        if (lblInfoEmail != null) lblInfoEmail.setVisible(false);
         txtNomorTelepon.clear();
         txtAlamatLengkap.clear();
         txtUsername.clear();
         txtPassword.clear();
         txtPasswordVisible.clear();
+        txtKonfirmasiPassword.clear();
+        txtKonfirmasiPasswordVisible.clear();
         txtPassword.setPromptText("Masukan Password...");
         txtPasswordVisible.setPromptText("Masukan Password...");
+        txtKonfirmasiPassword.setPromptText("Konfirmasi Password...");
+        txtKonfirmasiPasswordVisible.setPromptText("Konfirmasi Password...");
 
-        // 🔥 PERBAIKAN: Role ENABLE saat reset ke mode TAMBAH
         cmbRole.setDisable(false);
         cmbRole.setValue("Pegawai");
         generateIdOtomatis();
@@ -1075,13 +1083,9 @@ public class DataPegawai {
         txtAlamatLengkap.setStyle(null);
         txtUsername.setStyle(null);
 
-        // Reset semua field menjadi enabled
         setAllFieldsDisable(false);
-
-        // HILANGKAN SEMUA KOMPONEN STATUS
         hideAllStatusComponents();
 
-        // Reset info label
         if (!lblInfoData.getText().contains("⚠")) {
             updateInfoData();
         } else {
@@ -1099,6 +1103,7 @@ public class DataPegawai {
         if (lblErrorAlamat != null) { lblErrorAlamat.setVisible(false); lblErrorAlamat.setText(""); }
         if (lblErrorUsername != null) { lblErrorUsername.setVisible(false); lblErrorUsername.setText(""); }
         if (lblErrorPassword != null) { lblErrorPassword.setVisible(false); lblErrorPassword.setText(""); }
+        if (lblErrorKonfirmasiPassword != null) { lblErrorKonfirmasiPassword.setVisible(false); lblErrorKonfirmasiPassword.setText(""); }
     }
 
     private void showErrorLabel(Label errorLabel, String message) {
@@ -1140,8 +1145,31 @@ public class DataPegawai {
         }
     }
 
+    @FXML
+    void handleToggleKonfirmasiPassword(ActionEvent event) {
+        statusTampilKonfirmasiPassword = !statusTampilKonfirmasiPassword;
+
+        if (statusTampilKonfirmasiPassword) {
+            txtKonfirmasiPasswordVisible.setText(txtKonfirmasiPassword.getText());
+            txtKonfirmasiPasswordVisible.setVisible(true);
+            txtKonfirmasiPasswordVisible.setManaged(true);
+            txtKonfirmasiPassword.setVisible(false);
+            txtKonfirmasiPassword.setManaged(false);
+        } else {
+            txtKonfirmasiPassword.setText(txtKonfirmasiPasswordVisible.getText());
+            txtKonfirmasiPassword.setVisible(true);
+            txtKonfirmasiPassword.setManaged(true);
+            txtKonfirmasiPasswordVisible.setVisible(false);
+            txtKonfirmasiPasswordVisible.setManaged(false);
+        }
+    }
+
     private String getPasswordText() {
         return statusTampilPassword ? txtPasswordVisible.getText() : txtPassword.getText();
+    }
+
+    private String getKonfirmasiPasswordText() {
+        return statusTampilKonfirmasiPassword ? txtKonfirmasiPasswordVisible.getText() : txtKonfirmasiPassword.getText();
     }
 
     // =========================================================
@@ -1174,14 +1202,14 @@ public class DataPegawai {
             }
         }
 
-        // Validasi Email
+        // Validasi Email dengan domain yang diizinkan
         if (isKosong(txtEmail.getText())) {
             pesan.append("- Email wajib diisi.\n");
             showErrorLabel(lblErrorEmail, "Email wajib diisi");
         } else {
-            String email = txtEmail.getText().trim();
-            if (!email.matches("^[a-z0-9@._-]+$")) {
-                pesan.append("- Format email tidak valid (hanya huruf kecil, angka, @, ., _, -).\n");
+            String email = txtEmail.getText().trim().toLowerCase();
+            if (!isValidEmail(email)) {
+                pesan.append("- Format email tidak valid. Gunakan domain: @gmail.com, @yahoo.com, @outlook.com, @icloud.com, @ac.id, @edu, @student.(kampus).ac.id\n");
                 showErrorLabel(lblErrorEmail, "Format email tidak valid");
             } else if (isDataExist("Email", email)) {
                 pesan.append("- Email sudah digunakan.\n");
@@ -1252,8 +1280,8 @@ public class DataPegawai {
         }
 
         // Validasi Password
+        String password = getPasswordText();
         if (wajibPassword) {
-            String password = getPasswordText();
             if (isKosong(password)) {
                 pesan.append("- Password wajib diisi.\n");
                 showErrorLabel(lblErrorPassword, "Password wajib diisi");
@@ -1264,13 +1292,28 @@ public class DataPegawai {
                 hideErrorLabel(lblErrorPassword);
             }
         } else {
-            String password = getPasswordText();
             if (!isKosong(password) && password.trim().length() < 4) {
                 pesan.append("- Password minimal 4 karakter.\n");
                 showErrorLabel(lblErrorPassword, "Password minimal 4 karakter");
             } else {
                 hideErrorLabel(lblErrorPassword);
             }
+        }
+
+        // Validasi Konfirmasi Password (hanya jika password diisi)
+        if (!isKosong(password)) {
+            String konfirmasi = getKonfirmasiPasswordText();
+            if (isKosong(konfirmasi)) {
+                pesan.append("- Konfirmasi password wajib diisi.\n");
+                showErrorLabel(lblErrorKonfirmasiPassword, "Konfirmasi password wajib diisi");
+            } else if (!password.equals(konfirmasi)) {
+                pesan.append("- Password dan konfirmasi password tidak sama.\n");
+                showErrorLabel(lblErrorKonfirmasiPassword, "Password tidak sama");
+            } else {
+                hideErrorLabel(lblErrorKonfirmasiPassword);
+            }
+        } else {
+            hideErrorLabel(lblErrorKonfirmasiPassword);
         }
 
         if (pesan.length() > 0) {

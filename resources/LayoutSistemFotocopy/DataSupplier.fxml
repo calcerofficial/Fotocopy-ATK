@@ -80,12 +80,13 @@
                                 <Label fx:id="lblErrorNama" managed="false" styleClass="error-label" text="" visible="false" />
                             </VBox>
 
+                            <!-- ===== EMAIL - TANPA AUTO-COMPLETE @gmail.com ===== -->
                             <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="2">
                                 <Label styleClass="field-label" text="EMAIL" />
                                 <TextField fx:id="txtEmail" promptText="Masukan Email...." styleClass="text-field" />
                                 <Label fx:id="lblInfoEmail"
-                                       text="Tekan TAB untuk menambah @gmail.com otomatis"
-                                       style="-fx-text-fill: gray; -fx-font-size: 10px; -fx-font-style: italic;" />
+                                       style="-fx-text-fill: #666; -fx-font-size: 10px; -fx-font-style: italic;"
+                                       text="Format: @gmail.com, @yahoo.com, @outlook.com, @icloud.com, @ac.id, @edu, @student.(kampus).ac.id" />
                                 <Label fx:id="lblErrorEmail" managed="false" styleClass="error-label" text="" visible="false" />
                             </VBox>
 

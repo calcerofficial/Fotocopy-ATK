@@ -1,10 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.*?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
 
-<BorderPane fx:id="rootPane" prefHeight="1355.0" prefWidth="1280.0" styleClass="root-bg" stylesheets="@../css/DataPegawai.css" xmlns="http://javafx.com/javafx/17.0.12" xmlns:fx="http://javafx.com/fxml/1" fx:controller="SistemFotocopy.DataPegawai">
+<BorderPane fx:id="rootPane" prefHeight="1355.0" prefWidth="1280.0" styleClass="root-bg" stylesheets="@../css/DataPegawai.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="SistemFotocopy.DataPegawai">
 
     <center>
         <ScrollPane fitToWidth="true" styleClass="main-scroll">
@@ -54,7 +69,7 @@
                             <Insets bottom="32.0" left="40.0" right="40.0" top="32.0" />
                         </padding>
 
-                        <GridPane hgap="48.0" vgap="16.0">
+                        <GridPane hgap="48.0" prefHeight="437.0" prefWidth="1118.0" vgap="16.0">
                             <columnConstraints>
                                 <ColumnConstraints hgrow="ALWAYS" percentWidth="50.0" />
                                 <ColumnConstraints hgrow="ALWAYS" percentWidth="50.0" />
@@ -64,6 +79,13 @@
                                 <RowConstraints />
                                 <RowConstraints />
                                 <RowConstraints />
+                                <RowConstraints />
+                        <RowConstraints />
+                        <RowConstraints />
+                        <RowConstraints />
+                        <RowConstraints />
+                        <RowConstraints maxHeight="0.0" minHeight="0.0" prefHeight="0.0" />
+                        <RowConstraints maxHeight="0.0" minHeight="0.0" prefHeight="0.0" />
                             </rowConstraints>
 
                             <!-- KOLOM KIRI -->
@@ -85,10 +107,8 @@
                             <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="2">
                                 <Label styleClass="field-label" text="EMAIL" />
                                 <TextField fx:id="txtEmail" promptText="Masukan Email...." styleClass="text-field" />
-                                <Label fx:id="lblInfoEmail"
-                                       text="Tekan TAB untuk menambah @gmail.com otomatis"
-                                       style="-fx-text-fill: gray; -fx-font-size: 10px; -fx-font-style: italic;" />
-                                <Label fx:id="lblErrorEmail" managed="false" styleClass="error-label" text="" visible="false"  />
+                                <Label fx:id="lblInfoEmail" style="-fx-text-fill: #666; -fx-font-size: 10px; -fx-font-style: italic;" text="Format: @gmail.com, @yahoo.com, @outlook.com, @icloud.com, @ac.id, @edu, @student.(kampus).ac.id" />
+                                <Label fx:id="lblErrorEmail" managed="false" styleClass="error-label" text="" visible="false" />
                             </VBox>
 
                             <VBox spacing="8.0" GridPane.columnIndex="0" GridPane.rowIndex="3">
@@ -120,15 +140,24 @@
                                 <Label fx:id="lblErrorPassword" managed="false" styleClass="error-label" text="" visible="false" />
                             </VBox>
 
-                            <!-- ===== STATUS - HANYA TAMPIL SAAT NONAKTIF ===== -->
                             <VBox spacing="8.0" GridPane.columnIndex="1" GridPane.rowIndex="3">
-                                <Label fx:id="lblStatusLabel" styleClass="field-label" text="STATUS" />
-                                <HBox alignment="CENTER_LEFT" spacing="12.0">
-                                    <Label fx:id="lblStatusValue" styleClass="status-badge" text="NonAktif" />
-                                    <Button fx:id="btnAktifkan" onAction="#handleAktifkanData" styleClass="btn-aktifkan" text="✅ Aktifkan" />
+                                <Label styleClass="field-label" text="KONFIRMASI PASSWORD" />
+                                <HBox alignment="CENTER_LEFT" styleClass="password-box">
+                                    <PasswordField fx:id="txtKonfirmasiPassword" promptText="Konfirmasi Password..." styleClass="password-field" HBox.hgrow="ALWAYS" />
+                                    <TextField fx:id="txtKonfirmasiPasswordVisible" managed="false" promptText="Konfirmasi Password..." styleClass="password-field" visible="false" HBox.hgrow="ALWAYS" />
+                                    <Button fx:id="btnToggleKonfirmasiPassword" onAction="#handleToggleKonfirmasiPassword" styleClass="toggle-password-btn" text="👁" />
                                 </HBox>
-                                <Label fx:id="lblStatusHint" styleClass="field-hint" text="Klik tombol Aktifkan untuk mengubah status" />
+                                <Label fx:id="lblErrorKonfirmasiPassword" managed="false" styleClass="error-label" text="" visible="false" />
                             </VBox>
+
+                            <!-- ===== STATUS - HANYA TAMPIL SAAT NONAKTIF ===== -->
+                            <VBox spacing="8.0" GridPane.columnSpan="2" GridPane.rowIndex="10" />
+                             <HBox alignment="CENTER_LEFT" spacing="12.0" GridPane.columnIndex="1" GridPane.rowIndex="5">
+                                 <Label fx:id="lblStatusValue" styleClass="status-badge" text="NonAktif" />
+                                 <Button fx:id="btnAktifkan" onAction="#handleAktifkanData" styleClass="btn-aktifkan" text="✅ Aktifkan" />
+                             </HBox>
+                             <Label fx:id="lblStatusLabel" styleClass="field-label" text="STATUS" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+                             <Label fx:id="lblStatusHint" styleClass="field-hint" text="Klik tombol Aktifkan untuk mengubah status" GridPane.columnIndex="1" GridPane.rowIndex="7" />
 
                         </GridPane>
                     </VBox>

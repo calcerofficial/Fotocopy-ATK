@@ -99,6 +99,40 @@ public class DataSupplier {
     }
 
     // =========================================================
+    // VALIDASI EMAIL - DOMAIN YANG DIIZINKAN
+    // =========================================================
+    private boolean isValidEmail(String email) {
+        if (isKosong(email)) return false;
+
+        email = email.trim().toLowerCase();
+
+        // Domain yang diizinkan
+        String[] allowedDomains = {
+                "@gmail.com",
+                "@yahoo.com",
+                "@outlook.com",
+                "@icloud.com",
+                "@ac.id",
+                "@edu"
+        };
+
+        // Cek domain standar
+        for (String domain : allowedDomains) {
+            if (email.endsWith(domain)) {
+                String prefix = email.substring(0, email.length() - domain.length());
+                return !prefix.isEmpty() && prefix.matches("^[a-z0-9._-]+$");
+            }
+        }
+
+        // Cek domain student.(kampus).ac.id
+        if (email.matches("^[a-z0-9._-]+@student\\.[a-z]+\\.ac\\.id$")) {
+            return true;
+        }
+
+        return false;
+    }
+
+    // =========================================================
     // INITIALIZE
     // =========================================================
     @FXML
@@ -114,6 +148,12 @@ public class DataSupplier {
         btnAktifkan.setVisible(false);
         btnAktifkan.setManaged(false);
 
+        // ===== INFO EMAIL =====
+        lblInfoEmail.setText("Format: @gmail.com, @yahoo.com, @outlook.com, @icloud.com, @ac.id, @edu, @student.(kampus).ac.id");
+        lblInfoEmail.setStyle("-fx-text-fill: #666; -fx-font-size: 10px; -fx-font-style: italic;");
+        lblInfoEmail.setVisible(true);
+        lblInfoEmail.setManaged(true);
+
         colIdSupplier.setCellValueFactory(cellData -> cellData.getValue().idProperty());
         colNamaSupplier.setCellValueFactory(cellData -> cellData.getValue().namaProperty());
         colAlamat.setCellValueFactory(cellData -> cellData.getValue().alamatProperty());
@@ -125,21 +165,6 @@ public class DataSupplier {
         loadData();
         generateIdOtomatis();
         hitungStatistikSupplier();
-
-        // Auto-fill email
-        txtEmail.textProperty().addListener((obs, oldVal, newVal) -> {
-            lblInfoEmail.setVisible(!newVal.contains("@") && !newVal.isEmpty());
-        });
-
-        txtEmail.focusedProperty().addListener((obs, oldVal, newVal) -> {
-            if (!newVal) {
-                String email = txtEmail.getText().trim();
-                if (!email.isEmpty() && !email.contains("@")) {
-                    txtEmail.setText(email + "@gmail.com");
-                    lblInfoEmail.setVisible(false);
-                }
-            }
-        });
 
         // Search
         txtCari.textProperty().addListener((obs, oldVal, newVal) -> {
@@ -514,13 +539,14 @@ public class DataSupplier {
             txtNamaSupplier.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
         }
 
+        // Validasi Email dengan domain yang diizinkan
         if (isKosong(txtEmail.getText())) {
             pesan.append("- Email wajib diisi.\n");
             showErrorLabel(lblErrorEmail, "Wajib diisi");
             txtEmail.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-        } else if (!txtEmail.getText().trim().matches("^[a-z0-9@._-]+$")) {
-            pesan.append("- Format email tidak valid.\n");
-            showErrorLabel(lblErrorEmail, "Format salah");
+        } else if (!isValidEmail(txtEmail.getText().trim())) {
+            pesan.append("- Format email tidak valid. Gunakan domain: @gmail.com, @yahoo.com, @outlook.com, @icloud.com, @ac.id, @edu, @student.(kampus).ac.id\n");
+            showErrorLabel(lblErrorEmail, "Format email tidak valid");
             txtEmail.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
         } else if (isDataDuplicate(null, txtEmail.getText().trim(), null, currentId)) {
             pesan.append("- Email sudah digunakan.\n");
@@ -620,7 +646,6 @@ public class DataSupplier {
         txtIdSupplier.clear();
         txtNamaSupplier.clear();
         txtEmail.clear();
-        lblInfoEmail.setVisible(false);
         txtNomorTelepon.clear();
         txtAlamatLengkap.clear();
         txtStatus.clear();
