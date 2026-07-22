@@ -657,10 +657,17 @@ public class MaintenanceMesin implements Initializable {
         dialog.getDialogPane().getButtonTypes().addAll(btnSelesai, btnBatal);
 
         GridPane grid = new GridPane();
-        grid.setHgap(10);
+        grid.setHgap(15);
         grid.setVgap(12);
         grid.setPadding(new Insets(20, 20, 20, 20));
-        grid.setPrefWidth(500);
+        grid.setPrefWidth(600); // Sedikit dilebarkan
+
+        // Mengatur lebar kolom agar rapi
+        javafx.scene.layout.ColumnConstraints col1 = new javafx.scene.layout.ColumnConstraints();
+        col1.setPrefWidth(150);
+        javafx.scene.layout.ColumnConstraints col2 = new javafx.scene.layout.ColumnConstraints();
+        col2.setHgrow(javafx.scene.layout.Priority.ALWAYS);
+        grid.getColumnConstraints().addAll(col1, col2);
 
         TextField txtIdMaintenancePopup = new TextField(data.getIdMaintenance());
         txtIdMaintenancePopup.setEditable(false);
@@ -673,6 +680,17 @@ public class MaintenanceMesin implements Initializable {
         TextField txtPegawaiPopup = new TextField(data.getNamaPegawai() != null ? data.getNamaPegawai() : data.getIdPegawai());
         txtPegawaiPopup.setEditable(false);
         txtPegawaiPopup.setStyle("-fx-background-color: #f0f0f0; -fx-opacity: 1.0;");
+
+        TextField txtNamaTeknisiPopup = new TextField();
+        txtNamaTeknisiPopup.setPromptText("Masukan Nama Teknisi...");
+        txtNamaTeknisiPopup.setStyle("-fx-background-color: white;");
+        txtNamaTeknisiPopup.setEditable(true);
+        // Hanya menerima huruf dan spasi
+        txtNamaTeknisiPopup.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (!newVal.matches("[a-zA-Z\\s]*")) {
+                txtNamaTeknisiPopup.setText(newVal.replaceAll("[^a-zA-Z\\s]", ""));
+            }
+        });
 
         TextField txtJenisPopup = new TextField(data.getJenisKerusakan());
         txtJenisPopup.setEditable(false);
@@ -695,7 +713,7 @@ public class MaintenanceMesin implements Initializable {
 
         TextField txtBiayaPopup = new TextField();
         txtBiayaPopup.setPromptText("Masukan Biaya...");
-        txtBiayaPopup.setStyle("-fx-background-color: white; -fx-alignment: center-right;");
+        txtBiayaPopup.setStyle("-fx-background-color: white;");
         txtBiayaPopup.setEditable(true);
 
         txtBiayaPopup.textProperty().addListener((obs, oldVal, newVal) -> {
@@ -733,6 +751,8 @@ public class MaintenanceMesin implements Initializable {
         grid.add(txtMesinPopup, 1, row++);
         grid.add(new Label("ID Pegawai:"), 0, row);
         grid.add(txtPegawaiPopup, 1, row++);
+        grid.add(new Label("Nama Teknisi:"), 0, row);
+        grid.add(txtNamaTeknisiPopup, 1, row++);
         grid.add(new Label("Jenis Kerusakan:"), 0, row);
         grid.add(txtJenisPopup, 1, row++);
         grid.add(new Label("Deskripsi:"), 0, row);
@@ -753,22 +773,32 @@ public class MaintenanceMesin implements Initializable {
         Button btnSelesaiButton = (Button) dialog.getDialogPane().lookupButton(btnSelesai);
         btnSelesaiButton.setDisable(true);
 
+        txtNamaTeknisiPopup.textProperty().addListener((obs, oldVal, newVal) -> {
+            validatePopupForm(txtNamaTeknisiPopup, txtBiayaPopup, txtKeteranganPopup, btnSelesaiButton);
+        });
+
         txtBiayaPopup.textProperty().addListener((obs, oldVal, newVal) -> {
             String cleanNumber = newVal.replaceAll("[^\\d]", "");
             long biayaValue = cleanNumber.isEmpty() ? 0 : Long.parseLong(cleanNumber);
             txtBiayaPopup.setUserData(biayaValue);
-            validatePopupForm(txtBiayaPopup, txtKeteranganPopup, btnSelesaiButton);
+            validatePopupForm(txtNamaTeknisiPopup, txtBiayaPopup, txtKeteranganPopup, btnSelesaiButton);
         });
 
         txtKeteranganPopup.textProperty().addListener((obs, oldVal, newVal) -> {
-            validatePopupForm(txtBiayaPopup, txtKeteranganPopup, btnSelesaiButton);
+            validatePopupForm(txtNamaTeknisiPopup, txtBiayaPopup, txtKeteranganPopup, btnSelesaiButton);
         });
 
         dialog.setResultConverter(dialogButton -> {
             if (dialogButton == btnSelesai) {
                 try {
+                    String namaTeknisi = txtNamaTeknisiPopup.getText();
                     String biayaText = txtBiayaPopup.getText();
                     String keteranganText = txtKeteranganPopup.getText();
+
+                    if (namaTeknisi == null || namaTeknisi.trim().isEmpty()) {
+                        showAlert("Error", "Nama Teknisi harus diisi!");
+                        return null;
+                    }
 
                     if (biayaText == null || biayaText.isEmpty()) {
                         showAlert("Error", "Biaya Maintenance harus diisi!");
@@ -813,6 +843,9 @@ public class MaintenanceMesin implements Initializable {
                     String idMaintenance = data.getIdMaintenance();
                     LocalDate tanggalSelesai = LocalDate.now();
 
+                    // Gabungkan Nama Teknisi ke Keterangan
+                    String keteranganGabungan = "Teknisi: " + namaTeknisi.trim() + " - " + keteranganText;
+
                     // =========================================================
                     // 🔥 PERBAIKAN: PAKAI 4 PARAMETER (SESUAI SP)
                     // =========================================================
@@ -821,7 +854,7 @@ public class MaintenanceMesin implements Initializable {
                         cstmt.setString(1, idMaintenance);
                         cstmt.setDate(2, Date.valueOf(tanggalSelesai));
                         cstmt.setDouble(3, biaya);
-                        cstmt.setString(4, keteranganText);
+                        cstmt.setString(4, keteranganGabungan);
                         cstmt.execute();
 
                         showAlert("Sukses", "✅ Maintenance berhasil diselesaikan!\n" +
@@ -844,11 +877,16 @@ public class MaintenanceMesin implements Initializable {
         dialog.showAndWait();
     }
 
-    private void validatePopupForm(TextField txtBiaya, TextArea txtKeterangan, Button btnSelesai) {
+    private void validatePopupForm(TextField txtNamaTeknisi, TextField txtBiaya, TextArea txtKeterangan, Button btnSelesai) {
+        String namaTeknisi = txtNamaTeknisi.getText();
         String biayaText = txtBiaya.getText();
         String keteranganText = txtKeterangan.getText();
 
         boolean valid = true;
+
+        if (namaTeknisi == null || namaTeknisi.trim().isEmpty()) {
+            valid = false;
+        }
 
         if (biayaText == null || biayaText.isEmpty()) {
             valid = false;

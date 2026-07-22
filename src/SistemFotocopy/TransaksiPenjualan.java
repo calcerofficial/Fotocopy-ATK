@@ -464,42 +464,9 @@ public class TransaksiPenjualan implements Initializable {
         String selectedBarang = cbNamaBarang.getValue();
         String selectedLayanan = cbNamaLayanan.getValue();
 
-        String selected = null;
-        String idProduk = null;
-        String namaProduk = null;
-        String kategori = null;
-
-        if (selectedBarang != null) {
-            selected = selectedBarang;
-            kategori = "barang";
-        } else if (selectedLayanan != null) {
-            selected = selectedLayanan;
-            kategori = "layanan";
-        } else {
+        if (selectedBarang == null && selectedLayanan == null) {
             showAlert("Error", "Silakan pilih Nama Barang atau Layanan!");
             return;
-        }
-
-        idProduk = selected.split(" - ")[0];
-        namaProduk = selected.split(" - ")[1];
-
-        if ("layanan".equalsIgnoreCase(kategori)) {
-            boolean hasMesin = cekLayananMemilikiMesin(idProduk);
-            if (!hasMesin) {
-                showAlert("Error", "Layanan ini belum terdaftar dengan mesin apapun!\nHarap daftarkan mesin terlebih dahulu.");
-                return;
-            }
-
-            boolean hasAktif = isLayananMesinAktif(idProduk);
-            if (!hasAktif) {
-                boolean hasRusak = isLayananMesinRusak(idProduk);
-                if (hasRusak) {
-                    showAlert("Error", "❌ Mesin untuk layanan '" + namaProduk + "' sedang RUSAK!");
-                } else {
-                    showAlert("Error", "❌ Tidak ada mesin AKTIF untuk layanan '" + namaProduk + "'!");
-                }
-                return;
-            }
         }
 
         String jumlahText = txtJumlah.getText();
@@ -514,27 +481,80 @@ public class TransaksiPenjualan implements Initializable {
             return;
         }
 
-        double harga = getHargaProduk(idProduk);
-        if (harga <= 0) {
-            showAlert("Error", "Produk tidak valid!");
-            return;
-        }
+        // Variabel untuk menyimpan harga
+        double hargaLayanan = 0;
+        double hargaBarang = 0;
 
-        if ("barang".equalsIgnoreCase(kategori)) {
-            int stok = getStokProduk(idProduk);
-            if (stok < jumlah) {
-                showAlert("Error", "Stok tidak mencukupi! Tersedia: " + stok);
+        // Validasi Layanan
+        if (selectedLayanan != null) {
+            String idProduk = selectedLayanan.split(" - ")[0];
+            String namaProduk = selectedLayanan.split(" - ")[1];
+
+            boolean hasMesin = cekLayananMemilikiMesin(idProduk);
+            if (!hasMesin) {
+                showAlert("Error", "Layanan '" + namaProduk + "' belum terdaftar dengan mesin apapun!\nHarap daftarkan mesin terlebih dahulu.");
+                return;
+            }
+
+            boolean hasAktif = isLayananMesinAktif(idProduk);
+            if (!hasAktif) {
+                boolean hasRusak = isLayananMesinRusak(idProduk);
+                if (hasRusak) {
+                    showAlert("Error", "❌ Mesin untuk layanan '" + namaProduk + "' sedang RUSAK!");
+                } else {
+                    showAlert("Error", "❌ Tidak ada mesin AKTIF untuk layanan '" + namaProduk + "'!");
+                }
+                return;
+            }
+
+            hargaLayanan = getHargaProduk(idProduk);
+            if (hargaLayanan <= 0) {
+                showAlert("Error", "Harga layanan '" + namaProduk + "' tidak valid!");
                 return;
             }
         }
 
-        DetailData data = new DetailData(txtIdPenjualan.getText(), idProduk, namaProduk, jumlah, harga);
-        detailList.add(data);
+        // Validasi Barang
+        if (selectedBarang != null) {
+            String idProduk = selectedBarang.split(" - ")[0];
+            String namaProduk = selectedBarang.split(" - ")[1];
+
+            int stok = getStokProduk(idProduk);
+            if (stok < jumlah) {
+                showAlert("Error", "Stok '" + namaProduk + "' tidak mencukupi! Tersedia: " + stok);
+                return;
+            }
+
+            hargaBarang = getHargaProduk(idProduk);
+            if (hargaBarang <= 0) {
+                showAlert("Error", "Harga barang '" + namaProduk + "' tidak valid!");
+                return;
+            }
+        }
+
+        // Tambahkan ke tabel jika validasi berhasil semua
+        if (selectedLayanan != null) {
+            String idProduk = selectedLayanan.split(" - ")[0];
+            String namaProduk = selectedLayanan.split(" - ")[1];
+
+            DetailData data = new DetailData(txtIdPenjualan.getText(), idProduk, namaProduk, jumlah, hargaLayanan);
+            detailList.add(data);
+            totalHarga += jumlah * hargaLayanan;
+            totalProdukTerjual += jumlah;
+        }
+
+        if (selectedBarang != null) {
+            String idProduk = selectedBarang.split(" - ")[0];
+            String namaProduk = selectedBarang.split(" - ")[1];
+
+            DetailData data = new DetailData(txtIdPenjualan.getText(), idProduk, namaProduk, jumlah, hargaBarang);
+            detailList.add(data);
+            totalHarga += jumlah * hargaBarang;
+            totalProdukTerjual += jumlah;
+        }
+
         tblPenjualan.setItems(detailList);
         emptyState.setVisible(false);
-
-        totalHarga += jumlah * harga;
-        totalProdukTerjual += jumlah;
         updateTotalHarga();
 
         cbNamaBarang.setValue(null);

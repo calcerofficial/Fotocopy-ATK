@@ -238,7 +238,7 @@ public class DataProduk {
                         txtMerk.setDisable(true);
                     } else {
                         txtStockBarang.setText(String.valueOf(newSelection.getStok()));
-                        txtStockBarang.setDisable(true); // STOCK TIDAK BISA DIUBAH LANGSUNG
+                        txtStockBarang.setDisable(false);
                         txtMerk.setText(newSelection.getMerk());
                         txtMerk.setDisable(false);
                     }
@@ -359,13 +359,10 @@ public class DataProduk {
         } else if ("Barang".equalsIgnoreCase(kategori)) {
             if ("-".equals(txtStockBarang.getText())) txtStockBarang.clear();
             if ("-".equals(txtMerk.getText())) txtMerk.clear();
-            // Jika sedang memilih/mengubah data produk yang sudah ada, disable input stok
-            if (tblProduk.getSelectionModel().getSelectedItem() != null) {
-                txtStockBarang.setDisable(true);
-            } else {
-                txtStockBarang.setDisable(false);
-            }
+            
+            txtStockBarang.setDisable(false);
             txtMerk.setDisable(false);
+            
             txtStockBarang.setStyle(null);
             txtMerk.setStyle(null);
         }
