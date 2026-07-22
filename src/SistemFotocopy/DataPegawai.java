@@ -348,7 +348,9 @@ public class DataPegawai {
         cmbRole.setItems(FXCollections.observableArrayList("Pegawai", "Admin"));
         cmbRole.setValue("Pegawai");
 
+        // 🔥 PERBAIKAN: Saat role berubah, generate ID otomatis
         cmbRole.setOnAction(event -> {
+            // Hanya generate ID jika mode TAMBAH
             if (mode == Mode.TAMBAH) {
                 generateIdOtomatis();
             }
@@ -383,6 +385,7 @@ public class DataPegawai {
                 }
             }
         } catch (SQLException e) {
+            // Fallback jika query gagal
             if ("Admin".equals(role)) {
                 txtIdPegawai.setText("ADM001");
             } else {
@@ -520,7 +523,13 @@ public class DataPegawai {
         txtPassword.setDisable(disable);
         txtPasswordVisible.setDisable(disable);
         btnTogglePassword.setDisable(disable);
-        cmbRole.setDisable(true); // Role selalu disable saat mode UBAH
+
+        // 🔥 PERBAIKAN: Role selalu disable saat mode UBAH, tapi ENABLE saat mode TAMBAH
+        if (mode == Mode.UBAH) {
+            cmbRole.setDisable(true);
+        } else {
+            cmbRole.setDisable(false);
+        }
 
         // ID selalu disable
         txtIdPegawai.setDisable(true);
@@ -769,6 +778,8 @@ public class DataPegawai {
         } else {
             cmbRole.setValue("Pegawai");
         }
+
+        // 🔥 PERBAIKAN: Role DISABLE saat mode UBAH
         cmbRole.setDisable(true);
 
         txtPassword.clear();
@@ -1046,6 +1057,7 @@ public class DataPegawai {
         txtPassword.setPromptText("Masukan Password...");
         txtPasswordVisible.setPromptText("Masukan Password...");
 
+        // 🔥 PERBAIKAN: Role ENABLE saat reset ke mode TAMBAH
         cmbRole.setDisable(false);
         cmbRole.setValue("Pegawai");
         generateIdOtomatis();

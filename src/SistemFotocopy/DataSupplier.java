@@ -165,25 +165,62 @@ public class DataSupplier {
                 btnUbah.setDisable(false);
                 btnHapus.setDisable(false);
 
-                // ===== STATUS DAN TOMBOL AKTIFKAN =====
+                // ===== CEK STATUS =====
                 boolean isNonAktif = "NonAktif".equalsIgnoreCase(currentStatus);
 
-                // Tampilkan status dan tombol hanya jika NonAktif
-                txtStatus.setVisible(isNonAktif);
-                txtStatus.setManaged(isNonAktif);
-                lblStatus.setVisible(isNonAktif);
-                lblStatus.setManaged(isNonAktif);
-                btnAktifkan.setVisible(isNonAktif);
-                btnAktifkan.setManaged(isNonAktif);
-
+                // 🔥 PERBAIKAN: Jika NonAktif, disable semua field
                 if (isNonAktif) {
-                    txtStatus.setText(currentStatus);
+                    // Disable semua input field
+                    setAllFieldsDisable(true);
+
+                    // Tampilkan status dan tombol aktifkan
+                    txtStatus.setVisible(true);
+                    txtStatus.setManaged(true);
+                    lblStatus.setVisible(true);
+                    lblStatus.setManaged(true);
+                    btnAktifkan.setVisible(true);
+                    btnAktifkan.setManaged(true);
                     btnAktifkan.setDisable(false);
+
+                    txtStatus.setText(currentStatus);
+
+                    // Button Ubah dan Hapus di-disable
+                    btnUbah.setDisable(true);
+                    btnHapus.setDisable(true);
+
+                    // Simpan tetap disable
+                    btnSimpan.setDisable(true);
+
+                    // Tampilkan pesan info
+                    lblInfoData.setText("⚠ Supplier NonAktif - Tidak dapat diedit. Klik tombol 'Aktifkan' untuk mengubah status.");
+
+                } else {
+                    // Jika Aktif, enable semua field
+                    setAllFieldsDisable(false);
+
+                    // Sembunyikan komponen status
+                    txtStatus.setVisible(false);
+                    txtStatus.setManaged(false);
+                    lblStatus.setVisible(false);
+                    lblStatus.setManaged(false);
+                    btnAktifkan.setVisible(false);
+                    btnAktifkan.setManaged(false);
+                    txtStatus.clear();
+
+                    // Enable button Ubah dan Hapus
+                    btnUbah.setDisable(false);
+                    btnHapus.setDisable(false);
+
+                    // Reset info
+                    lblInfoData.setText("Menampilkan " + masterData.size() + " data pada halaman " + currentPage);
                 }
 
                 hideAllErrorLabels();
                 resetStyle();
             } else {
+                // Jika tidak ada data dipilih
+                setAllFieldsDisable(false);
+
                 // Sembunyikan semua
                 txtStatus.setVisible(false);
                 txtStatus.setManaged(false);
@@ -192,8 +229,41 @@ public class DataSupplier {
                 btnAktifkan.setVisible(false);
                 btnAktifkan.setManaged(false);
                 txtStatus.clear();
+
+                btnUbah.setDisable(true);
+                btnHapus.setDisable(true);
+                btnSimpan.setDisable(false);
+
+                // Reset info
+                lblInfoData.setText("Menampilkan " + masterData.size() + " data pada halaman " + currentPage);
             }
         });
+    }
+
+    // =========================================================
+    // METHOD UNTUK SET DISABLE SEMUA FIELD
+    // =========================================================
+    private void setAllFieldsDisable(boolean disable) {
+        txtNamaSupplier.setDisable(disable);
+        txtEmail.setDisable(disable);
+        txtNomorTelepon.setDisable(disable);
+        txtAlamatLengkap.setDisable(disable);
+
+        // ID selalu disable
+        txtIdSupplier.setDisable(true);
+
+        // Style untuk menunjukkan field disabled
+        if (disable) {
+            txtNamaSupplier.setStyle("-fx-opacity: 0.6; -fx-border-color: #cccccc;");
+            txtEmail.setStyle("-fx-opacity: 0.6; -fx-border-color: #cccccc;");
+            txtNomorTelepon.setStyle("-fx-opacity: 0.6; -fx-border-color: #cccccc;");
+            txtAlamatLengkap.setStyle("-fx-opacity: 0.6; -fx-border-color: #cccccc;");
+        } else {
+            txtNamaSupplier.setStyle(null);
+            txtEmail.setStyle(null);
+            txtNomorTelepon.setStyle(null);
+            txtAlamatLengkap.setStyle(null);
+        }
     }
 
     // =========================================================
@@ -567,12 +637,18 @@ public class DataSupplier {
         btnAktifkan.setVisible(false);
         btnAktifkan.setManaged(false);
 
+        // ===== ENABLE KEMBALI SEMUA FIELD =====
+        setAllFieldsDisable(false);
+
         currentStatus = "";
         generateIdOtomatis();
         loadData();
         hitungStatistikSupplier();
         hideAllErrorLabels();
         resetStyle();
+
+        // Reset info
+        lblInfoData.setText("Menampilkan " + masterData.size() + " data pada halaman " + currentPage);
     }
 
     @FXML
@@ -632,6 +708,16 @@ public class DataSupplier {
     void handleHapusData(ActionEvent event) {
         if (txtIdSupplier.getText().isEmpty()) {
             showAlert(Alert.AlertType.WARNING, "Peringatan", "Pilih data yang ingin dihapus terlebih dahulu.");
+            return;
+        }
+
+        // CEK STATUS SEBELUM HAPUS
+        String idSupplier = txtIdSupplier.getText().trim();
+        String statusSekarang = getStatusDariDatabase(idSupplier);
+
+        if ("NonAktif".equalsIgnoreCase(statusSekarang)) {
+            showAlert(Alert.AlertType.WARNING, "Tidak Bisa Hapus",
+                    "Supplier dengan status NonAktif tidak dapat dihapus.");
             return;
         }
 

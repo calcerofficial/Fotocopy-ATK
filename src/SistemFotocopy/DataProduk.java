@@ -1031,7 +1031,8 @@ public class DataProduk {
         txtIdBarang.clear();
         txtNamaBarang.clear();
         txtMerk.clear();
-        cmbKategoriProduk.setValue(null);
+        cmbKategoriProduk.getSelectionModel().clearSelection();
+        cmbKategoriProduk.setDisable(false);
         txtHargaBarang.clear();
         txtStockBarang.clear();
 

@@ -53,9 +53,13 @@ public class DashboardKaryawan implements Initializable {
 
     private void setupAutoRefresh() {
         refreshTimer = new PauseTransition(Duration.seconds(5));
-        refreshTimer.setOnFinished(e -> {
-            refreshAllData();
-            refreshTimer.playFromStart();
+        // Ganti lambda dengan anonymous class
+        refreshTimer.setOnFinished(new javafx.event.EventHandler<javafx.event.ActionEvent>() {
+            @Override
+            public void handle(javafx.event.ActionEvent event) {
+                refreshAllData();
+                refreshTimer.playFromStart();
+            }
         });
         refreshTimer.play();
     }
@@ -67,10 +71,14 @@ public class DashboardKaryawan implements Initializable {
     }
 
     private void refreshAllData() {
-        Platform.runLater(() -> {
-            loadKartuRingkasan();
-            loadGrafikPenjualan(currentYear);
-            loadStatusMesin();
+        // Ganti lambda dengan anonymous class
+        Platform.runLater(new Runnable() {
+            @Override
+            public void run() {
+                loadKartuRingkasan();
+                loadGrafikPenjualan(currentYear);
+                loadStatusMesin();
+            }
         });
     }
 
@@ -177,9 +185,15 @@ public class DashboardKaryawan implements Initializable {
         if (data.getNode() != null) {
             data.getNode().setStyle("-fx-bar-fill: " + warnaHex + ";");
         } else {
-            data.nodeProperty().addListener((obs, nodeLama, nodeBaru) -> {
-                if (nodeBaru != null) {
-                    nodeBaru.setStyle("-fx-bar-fill: " + warnaHex + ";");
+            // Ganti lambda dengan anonymous class
+            data.nodeProperty().addListener(new javafx.beans.value.ChangeListener<javafx.scene.Node>() {
+                @Override
+                public void changed(javafx.beans.value.ObservableValue<? extends javafx.scene.Node> observable,
+                                    javafx.scene.Node nodeLama,
+                                    javafx.scene.Node nodeBaru) {
+                    if (nodeBaru != null) {
+                        nodeBaru.setStyle("-fx-bar-fill: " + warnaHex + ";");
+                    }
                 }
             });
         }

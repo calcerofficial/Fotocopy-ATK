@@ -51,9 +51,13 @@ public class Dashboard {
         loadAllData();
 
         refreshTimer = new PauseTransition(Duration.seconds(5));
-        refreshTimer.setOnFinished(e -> {
-            refreshAllData();
-            refreshTimer.playFromStart();
+        // Ganti lambda dengan anonymous class
+        refreshTimer.setOnFinished(new javafx.event.EventHandler<javafx.event.ActionEvent>() {
+            @Override
+            public void handle(javafx.event.ActionEvent event) {
+                refreshAllData();
+                refreshTimer.playFromStart();
+            }
         });
         refreshTimer.play();
     }
@@ -65,10 +69,13 @@ public class Dashboard {
     }
 
     private void refreshAllData() {
-        Platform.runLater(() -> {
-            loadKartuRingkasan();
-            loadGrafikPenjualan(currentYear);
-            loadViewBarang();
+        Platform.runLater(new Runnable() {
+            @Override
+            public void run() {
+                loadKartuRingkasan();
+                loadGrafikPenjualan(currentYear);
+                loadViewBarang();
+            }
         });
     }
 
@@ -201,6 +208,7 @@ public class Dashboard {
 
             salesBarChart.getData().addAll(seriesPendapatan, seriesPengeluaran);
 
+            // Ganti lambda dengan anonymous class
             for (XYChart.Data<String, Number> data : seriesPendapatan.getData()) {
                 terapkanWarnaBatang(data, "#22C55E");
             }
@@ -217,9 +225,15 @@ public class Dashboard {
         if (data.getNode() != null) {
             data.getNode().setStyle("-fx-bar-fill: " + warnaHex + ";");
         } else {
-            data.nodeProperty().addListener((obs, nodeLama, nodeBaru) -> {
-                if (nodeBaru != null) {
-                    nodeBaru.setStyle("-fx-bar-fill: " + warnaHex + ";");
+            // Ganti lambda dengan anonymous class
+            data.nodeProperty().addListener(new javafx.beans.value.ChangeListener<javafx.scene.Node>() {
+                @Override
+                public void changed(javafx.beans.value.ObservableValue<? extends javafx.scene.Node> observable,
+                                    javafx.scene.Node nodeLama,
+                                    javafx.scene.Node nodeBaru) {
+                    if (nodeBaru != null) {
+                        nodeBaru.setStyle("-fx-bar-fill: " + warnaHex + ";");
+                    }
                 }
             });
         }
@@ -237,26 +251,32 @@ public class Dashboard {
     private void loadViewBarang() {
         if (miniStockTable == null) return;
 
-        colMiniBarang.setCellValueFactory(d -> d.getValue().namaBarangProperty());
-        colMiniStock.setCellValueFactory(d -> d.getValue().stokProperty());
+        // Ganti lambda dengan anonymous class
+        colMiniBarang.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("namaBarang"));
+        colMiniStock.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("stok"));
 
-        colMiniStock.setCellFactory(col -> new TableCell<>() {
+        colMiniStock.setCellFactory(new javafx.util.Callback<TableColumn<ProdukModel, Number>, TableCell<ProdukModel, Number>>() {
             @Override
-            protected void updateItem(Number item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                    setStyle("");
-                } else {
-                    setText(String.valueOf(item.intValue()));
-                    if (item.intValue() <= 0) {
-                        setStyle("-fx-text-fill: #EF4444; -fx-font-weight: bold;");
-                    } else if (item.intValue() <= 10) {
-                        setStyle("-fx-text-fill: #F59E0B; -fx-font-weight: bold;");
-                    } else {
-                        setStyle("-fx-text-fill: #16A34A;");
+            public TableCell<ProdukModel, Number> call(TableColumn<ProdukModel, Number> param) {
+                return new TableCell<ProdukModel, Number>() {
+                    @Override
+                    protected void updateItem(Number item, boolean empty) {
+                        super.updateItem(item, empty);
+                        if (empty || item == null) {
+                            setText(null);
+                            setStyle("");
+                        } else {
+                            setText(String.valueOf(item.intValue()));
+                            if (item.intValue() <= 0) {
+                                setStyle("-fx-text-fill: #EF4444; -fx-font-weight: bold;");
+                            } else if (item.intValue() <= 10) {
+                                setStyle("-fx-text-fill: #F59E0B; -fx-font-weight: bold;");
+                            } else {
+                                setStyle("-fx-text-fill: #16A34A;");
+                            }
+                        }
                     }
-                }
+                };
             }
         });
 
