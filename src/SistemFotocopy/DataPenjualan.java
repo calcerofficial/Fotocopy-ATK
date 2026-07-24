@@ -11,18 +11,23 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 
+import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.NumberFormat;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -146,7 +151,7 @@ public class DataPenjualan {
     }
 
     // =====================================================================
-    // KOLOM AKSI — TOMBOL DETAIL
+    // KOLOM AKSI — TOMBOL DETAIL MENGGUNAKAN FXML
     // =====================================================================
 
     private void setupKolomAksi() {
@@ -154,10 +159,12 @@ public class DataPenjualan {
             private final Button btnDetail = new Button("Detail");
             {
                 btnDetail.getStyleClass().add("btn-detail-aksi");
-                btnDetail.setStyle("-fx-background-color: #3B82F6; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;");
+                btnDetail.setStyle("-fx-background-color: #3B82F6; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand; -fx-background-radius: 5; -fx-padding: 4 12 4 12;");
                 btnDetail.setOnAction(e -> {
                     PenjualanModel penjualan = getTableView().getItems().get(getIndex());
-                    bukaJendelaDetailPenjualan(penjualan);
+                    if (penjualan != null) {
+                        bukaDetailPenjualanFXML(penjualan);
+                    }
                 });
             }
 
@@ -171,130 +178,93 @@ public class DataPenjualan {
     }
 
     // =====================================================================
-    // JENDELA DETAIL PENJUALAN
+    // BUKA DETAIL PENJUALAN MENGGUNAKAN FXML
     // =====================================================================
 
-    private void bukaJendelaDetailPenjualan(PenjualanModel penjualan) {
-        if (penjualan == null) return;
+    // =====================================================================
+// BUKA DETAIL PENJUALAN MENGGUNAKAN FXML
+// =====================================================================
 
-        Label lblJudul = new Label("Detail Penjualan");
-        lblJudul.setStyle("-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #1E293B;");
+    private void bukaDetailPenjualanFXML(PenjualanModel penjualan) {
+        try {
+            System.out.println("Membuka detail untuk: " + penjualan.getIdPenjualan());
 
-        Label lblSubJudul = new Label("Detail Nota: " + penjualan.getIdPenjualan() + " (" + penjualan.getKaryawan() + ")");
-        lblSubJudul.setStyle("-fx-font-size: 13px; -fx-text-fill: #475569;");
+            // Load FXML DetailPenjualan
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/LayoutSistemFotocopy/DetailPenjualan.fxml"));
 
-        VBox headerBox = new VBox(5, lblJudul, lblSubJudul);
-        headerBox.setPadding(new Insets(0, 0, 12, 0));
-
-        TableView<DetailPenjualanModel> tableDetail = new TableView<>();
-        tableDetail.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #E2E8F0; -fx-border-width: 1px;");
-        tableDetail.setPlaceholder(new Label("Tidak ada detail penjualan"));
-
-        // Kolom Nama Produk
-        TableColumn<DetailPenjualanModel, String> colNamaProduk = new TableColumn<>("Nama Produk");
-        colNamaProduk.setCellValueFactory(d -> d.getValue().namaProdukProperty());
-        colNamaProduk.setPrefWidth(200);
-        colNamaProduk.setStyle("-fx-alignment: CENTER-LEFT; -fx-font-size: 13px;");
-
-        // Kolom Jumlah (ganti dari Qty)
-        TableColumn<DetailPenjualanModel, Number> colJumlah = new TableColumn<>("Jumlah");
-        colJumlah.setCellValueFactory(d -> d.getValue().jumlahProperty());
-        colJumlah.setPrefWidth(80);
-        colJumlah.setStyle("-fx-alignment: CENTER; -fx-font-size: 13px;");
-
-        // Kolom Harga Satuan
-        TableColumn<DetailPenjualanModel, Number> colHargaSatuan = new TableColumn<>("Harga Satuan");
-        colHargaSatuan.setCellValueFactory(d -> d.getValue().hargaSatuanProperty());
-        colHargaSatuan.setPrefWidth(150);
-        colHargaSatuan.setStyle("-fx-alignment: CENTER-RIGHT; -fx-font-size: 13px;");
-        colHargaSatuan.setCellFactory(col -> new TableCell<>() {
-            @Override
-            protected void updateItem(Number item, boolean empty) {
-                super.updateItem(item, empty);
-                setText(empty || item == null ? null : formatRupiah(item.doubleValue()));
-                setStyle("-fx-alignment: CENTER-RIGHT;");
+            if (loader.getLocation() == null) {
+                tampilAlert(Alert.AlertType.ERROR, "Error", "File DetailPenjualan.fxml tidak ditemukan!");
+                return;
             }
-        });
 
-        tableDetail.getColumns().addAll(colNamaProduk, colJumlah, colHargaSatuan);
-        tableDetail.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-        tableDetail.setPrefHeight(200);
-        tableDetail.setMaxHeight(250);
+            Parent root = loader.load();
+            DetailPenjualan controller = loader.getController();
 
-        // Load data detail
-        ObservableList<DetailPenjualanModel> detailData = loadDetailPenjualan(penjualan.getIdPenjualan());
-        tableDetail.setItems(detailData);
+            // Load detail penjualan dari database
+            ObservableList<DetailPenjualanModel> detailList = loadDetailPenjualan(penjualan.getIdPenjualan());
 
-        GridPane footerGrid = new GridPane();
-        footerGrid.setHgap(30);
-        footerGrid.setPadding(new Insets(12, 15, 10, 15));
-        footerGrid.setStyle("-fx-background-color: #F8FAFC; -fx-border-color: #E2E8F0; -fx-border-width: 1px 0 0 0;");
+            // Format tanggal
+            String tanggal = penjualan.getTanggal();
+            try {
+                LocalDate date = LocalDate.parse(tanggal);
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+                tanggal = date.format(formatter);
+            } catch (Exception e) {
+                // gunakan apa adanya
+            }
 
-        Label lblTotalLabel = new Label("Total:");
-        lblTotalLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #475569;");
-        Label lblTotalValue = new Label(formatRupiah(penjualan.getTotalHarga()));
-        lblTotalValue.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #1E293B;");
+            // Buat string produk
+            StringBuilder produkBuilder = new StringBuilder();
+            int totalQty = 0;
+            int counter = 1;
 
-        Label lblBayarLabel = new Label("Bayar:");
-        lblBayarLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #475569;");
-        Label lblBayarValue = new Label(formatRupiah(penjualan.getUangBayar()));
-        lblBayarValue.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #16A34A;");
+            for (DetailPenjualanModel detail : detailList) {
+                produkBuilder.append(counter).append(". ")
+                        .append(detail.getNamaProduk())
+                        .append("\n")
+                        .append("   ")
+                        .append(detail.getJumlah()).append(" x ")
+                        .append(formatRupiah(detail.getHargaSatuan()))
+                        .append("\n");
+                totalQty += detail.getJumlah();
+                counter++;
+            }
 
-        Label lblKembalianLabel = new Label("Kembalian:");
-        lblKembalianLabel.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #475569;");
-        Label lblKembalianValue = new Label(formatRupiah(penjualan.getKembalian()));
-        lblKembalianValue.setStyle("-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #3B82F6;");
+            if (detailList.isEmpty()) {
+                produkBuilder.append("Tidak ada detail produk");
+            }
 
-        footerGrid.add(lblTotalLabel, 0, 0);
-        footerGrid.add(lblBayarLabel, 1, 0);
-        footerGrid.add(lblKembalianLabel, 2, 0);
-        footerGrid.add(lblTotalValue, 0, 1);
-        footerGrid.add(lblBayarValue, 1, 1);
-        footerGrid.add(lblKembalianValue, 2, 1);
+            // PAKAI METHOD DENGAN 9 PARAMETER
+            controller.setData(
+                    penjualan.getIdPenjualan(),                 // ID
+                    tanggal,                                    // Tanggal
+                    penjualan.getKaryawan(),                    // Pegawai
+                    produkBuilder.toString(),                   // Produk
+                    String.valueOf(totalQty),                   // QTY
+                    penjualan.getMetode(),                      // Metode
+                    formatRupiah(penjualan.getTotalHarga()),    // Total
+                    formatRupiah(penjualan.getUangBayar()),     // Bayar
+                    formatRupiah(penjualan.getKembalian())      // Kembali
+            );
 
-        GridPane.setHalignment(lblTotalLabel, Pos.CENTER_LEFT.getHpos());
-        GridPane.setHalignment(lblBayarLabel, Pos.CENTER_LEFT.getHpos());
-        GridPane.setHalignment(lblKembalianLabel, Pos.CENTER_LEFT.getHpos());
-        GridPane.setHalignment(lblTotalValue, Pos.CENTER_LEFT.getHpos());
-        GridPane.setHalignment(lblBayarValue, Pos.CENTER_LEFT.getHpos());
-        GridPane.setHalignment(lblKembalianValue, Pos.CENTER_LEFT.getHpos());
+            // Tampilkan stage
+            Stage detailStage = new Stage();
+            detailStage.setTitle("Detail Penjualan - " + penjualan.getIdPenjualan());
+            Scene scene = new Scene(root);
+            detailStage.setScene(scene);
+            detailStage.setResizable(false);
+            detailStage.initModality(Modality.APPLICATION_MODAL);
+            detailStage.sizeToScene();
+            detailStage.centerOnScreen();
+            detailStage.showAndWait();
 
-        Button btnTutup = new Button("Tutup");
-        btnTutup.setStyle(
-                "-fx-background-color: #475569; " +
-                        "-fx-text-fill: white; " +
-                        "-fx-font-size: 13px; " +
-                        "-fx-font-weight: bold; " +
-                        "-fx-padding: 8 25 8 25; " +
-                        "-fx-cursor: hand; " +
-                        "-fx-background-radius: 5;"
-        );
-        btnTutup.setOnAction(e -> ((Stage) btnTutup.getScene().getWindow()).close());
-
-        HBox buttonBox = new HBox(btnTutup);
-        buttonBox.setAlignment(Pos.CENTER_RIGHT);
-        buttonBox.setPadding(new Insets(10, 0, 0, 0));
-
-        VBox root = new VBox(12);
-        root.setPadding(new Insets(20, 25, 20, 25));
-        root.setStyle("-fx-background-color: #FFFFFF; -fx-border-color: #CBD5E1; -fx-border-width: 1px; -fx-border-radius: 8;");
-        root.getChildren().addAll(headerBox, tableDetail, footerGrid, buttonBox);
-
-        Scene scene = new Scene(root);
-
-        Stage stage = new Stage();
-        stage.initModality(Modality.APPLICATION_MODAL);
-        stage.setTitle("Detail Penjualan - " + penjualan.getIdPenjualan());
-        stage.setScene(scene);
-        stage.setWidth(600);
-        stage.setHeight(420);
-        stage.setMinWidth(550);
-        stage.setMinHeight(380);
-        stage.setMaxWidth(700);
-        stage.setMaxHeight(500);
-        stage.setResizable(false);
-        stage.centerOnScreen();
-        stage.show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            tampilAlert(Alert.AlertType.ERROR, "Error", "Gagal menampilkan detail penjualan: " + e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            tampilAlert(Alert.AlertType.ERROR, "Error", "Terjadi kesalahan: " + e.getMessage());
+        }
     }
 
     // =====================================================================
@@ -311,7 +281,7 @@ public class DataPenjualan {
                 while (rs.next()) {
                     list.add(new DetailPenjualanModel(
                             rs.getString("Nama Produk"),
-                            rs.getInt("Jumlah"),  // Tetap pakai Qty, bukan Jumlah
+                            rs.getInt("Jumlah"),
                             rs.getDouble("Harga Satuan")
                     ));
                 }
@@ -460,7 +430,7 @@ public class DataPenjualan {
 
     private String formatRupiah(double nominal) {
         NumberFormat formatRp = NumberFormat.getNumberInstance(new Locale("in", "ID"));
-        return "Rp. " + formatRp.format(nominal);
+        return "Rp " + formatRp.format(nominal);
     }
 
     private void tampilAlert(Alert.AlertType tipe, String judul, String pesan) {
@@ -529,7 +499,7 @@ public class DataPenjualan {
 
     public static class DetailPenjualanModel {
         private final StringProperty namaProduk;
-        private final IntegerProperty jumlah;  // Ganti dari qty ke jumlah
+        private final IntegerProperty jumlah;
         private final DoubleProperty hargaSatuan;
 
         public DetailPenjualanModel(String namaProduk, int jumlah, double hargaSatuan) {

@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Text?>
+
+<AnchorPane prefHeight="621.0" prefWidth="390.0" stylesheets="@../css/DetailPembayaran.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="SistemFotocopy.DetailPenjualan">
+
+    <!-- Container Utama -->
+    <VBox alignment="TOP_CENTER" prefHeight="624.0" prefWidth="380.0" spacing="12.0" styleClass="main-container">
+        <padding>
+            <Insets bottom="16.0" left="20.0" right="20.0" top="16.0" />
+        </padding>
+
+        <!-- Header -->
+        <VBox alignment="CENTER" spacing="4.0" styleClass="header-section">
+            <!-- Logo -->
+            <HBox alignment="CENTER" styleClass="logo-container">
+                <ImageView fitHeight="40.0" fitWidth="40.0" pickOnBounds="true" preserveRatio="true">
+                    <image>
+
+                    </image>
+                </ImageView>
+            </HBox>
+
+            <!-- Judul -->
+            <Text styleClass="title-text" text="COPSTREAM PRO" textAlignment="CENTER" wrappingWidth="340.0" />
+
+            <!-- Alamat -->
+            <Text styleClass="address-text" text="Delta Silicon II, Jl. Gaharu Blok F3, Cibatu, Cikarang&#10;Selatan, Kabupaten Bekasi, Jawa Barat" textAlignment="CENTER" wrappingWidth="340.0" />
+
+            <!-- ID Penjualan -->
+            <HBox alignment="CENTER" styleClass="id-container">
+                <Label styleClass="info-label" text="ID Penjualan : " />
+                <Label fx:id="lblIdPenjualan" styleClass="id-penjualan-value" text="-" />
+            </HBox>
+        </VBox>
+
+        <!-- Garis Pemisah -->
+        <Separator styleClass="separator-line" />
+
+        <!-- Informasi Tanggal & Kasir -->
+        <GridPane hgap="8.0" styleClass="info-grid" vgap="4.0">
+            <columnConstraints>
+                <ColumnConstraints hgrow="NEVER" minWidth="65.0" />
+                <ColumnConstraints hgrow="ALWAYS" />
+                <ColumnConstraints hgrow="NEVER" minWidth="55.0" />
+                <ColumnConstraints hgrow="ALWAYS" />
+            </columnConstraints>
+            <rowConstraints>
+                <RowConstraints />
+                <RowConstraints />
+            </rowConstraints>
+
+            <Label styleClass="info-label" text="Tanggal :" GridPane.columnIndex="0" GridPane.rowIndex="0" />
+            <Label fx:id="lblTanggal" styleClass="info-value" text="01/01/2026" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+            <Label styleClass="info-label" text="Kasir :" GridPane.columnIndex="2" GridPane.rowIndex="0" />
+            <Label fx:id="lblNamaPegawai" styleClass="info-value" text="Nama Pegawai" GridPane.columnIndex="3" GridPane.rowIndex="0" />
+        </GridPane>
+
+        <!-- Garis Pemisah -->
+        <Separator styleClass="separator-line" />
+
+        <!-- Daftar Produk ScrollPane -->
+        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" maxHeight="200.0" prefHeight="150.0" prefWidth="340.0" styleClass="products-scroll">
+            <content>
+                <VBox spacing="6.0" styleClass="products-section">
+                    <Label fx:id="lblproduk1" styleClass="product-title" text="Detail Produk" wrapText="true" />
+                </VBox>
+            </content>
+        </ScrollPane>
+
+        <!-- Garis Pemisah -->
+        <Separator styleClass="separator-line" />
+
+        <!-- Bagian Total dan Pembayaran -->
+        <VBox spacing="4.0" styleClass="payment-section">
+         <HBox prefHeight="28.0" prefWidth="340.0">
+            <children>
+                  <!-- Total QTY -->
+                  <Label styleClass="total-qty" text="Total QTY : " />
+               <Label fx:id="gty" prefHeight="25.0" prefWidth="49.0" text="Label" />
+            </children>
+         </HBox>
+
+            <!-- Metode Pembayaran -->
+            <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="payment-row">
+                <Label styleClass="payment-label" text="Metode Pembayaran :" HBox.hgrow="ALWAYS" />
+                <Label fx:id="metode" styleClass="payment-value" text="Cash" HBox.hgrow="NEVER" />
+            </HBox>
+
+            <!-- Total -->
+            <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="total-row">
+                <Label styleClass="total-label" text="Total :" HBox.hgrow="ALWAYS" />
+                <Label fx:id="totalharga" styleClass="total-amount" text="Rp 0" HBox.hgrow="NEVER" />
+            </HBox>
+
+            <!-- Bayar -->
+            <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="payment-row">
+                <Label styleClass="payment-label" text="Bayar :" HBox.hgrow="ALWAYS" />
+                <Label fx:id="uangBayar" styleClass="payment-value" text="Rp 0" HBox.hgrow="NEVER" />
+            </HBox>
+
+            <!-- Kembali -->
+            <HBox fx:id="Kembalian" alignment="CENTER_LEFT" spacing="10.0" styleClass="payment-row">
+                <Label styleClass="payment-label" text="Kembali :" HBox.hgrow="ALWAYS" />
+                <Label fx:id="lblKembalian" styleClass="payment-value" text="Rp 0" HBox.hgrow="NEVER" />
+            </HBox>
+        </VBox>
+
+        <!-- Garis Pemisah -->
+        <Separator styleClass="separator-line" />
+
+        <!-- Footer -->
+        <VBox alignment="CENTER" spacing="4.0" styleClass="footer-section">
+            <Label alignment="CENTER" styleClass="footer-text" text="Terimakasih Telah Berbelanja" />
+        </VBox>
+    </VBox>
+</AnchorPane>

@@ -5,9 +5,11 @@ import javafx.animation.PauseTransition;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -18,6 +20,7 @@ import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.util.Duration;
 
+import java.io.IOException;
 import java.net.URL;
 import java.sql.*;
 import java.time.LocalDate;
@@ -62,15 +65,18 @@ public class TransaksiPenjualan implements Initializable {
     private int totalProdukTerjual = 0;
     private boolean isUpdating = false;
 
-    // VARIABEL ID PEGAWAI
     private String idPegawai;
 
+    // Data untuk struk
     private String strukIdPenjualan;
     private String strukPegawai;
     private String strukTanggal;
     private String strukMetode;
     private double strukTotalHarga;
+    private double strukUangBayar;
+    private double strukKembalian;
     private ObservableList<DetailData> strukDetailList;
+    private String strukStatus;
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -209,91 +215,128 @@ public class TransaksiPenjualan implements Initializable {
     }
 
     // =========================================================
-    // CEK MESIN LAYANAN
+    // CEK STATUS MESIN LAYANAN - DIPERBAIKI
     // =========================================================
-    private boolean isLayananMesinRusak(String idProduk) {
+
+    /**
+     * Mendapatkan daftar mesin yang terhubung dengan layanan beserta statusnya
+     * DIPERBAIKI: Menggunakan subquery untuk mendapatkan status maintenance terbaru
+     */
+    private ObservableList<MesinStatus> getMesinStatusLayanan(String idProduk) {
+        ObservableList<MesinStatus> mesinList = FXCollections.observableArrayList();
         String query =
-                "SELECT COUNT(*) AS JumlahRusak " +
+                "SELECT " +
+                        "    m.ID_Mesin, " +
+                        "    m.Nama_Mesin, " +
+                        "    m.Status_Mesin, " +
+                        "    CASE " +
+                        "        WHEN m.Status_Mesin = 'NonAktif' THEN 'NonAktif' " +
+                        "        WHEN EXISTS ( " +
+                        "            SELECT 1 FROM Maintenance_Mesin mm " +
+                        "            WHERE mm.ID_Mesin = m.ID_Mesin " +
+                        "            AND mm.Status_Maintenance = 'rusak' " +
+                        "            AND mm.Tanggal_Maintenance = ( " +
+                        "                SELECT MAX(mm2.Tanggal_Maintenance) " +
+                        "                FROM Maintenance_Mesin mm2 " +
+                        "                WHERE mm2.ID_Mesin = m.ID_Mesin " +
+                        "                AND mm2.Status_Maintenance IN ('rusak', 'selesai') " +
+                        "            ) " +
+                        "        ) THEN 'Rusak' " +
+                        "        ELSE 'Aktif' " +
+                        "    END AS Status_Operasional " +
                         "FROM DetailProdukMesin dpm " +
                         "INNER JOIN Mesin m ON dpm.ID_Mesin = m.ID_Mesin " +
-                        "LEFT JOIN Maintenance_Mesin mm ON m.ID_Mesin = mm.ID_Mesin AND mm.Status_Maintenance = 'rusak' " +
                         "WHERE dpm.ID_Produk = ? " +
-                        "AND mm.ID_Mesin IS NOT NULL";
-
-        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setString(1, idProduk);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("JumlahRusak") > 0;
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    private boolean isLayananMesinAktif(String idProduk) {
-        String query =
-                "SELECT COUNT(*) AS JumlahAktif " +
-                        "FROM DetailProdukMesin dpm " +
-                        "INNER JOIN Mesin m ON dpm.ID_Mesin = m.ID_Mesin " +
-                        "LEFT JOIN Maintenance_Mesin mm ON m.ID_Mesin = mm.ID_Mesin AND mm.Status_Maintenance = 'rusak' " +
-                        "WHERE dpm.ID_Produk = ? " +
-                        "AND m.Status_Mesin = 'Aktif' " +
-                        "AND mm.ID_Mesin IS NULL";
-
-        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setString(1, idProduk);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("JumlahAktif") > 0;
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    private boolean cekLayananMemilikiMesin(String idProduk) {
-        String query = "SELECT COUNT(*) AS Total FROM DetailProdukMesin WHERE ID_Produk = ?";
-        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setString(1, idProduk);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("Total") > 0;
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return false;
-    }
-
-    private String getMesinAktifUntukLayanan(String idProduk) {
-        StringBuilder mesinList = new StringBuilder();
-        String query =
-                "SELECT m.ID_Mesin, m.Nama_Mesin " +
-                        "FROM DetailProdukMesin dpm " +
-                        "INNER JOIN Mesin m ON dpm.ID_Mesin = m.ID_Mesin " +
-                        "LEFT JOIN Maintenance_Mesin mm ON m.ID_Mesin = mm.ID_Mesin AND mm.Status_Maintenance = 'rusak' " +
-                        "WHERE dpm.ID_Produk = ? " +
-                        "AND m.Status_Mesin = 'Aktif' " +
-                        "AND mm.ID_Mesin IS NULL";
+                        "GROUP BY m.ID_Mesin, m.Nama_Mesin, m.Status_Mesin";
 
         try (PreparedStatement pstmt = conn.prepareStatement(query)) {
             pstmt.setString(1, idProduk);
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
-                    if (mesinList.length() > 0) mesinList.append(", ");
-                    mesinList.append(rs.getString("Nama_Mesin"));
+                    String idMesin = rs.getString("ID_Mesin");
+                    String namaMesin = rs.getString("Nama_Mesin");
+                    String statusMesin = rs.getString("Status_Mesin");
+                    String statusOperasional = rs.getString("Status_Operasional");
+                    mesinList.add(new MesinStatus(idMesin, namaMesin, statusMesin, statusOperasional));
                 }
             }
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        return mesinList.toString();
+        return mesinList;
+    }
+
+    /**
+     * Mengecek apakah layanan memiliki minimal 1 mesin yang AKTIF dan TIDAK RUSAK
+     */
+    private boolean isLayananTersedia(String idProduk) {
+        ObservableList<MesinStatus> mesinList = getMesinStatusLayanan(idProduk);
+
+        if (mesinList.isEmpty()) {
+            return false; // Tidak ada mesin terdaftar
+        }
+
+        // Cek apakah ada mesin yang aktif dan tidak rusak
+        for (MesinStatus mesin : mesinList) {
+            if ("Aktif".equals(mesin.getStatusMesin()) && "Aktif".equals(mesin.getStatusOperasional())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Mendapatkan informasi mesin untuk ditampilkan ke user
+     */
+    private String getInfoMesinLayanan(String idProduk) {
+        ObservableList<MesinStatus> mesinList = getMesinStatusLayanan(idProduk);
+        StringBuilder info = new StringBuilder();
+
+        if (mesinList.isEmpty()) {
+            return "❌ Belum ada mesin yang terdaftar untuk layanan ini!";
+        }
+
+        int totalAktif = 0;
+        int totalRusak = 0;
+        int totalNonAktif = 0;
+
+        for (MesinStatus mesin : mesinList) {
+            if ("NonAktif".equals(mesin.getStatusMesin())) {
+                totalNonAktif++;
+            } else if ("Rusak".equals(mesin.getStatusOperasional())) {
+                totalRusak++;
+            } else if ("Aktif".equals(mesin.getStatusMesin()) && "Aktif".equals(mesin.getStatusOperasional())) {
+                totalAktif++;
+            }
+        }
+
+        info.append("📊 Status Mesin:\n");
+        info.append("   • Total mesin terdaftar: ").append(mesinList.size()).append("\n");
+        info.append("   • Mesin aktif siap pakai: ").append(totalAktif).append("\n");
+        info.append("   • Mesin rusak: ").append(totalRusak).append("\n");
+        info.append("   • Mesin nonaktif: ").append(totalNonAktif).append("\n\n");
+
+        info.append("📋 Detail Mesin:\n");
+        for (MesinStatus mesin : mesinList) {
+            String statusIcon = "🟢";
+            if ("Rusak".equals(mesin.getStatusOperasional())) {
+                statusIcon = "🔴";
+            } else if ("NonAktif".equals(mesin.getStatusMesin())) {
+                statusIcon = "⚫";
+            } else if (!"Aktif".equals(mesin.getStatusMesin())) {
+                statusIcon = "🟡";
+            }
+            info.append("   ").append(statusIcon).append(" ").append(mesin.getNamaMesin())
+                    .append(" (Status: ").append(mesin.getStatusMesin())
+                    .append(" | Operasional: ").append(mesin.getStatusOperasional()).append(")\n");
+        }
+
+        return info.toString();
+    }
+
+    private boolean cekLayananMemilikiMesin(String idProduk) {
+        ObservableList<MesinStatus> mesinList = getMesinStatusLayanan(idProduk);
+        return !mesinList.isEmpty();
     }
 
     // =========================================================
@@ -305,9 +348,6 @@ public class TransaksiPenjualan implements Initializable {
         colJumlah.setCellValueFactory(new PropertyValueFactory<>("jumlah"));
         colHarga.setCellValueFactory(new PropertyValueFactory<>("hargaFormatted"));
 
-        // =============================================================
-        // KOLOM AKSI - TOMBOL HAPUS (X)
-        // =============================================================
         colAksi.setCellFactory(param -> new TableCell<DetailData, Void>() {
             private final Button btnHapus = new Button("✕");
 
@@ -324,23 +364,18 @@ public class TransaksiPenjualan implements Initializable {
                 btnHapus.setOnAction(event -> {
                     DetailData item = getTableView().getItems().get(getIndex());
                     if (item != null) {
-                        // Kurangi total harga
                         totalHarga -= item.getJumlah() * item.getHarga();
                         totalProdukTerjual -= item.getJumlah();
 
-                        // Hapus dari list
                         detailList.remove(item);
 
-                        // Update UI
                         updateTotalHarga();
                         tblPenjualan.refresh();
 
-                        // Jika detailList kosong, tampilkan empty state
                         if (detailList.isEmpty()) {
                             emptyState.setVisible(true);
                         }
 
-                        // Update uang bayar jika metode Transfer
                         if ("Transfer".equals(cbMetodePembayaran.getValue())) {
                             String formatted = formatRupiah((long) totalHarga);
                             isUpdating = true;
@@ -458,7 +493,7 @@ public class TransaksiPenjualan implements Initializable {
     }
 
     // =========================================================
-    // TAMBAH ITEM
+    // TAMBAH ITEM - DIPERBAIKI
     // =========================================================
     private void tambahItem() {
         String selectedBarang = cbNamaBarang.getValue();
@@ -481,7 +516,6 @@ public class TransaksiPenjualan implements Initializable {
             return;
         }
 
-        // Variabel untuk menyimpan harga
         double hargaLayanan = 0;
         double hargaBarang = 0;
 
@@ -490,20 +524,46 @@ public class TransaksiPenjualan implements Initializable {
             String idProduk = selectedLayanan.split(" - ")[0];
             String namaProduk = selectedLayanan.split(" - ")[1];
 
+            // Cek apakah layanan memiliki mesin terdaftar
             boolean hasMesin = cekLayananMemilikiMesin(idProduk);
             if (!hasMesin) {
-                showAlert("Error", "Layanan '" + namaProduk + "' belum terdaftar dengan mesin apapun!\nHarap daftarkan mesin terlebih dahulu.");
+                showAlert("Error",
+                        "❌ Layanan '" + namaProduk + "' belum terdaftar dengan mesin apapun!\n" +
+                                "Harap daftarkan mesin terlebih dahulu.");
                 return;
             }
 
-            boolean hasAktif = isLayananMesinAktif(idProduk);
-            if (!hasAktif) {
-                boolean hasRusak = isLayananMesinRusak(idProduk);
-                if (hasRusak) {
-                    showAlert("Error", "❌ Mesin untuk layanan '" + namaProduk + "' sedang RUSAK!");
-                } else {
-                    showAlert("Error", "❌ Tidak ada mesin AKTIF untuk layanan '" + namaProduk + "'!");
-                }
+            // Cek apakah layanan tersedia (minimal 1 mesin aktif dan tidak rusak)
+            boolean isTersedia = isLayananTersedia(idProduk);
+            if (!isTersedia) {
+                String infoMesin = getInfoMesinLayanan(idProduk);
+                showAlert("Layanan Tidak Tersedia",
+                        "❌ Layanan '" + namaProduk + "' TIDAK TERSEDIA!\n\n" +
+                                "Semua mesin yang terhubung dengan layanan ini sedang tidak dapat digunakan.\n\n" +
+                                infoMesin);
+                return;
+            }
+
+            // Dapatkan info mesin untuk konfirmasi
+            String infoMesin = getInfoMesinLayanan(idProduk);
+
+            // Konfirmasi sebelum menambahkan
+            Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+            confirm.setTitle("Konfirmasi Layanan");
+            confirm.setHeaderText("Layanan '" + namaProduk + "' tersedia");
+            confirm.setContentText(
+                    "Layanan ini dapat digunakan dengan mesin yang aktif.\n\n" +
+                            infoMesin + "\n" +
+                            "Harga: " + formatRupiah((long) getHargaProduk(idProduk)) + "\n" +
+                            "Jumlah: " + jumlah + "\n\n" +
+                            "Lanjutkan penambahan?"
+            );
+
+            ButtonType btnYa = new ButtonType("Ya, Tambahkan", ButtonBar.ButtonData.YES);
+            ButtonType btnTidak = new ButtonType("Batal", ButtonBar.ButtonData.NO);
+            confirm.getButtonTypes().setAll(btnYa, btnTidak);
+
+            if (confirm.showAndWait().orElse(btnTidak) != btnYa) {
                 return;
             }
 
@@ -532,7 +592,7 @@ public class TransaksiPenjualan implements Initializable {
             }
         }
 
-        // Tambahkan ke tabel jika validasi berhasil semua
+        // Tambahkan ke tabel
         if (selectedLayanan != null) {
             String idProduk = selectedLayanan.split(" - ")[0];
             String namaProduk = selectedLayanan.split(" - ")[1];
@@ -611,7 +671,7 @@ public class TransaksiPenjualan implements Initializable {
     }
 
     // =========================================================
-    // STATISTICS - PAKAI UDF
+    // STATISTICS
     // =========================================================
     private void updateStatisticsCards() {
         try {
@@ -657,7 +717,7 @@ public class TransaksiPenjualan implements Initializable {
             return;
         }
 
-        // CEK STOK SEBELUM SIMPAN
+        // CEK STOK BARANG DAN LAYANAN
         for (DetailData data : detailList) {
             String idProduk = data.getIdProduk();
             int jumlah = data.getJumlah();
@@ -668,6 +728,18 @@ public class TransaksiPenjualan implements Initializable {
                 if (stok < jumlah) {
                     showAlert("Error", "Stok " + data.getNamaBarang() + " tidak mencukupi!\n" +
                             "Tersedia: " + stok + ", Dibutuhkan: " + jumlah);
+                    return;
+                }
+            }
+
+            // CEK LAYANAN (validasi ulang untuk memastikan mesin masih tersedia)
+            if ("Layanan".equalsIgnoreCase(kategori)) {
+                if (!isLayananTersedia(idProduk)) {
+                    String infoMesin = getInfoMesinLayanan(idProduk);
+                    showAlert("Layanan Tidak Tersedia",
+                            "❌ Layanan '" + data.getNamaBarang() + "' tidak tersedia!\n\n" +
+                                    "Mesin yang diperlukan sedang rusak atau tidak aktif.\n\n" +
+                                    infoMesin);
                     return;
                 }
             }
@@ -710,12 +782,11 @@ public class TransaksiPenjualan implements Initializable {
             lblErrorUangBayar.setVisible(false);
         }
 
-        // PROSES SIMPAN DENGAN STATUS "Lunas"
         prosesSimpanTransaksi("Lunas", metode, uangBayar);
     }
 
     // =========================================================
-    // BATAL TRANSAKSI - STATUS "Batal Pembayaran" (TANPA VALIDASI UANG BAYAR)
+    // BATAL TRANSAKSI
     // =========================================================
     private void batalTransaksi() {
         if (detailList.isEmpty()) {
@@ -723,7 +794,6 @@ public class TransaksiPenjualan implements Initializable {
             return;
         }
 
-        // Konfirmasi pembatalan
         Alert konfirmasi = new Alert(Alert.AlertType.CONFIRMATION);
         konfirmasi.setTitle("Konfirmasi Pembatalan");
         konfirmasi.setHeaderText("⚠️ Batalkan Transaksi?");
@@ -744,17 +814,14 @@ public class TransaksiPenjualan implements Initializable {
             if (metode == null) {
                 metode = "Cash";
             }
-
-            // LANGSUNG PROSES BATAL - TANPA CEK UANG BAYAR
             prosesBatalTransaksi(metode);
         }
     }
 
     // =========================================================
-    // PROSES BATAL TRANSAKSI (TANPA VALIDASI)
+    // PROSES BATAL TRANSAKSI
     // =========================================================
     private void prosesBatalTransaksi(String metode) {
-        // Siapkan detail string
         StringBuilder detailString = new StringBuilder();
         for (DetailData data : detailList) {
             if (detailString.length() > 0) detailString.append("|");
@@ -764,20 +831,18 @@ public class TransaksiPenjualan implements Initializable {
         }
 
         try {
-            // Panggil SP dengan status "Batal Pembayaran" dan uangBayar = 0
             String sql = "{call sp_TambahPenjualan(?, ?, ?, ?, ?, ?)}";
             try (CallableStatement cstmt = conn.prepareCall(sql)) {
                 cstmt.setString(1, idPegawai);
                 cstmt.setDate(2, Date.valueOf(dpTanggal.getValue()));
                 cstmt.setString(3, metode);
-                cstmt.setString(4, "Batal Pembayaran");  // Status BATAL
-                cstmt.setDouble(5, 0);  // Uang bayar 0
+                cstmt.setString(4, "Batal Pembayaran");
+                cstmt.setDouble(5, 0);
                 cstmt.setString(6, detailString.toString());
 
                 cstmt.execute();
 
                 showAlert("Info", "✅ Transaksi dibatalkan dengan status BATAL PEMBAYARAN");
-
                 resetForm();
                 updateStatisticsCards();
                 generateIdPenjualan();
@@ -790,15 +855,18 @@ public class TransaksiPenjualan implements Initializable {
     }
 
     // =========================================================
-    // PROSES SIMPAN TRANSAKSI (GENERIC)
+    // PROSES SIMPAN TRANSAKSI
     // =========================================================
     private void prosesSimpanTransaksi(String status, String metode, double uangBayar) {
         strukIdPenjualan = txtIdPenjualan.getText();
         strukPegawai = txtIdPegawai.getText();
-        strukTanggal = dpTanggal.getValue().format(FORMATTER);
+        strukTanggal = dpTanggal.getValue().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
         strukMetode = metode;
         strukTotalHarga = totalHarga;
+        strukUangBayar = uangBayar;
+        strukKembalian = Math.max(0, uangBayar - totalHarga);
         strukDetailList = FXCollections.observableArrayList(detailList);
+        strukStatus = status;
 
         StringBuilder detailString = new StringBuilder();
         for (DetailData data : detailList) {
@@ -821,9 +889,9 @@ public class TransaksiPenjualan implements Initializable {
                 cstmt.execute();
 
                 if ("Transfer".equals(metode)) {
-                    showLoadingAndSuccess();
+                    showLoadingAndDetail();
                 } else {
-                    showStruk();
+                    showDetailPenjualanFXML();
                 }
 
                 resetForm();
@@ -838,24 +906,9 @@ public class TransaksiPenjualan implements Initializable {
     }
 
     // =========================================================
-    // HELPER - CEK KATEGORI PRODUK
+    // TAMPILKAN LOADING
     // =========================================================
-    private String getKategoriProduk(String idProduk) {
-        String query = "SELECT Kategori_Produk FROM Produk WHERE ID_Produk = ?";
-        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
-            pstmt.setString(1, idProduk);
-            try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getString("Kategori_Produk");
-                }
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return "";
-    }
-
-    private void showLoadingAndSuccess() {
+    private void showLoadingAndDetail() {
         Stage loadingStage = new Stage();
         loadingStage.initModality(Modality.APPLICATION_MODAL);
         loadingStage.setTitle("Menunggu Pembayaran");
@@ -878,74 +931,100 @@ public class TransaksiPenjualan implements Initializable {
         loadingStage.setScene(scene);
         loadingStage.show();
 
-        PauseTransition pause = new PauseTransition(Duration.seconds(3));
+        PauseTransition pause = new PauseTransition(Duration.seconds(2));
         pause.setOnFinished(e -> {
             loadingStage.close();
-            showStruk();
+            showDetailPenjualanFXML();
         });
         pause.play();
     }
 
-    private void showStruk() {
-        Stage strukStage = new Stage();
-        strukStage.initModality(Modality.APPLICATION_MODAL);
-        strukStage.setTitle("Struk Penjualan");
-        strukStage.setResizable(false);
+    // =========================================================
+    // TAMPILKAN DETAIL PENJUALAN FXML
+    // =========================================================
+    private void showDetailPenjualanFXML() {
+        try {
+            System.out.println("=== MEMBUKA DETAIL PENJUALAN FXML ===");
+            System.out.println("ID Penjualan: " + strukIdPenjualan);
 
-        VBox vbox = new VBox(10);
-        vbox.setAlignment(Pos.CENTER);
-        vbox.setPadding(new Insets(30));
-        vbox.setStyle("-fx-background-color: white;");
+            // Load FXML
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/LayoutSistemFotocopy/DetailPenjualan.fxml"));
 
-        Label title = new Label("=== COPYSTREAM PRO ===");
-        title.setFont(Font.font("Arial", FontWeight.BOLD, 18));
-
-        Label subTitle = new Label("Struk Penjualan");
-        subTitle.setFont(Font.font("Arial", 14));
-
-        Separator separator = new Separator();
-
-        VBox detailBox = new VBox(5);
-        detailBox.setAlignment(Pos.CENTER_LEFT);
-        detailBox.setPadding(new Insets(10, 0, 10, 0));
-
-        Label lblId = new Label("ID Nota   : " + strukIdPenjualan);
-        Label lblTanggal = new Label("Tanggal   : " + strukTanggal);
-        Label lblPegawai = new Label("Kasir     : " + strukPegawai);
-        Label lblMetode = new Label("Metode    : " + strukMetode);
-        Label lblStatus = new Label("Status    : ✅ LUNAS");
-        lblStatus.setStyle("-fx-text-fill: #16A34A; -fx-font-weight: bold;");
-
-        detailBox.getChildren().addAll(lblId, lblTanggal, lblPegawai, lblMetode, lblStatus);
-
-        Separator sep2 = new Separator();
-
-        VBox itemBox = new VBox(3);
-        itemBox.setAlignment(Pos.CENTER_LEFT);
-        itemBox.setPadding(new Insets(10, 0, 10, 0));
-
-        if (strukDetailList != null) {
-            for (DetailData data : strukDetailList) {
-                Label item = new Label(data.getJumlah() + "x " + data.getNamaBarang() + " @ " + formatRupiah((long) data.getHarga()));
-                itemBox.getChildren().add(item);
+            if (loader.getLocation() == null) {
+                System.err.println("FXML tidak ditemukan di /LayoutSistemFotocopy/DetailPenjualan.fxml");
+                showAlert("Error", "File DetailPenjualan.fxml tidak ditemukan!");
+                return;
             }
+
+            Parent root = loader.load();
+            DetailPenjualan controller = loader.getController();
+
+            // Buat daftar produk
+            StringBuilder produkBuilder = new StringBuilder();
+            int totalQty = 0;
+            int counter = 1;
+
+            for (DetailData data : strukDetailList) {
+                produkBuilder.append(counter).append(". ")
+                        .append(data.getNamaBarang())
+                        .append("\n")
+                        .append("   ")
+                        .append(data.getJumlah()).append(" x ")
+                        .append(formatRupiah((long) data.getHarga()))
+                        .append("\n");
+                totalQty += data.getJumlah();
+                counter++;
+            }
+
+            // PAKAI METHOD DENGAN 9 PARAMETER
+            controller.setData(
+                    strukIdPenjualan,                       // ID
+                    strukTanggal,                           // Tanggal
+                    strukPegawai,                           // Pegawai
+                    produkBuilder.toString(),               // Produk
+                    String.valueOf(totalQty),               // QTY
+                    strukMetode,                            // Metode
+                    formatRupiah((long) strukTotalHarga),   // Total
+                    formatRupiah((long) strukUangBayar),    // Bayar
+                    formatRupiah((long) strukKembalian)     // Kembali
+            );
+
+            // Tampilkan stage
+            Stage detailStage = new Stage();
+            detailStage.setTitle("Detail Penjualan - " + strukIdPenjualan);
+            Scene scene = new Scene(root);
+            detailStage.setScene(scene);
+            detailStage.setResizable(false);
+            detailStage.initModality(Modality.APPLICATION_MODAL);
+            detailStage.sizeToScene();
+            detailStage.centerOnScreen();
+            detailStage.showAndWait();
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert("Error", "Gagal menampilkan detail penjualan: " + e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert("Error", "Gagal membuka detail penjualan: " + e.getMessage());
         }
+    }
 
-        Separator sep3 = new Separator();
-
-        Label total = new Label("Total: " + formatRupiah((long) strukTotalHarga));
-        total.setFont(Font.font("Arial", FontWeight.BOLD, 16));
-        total.setStyle("-fx-text-fill: #1E293B;");
-
-        Button btnTutup = new Button("Tutup");
-        btnTutup.setStyle("-fx-background-color: #00357F; -fx-text-fill: white; -fx-padding: 10 30; -fx-cursor: hand; -fx-background-radius: 5;");
-        btnTutup.setOnAction(e -> strukStage.close());
-
-        vbox.getChildren().addAll(title, subTitle, separator, detailBox, sep2, itemBox, sep3, total, btnTutup);
-
-        Scene scene = new Scene(vbox, 450, 600);
-        strukStage.setScene(scene);
-        strukStage.show();
+    // =========================================================
+    // HELPER
+    // =========================================================
+    private String getKategoriProduk(String idProduk) {
+        String query = "SELECT Kategori_Produk FROM Produk WHERE ID_Produk = ?";
+        try (PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setString(1, idProduk);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("Kategori_Produk");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "";
     }
 
     private void resetForm() {
@@ -980,7 +1059,29 @@ public class TransaksiPenjualan implements Initializable {
     }
 
     // =========================================================
-    // HELPER CLASS DETAIL DATA
+    // INNER CLASS - MESIN STATUS
+    // =========================================================
+    public static class MesinStatus {
+        private String idMesin;
+        private String namaMesin;
+        private String statusMesin;
+        private String statusOperasional;
+
+        public MesinStatus(String idMesin, String namaMesin, String statusMesin, String statusOperasional) {
+            this.idMesin = idMesin;
+            this.namaMesin = namaMesin;
+            this.statusMesin = statusMesin;
+            this.statusOperasional = statusOperasional;
+        }
+
+        public String getIdMesin() { return idMesin; }
+        public String getNamaMesin() { return namaMesin; }
+        public String getStatusMesin() { return statusMesin; }
+        public String getStatusOperasional() { return statusOperasional; }
+    }
+
+    // =========================================================
+    // INNER CLASS DETAIL DATA
     // =========================================================
     public static class DetailData {
         private String idPenjualan, idProduk, namaBarang;

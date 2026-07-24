@@ -11,8 +11,9 @@ public class MainApp extends Application {
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/LayoutSistemFotocopy/MenuLogin.fxml"));
         Parent root = loader.load();
 
-        // Mengosongkan angka parameter ukuran agar Scene mengikuti resolusi root FXML/layar
-        Scene scene = new Scene(root);
+        // Mengatur ukuran Scene agar sesuai dengan resolusi layar (Maximized style)
+        javafx.geometry.Rectangle2D screenBounds = javafx.stage.Screen.getPrimary().getVisualBounds();
+        Scene scene = new Scene(root, screenBounds.getWidth(), screenBounds.getHeight());
 
         stage.setTitle("Sistem Fotocopy - Login");
         stage.setScene(scene);

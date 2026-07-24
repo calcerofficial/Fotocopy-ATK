@@ -144,8 +144,6 @@ public class MenuUtama {
             stage.setTitle("Login");
             stage.setMaximized(true);
             stage.setResizable(false);
-            stage.setFullScreenExitHint("");
-            stage.setFullScreen(true);
             stage.show();
 
         } catch (IOException e) {

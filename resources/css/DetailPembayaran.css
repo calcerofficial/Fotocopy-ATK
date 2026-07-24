@@ -1,0 +1,137 @@
+/* ===== CONTAINER UTAMA ===== */
+.main-container {
+    -fx-background-color: white;
+    -fx-pref-width: 390px;
+    -fx-pref-height: 852px;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.10), 10, 0, 0, 8);
+}
+
+/* ===== HEADER ===== */
+.header-section {
+    -fx-pref-width: 100%;
+}
+
+.title-text {
+    -fx-fill: #003E7C;
+    -fx-font-size: 18px;
+    -fx-font-family: 'JetBrains Mono', 'Monospaced';
+    -fx-font-weight: 700;
+    -fx-text-alignment: center;
+}
+
+.address-text {
+    -fx-fill: #666666;
+    -fx-font-size: 10px;
+    -fx-font-family: 'JetBrains Mono', 'Monospaced';
+    -fx-font-weight: 400;
+    -fx-text-alignment: center;
+}
+
+.id-text {
+    -fx-fill: #003E7C;
+    -fx-font-size: 13px;
+    -fx-font-family: 'JetBrains Mono', 'Monospaced';
+    -fx-font-weight: 700;
+    -fx-text-alignment: center;
+}
+
+/* ===== SEPARATOR ===== */
+.separator-line {
+    -fx-background-color: #DADADA;
+    -fx-pref-height: 1px;
+    -fx-max-height: 1px;
+}
+
+/* ===== INFO GRID ===== */
+.info-grid {
+    -fx-pref-width: 100%;
+    -fx-padding: 2px 0;
+}
+
+.info-label {
+    -fx-text-fill: #666666;
+    -fx-font-size: 12px;
+    -fx-font-family: 'JetBrains Mono', 'Monospaced';
+    -fx-font-weight: 400;
+}
+
+.info-value {
+    -fx-text-fill: black;
+    -fx-font-size: 12px;
+    -fx-font-family: 'JetBrains Mono', 'Monospaced';
+    -fx-font-weight: 400;
+}
+
+/* ===== PRODUCTS ===== */
+.products-section {
+    -fx-pref-width: 100%;
+    -fx-padding: 4px 0;
+}
+
+.product-list {
+    -fx-text-fill: black;
+    -fx-font-size: 12px;
+    -fx-font-family: 'JetBrains Mono', 'Monospaced';
+    -fx-font-weight: 400;
+    -fx-line-spacing: 2px;
+}
+
+/* ===== PAYMENT ===== */
+.payment-section {
+    -fx-pref-width: 100%;
+    -fx-padding: 2px 0;
+}
+
+.payment-row {
+    -fx-pref-width: 100%;
+    -fx-alignment: center-left;
+    -fx-padding: 1px 0;
+}
+
+.payment-label {
+    -fx-text-fill: #333333;
+    -fx-font-size: 13px;
+    -fx-font-family: 'JetBrains Mono', 'Monospaced';
+    -fx-font-weight: 400;
+}
+
+.payment-value {
+    -fx-text-fill: black;
+    -fx-font-size: 13px;
+    -fx-font-family: 'JetBrains Mono', 'Monospaced';
+    -fx-font-weight: 400;
+}
+
+.total-row {
+    -fx-pref-width: 100%;
+    -fx-alignment: center-left;
+    -fx-padding: 4px 0;
+}
+
+.total-label {
+    -fx-text-fill: black;
+    -fx-font-size: 15px;
+    -fx-font-family: 'JetBrains Mono', 'Monospaced';
+    -fx-font-weight: 700;
+}
+
+.total-amount {
+    -fx-text-fill: #003E7C;
+    -fx-font-size: 15px;
+    -fx-font-family: 'JetBrains Mono', 'Monospaced';
+    -fx-font-weight: 700;
+}
+
+/* ===== FOOTER ===== */
+.footer-section {
+    -fx-pref-width: 100%;
+    -fx-padding: 16px 0 0 0;
+}
+
+.footer-text {
+    -fx-text-fill: #666666;
+    -fx-font-size: 12px;
+    -fx-font-family: 'JetBrains Mono', 'Monospaced';
+    -fx-font-weight: 400;
+    -fx-text-alignment: center;
+}
