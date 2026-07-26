@@ -368,7 +368,12 @@ public class DataMesin {
     // INPUT VALIDATION
     // =====================================================================
 
+    // =====================================================================
+// INPUT VALIDATION
+// =====================================================================
+
     private void setupInputValidation() {
+        // 1. NAMA MESIN - Hanya huruf, angka, spasi, dan minimal 4 karakter
         TextFormatter<String> namaFormatter = new TextFormatter<>(change -> {
             String newText = change.getControlNewText();
             if (newText.isEmpty()) {
@@ -379,11 +384,36 @@ public class DataMesin {
                 txtNamaMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
                 return null;
             }
-            txtNamaMesin.setStyle(null);
+            // VALIDASI MINIMAL 4 KARAKTER (warna kuning/orange sebagai warning)
+            if (newText.length() < 4) {
+                txtNamaMesin.setStyle("-fx-border-color: #ffaa00; -fx-border-width: 2px;");
+            } else {
+                txtNamaMesin.setStyle(null);
+            }
             return change;
         });
         txtNamaMesin.setTextFormatter(namaFormatter);
 
+        // LISTENER REAL-TIME VALIDASI NAMA
+        txtNamaMesin.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.isEmpty()) {
+                if (newVal.length() < 4) {
+                    txtNamaMesin.setStyle("-fx-border-color: #ffaa00; -fx-border-width: 2px;");
+                    showErrorLabel(lblErrorNama, "Nama mesin minimal 4 karakter");
+                } else if (!newVal.matches("^[a-zA-Z0-9\\s]+$")) {
+                    txtNamaMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                    showErrorLabel(lblErrorNama, "Nama hanya boleh huruf, angka, dan spasi");
+                } else {
+                    txtNamaMesin.setStyle(null);
+                    hideErrorLabel(lblErrorNama);
+                }
+            } else {
+                txtNamaMesin.setStyle(null);
+                hideErrorLabel(lblErrorNama);
+            }
+        });
+
+        // 2. MERK MESIN - Hanya huruf, angka, spasi, dan minimal 3 karakter
         TextFormatter<String> merkFormatter = new TextFormatter<>(change -> {
             String newText = change.getControlNewText();
             if (newText.isEmpty()) {
@@ -394,37 +424,79 @@ public class DataMesin {
                 txtMerkMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
                 return null;
             }
-            txtMerkMesin.setStyle(null);
+            // VALIDASI MINIMAL 3 KARAKTER (warna kuning/orange sebagai warning)
+            if (newText.length() < 3) {
+                txtMerkMesin.setStyle("-fx-border-color: #ffaa00; -fx-border-width: 2px;");
+            } else {
+                txtMerkMesin.setStyle(null);
+            }
             return change;
         });
         txtMerkMesin.setTextFormatter(merkFormatter);
+
+        // LISTENER REAL-TIME VALIDASI MERK
+        txtMerkMesin.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.isEmpty()) {
+                if (newVal.length() < 3) {
+                    txtMerkMesin.setStyle("-fx-border-color: #ffaa00; -fx-border-width: 2px;");
+                    showErrorLabel(lblErrorMerk, "Merk mesin minimal 3 karakter");
+                } else if (!newVal.matches("^[a-zA-Z0-9\\s]+$")) {
+                    txtMerkMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                    showErrorLabel(lblErrorMerk, "Merk hanya boleh huruf, angka, dan spasi");
+                } else {
+                    txtMerkMesin.setStyle(null);
+                    hideErrorLabel(lblErrorMerk);
+                }
+            } else {
+                txtMerkMesin.setStyle(null);
+                hideErrorLabel(lblErrorMerk);
+            }
+        });
     }
 
     // =====================================================================
     // CHECK INPUT ERRORS
     // =====================================================================
 
+    // =====================================================================
+// CHECK INPUT ERRORS
+// =====================================================================
+
     private boolean checkInputErrors() {
         boolean hasError = false;
 
+        // VALIDASI NAMA MESIN - MINIMAL 4 KARAKTER
         String nama = txtNamaMesin.getText();
-        if (!nama.isEmpty() && !nama.matches("^[a-zA-Z0-9\\s]+$")) {
-            txtNamaMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-            showErrorLabel(lblErrorNama, "Nama hanya boleh huruf, angka, dan spasi");
-            hasError = true;
-        } else {
-            txtNamaMesin.setStyle(null);
-            hideErrorLabel(lblErrorNama);
+        if (!nama.isEmpty()) {
+            if (nama.length() < 4) {
+                txtNamaMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                showErrorLabel(lblErrorNama, "Nama mesin minimal 4 karakter");
+                hasError = true;
+            } else if (!nama.matches("^[a-zA-Z0-9\\s]+$")) {
+                txtNamaMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                showErrorLabel(lblErrorNama, "Nama hanya boleh huruf, angka, dan spasi");
+                hasError = true;
+            } else {
+                txtNamaMesin.setStyle(null);
+                hideErrorLabel(lblErrorNama);
+            }
         }
 
+        // VALIDASI MERK MESIN - MINIMAL 3 KARAKTER
         String merk = txtMerkMesin.getText();
-        if (!merk.isEmpty() && !merk.matches("^[a-zA-Z0-9\\s]+$")) {
-            txtMerkMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-            showErrorLabel(lblErrorMerk, "Merk hanya boleh huruf, angka, dan spasi");
-            hasError = true;
-        } else {
-            txtMerkMesin.setStyle(null);
-            hideErrorLabel(lblErrorMerk);
+        if (!merk.isEmpty()) {
+            if (merk.length() < 3) {
+                txtMerkMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                showErrorLabel(lblErrorMerk, "Merk mesin minimal 3 karakter");
+                hasError = true;
+            } else if (!merk.matches("^[a-zA-Z0-9\\s]+$")) {
+                txtMerkMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                showErrorLabel(lblErrorMerk, "Merk hanya boleh huruf, angka, dan spasi");
+                hasError = true;
+            } else {
+                txtMerkMesin.setStyle(null);
+                hideErrorLabel(lblErrorMerk);
+            }
         }
 
         return hasError;
@@ -811,6 +883,13 @@ public class DataMesin {
 
         if (!validasiForm()) return;
 
+        // CEK DUPLIKAT NAMA MESIN
+        if (isNamaMesinDuplikatForInsert(txtNamaMesin.getText().trim())) {
+            showErrorLabel(lblErrorNama, "Nama mesin sudah terdaftar!");
+            tampilAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Nama mesin sudah terdaftar di sistem.");
+            return;
+        }
+
         String sql = "{call sp_TambahMesin(?, ?)}";
         try (CallableStatement cs = db.getConnection().prepareCall(sql)) {
             cs.setString(1, txtNamaMesin.getText().trim());
@@ -872,6 +951,13 @@ public class DataMesin {
         }
 
         if (!validasiForm()) return;
+
+        // CEK DUPLIKAT NAMA (KECUALI DIRI SENDIRI)
+        if (isNamaMesinDuplikat(txtNamaMesin.getText().trim(), id)) {
+            showErrorLabel(lblErrorNama, "Nama mesin sudah terdaftar di data lain!");
+            tampilAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Nama mesin sudah digunakan oleh mesin lain.");
+            return;
+        }
 
         List<String> opsi = List.of("Aktif", "NonAktif");
         ChoiceDialog<String> dialog = new ChoiceDialog<>("Aktif", opsi);
@@ -1016,6 +1102,7 @@ public class DataMesin {
         txtMerkMesin.clear();
         cbNamaLayanan.getSelectionModel().clearSelection();
 
+        // RESET STYLE
         txtNamaMesin.setStyle(null);
         txtMerkMesin.setStyle(null);
 
@@ -1033,19 +1120,24 @@ public class DataMesin {
         lblInfoData.setText("");
     }
 
+
     // =====================================================================
-    // VALIDASI INPUT
-    // =====================================================================
+// VALIDASI INPUT
+// =====================================================================
 
     private boolean validasiForm() {
         StringBuilder sb = new StringBuilder();
 
+        // VALIDASI NAMA MESIN
         if (isKosong(txtNamaMesin.getText())) {
             sb.append("- Nama Mesin wajib diisi.\n");
             showErrorLabel(lblErrorNama, "Nama Mesin wajib diisi");
         } else {
             String nama = txtNamaMesin.getText().trim();
-            if (!nama.matches("^[a-zA-Z0-9\\s]+$")) {
+            if (nama.length() < 4) {
+                sb.append("- Nama Mesin minimal 4 karakter.\n");
+                showErrorLabel(lblErrorNama, "Nama Mesin minimal 4 karakter");
+            } else if (!nama.matches("^[a-zA-Z0-9\\s]+$")) {
                 sb.append("- Nama Mesin hanya boleh huruf, angka, dan spasi.\n");
                 showErrorLabel(lblErrorNama, "Nama hanya boleh huruf, angka, dan spasi");
             } else {
@@ -1053,12 +1145,16 @@ public class DataMesin {
             }
         }
 
+        // VALIDASI MERK MESIN
         if (isKosong(txtMerkMesin.getText())) {
             sb.append("- Merk Mesin wajib diisi.\n");
             showErrorLabel(lblErrorMerk, "Merk Mesin wajib diisi");
         } else {
             String merk = txtMerkMesin.getText().trim();
-            if (!merk.matches("^[a-zA-Z0-9\\s]+$")) {
+            if (merk.length() < 3) {
+                sb.append("- Merk Mesin minimal 3 karakter.\n");
+                showErrorLabel(lblErrorMerk, "Merk Mesin minimal 3 karakter");
+            } else if (!merk.matches("^[a-zA-Z0-9\\s]+$")) {
                 sb.append("- Merk Mesin hanya boleh huruf, angka, dan spasi.\n");
                 showErrorLabel(lblErrorMerk, "Merk hanya boleh huruf, angka, dan spasi");
             } else {
@@ -1066,6 +1162,7 @@ public class DataMesin {
             }
         }
 
+        // VALIDASI NAMA LAYANAN
         if (cbNamaLayanan.getValue() == null || cbNamaLayanan.getValue().isEmpty()) {
             sb.append("- Nama Layanan wajib dipilih.\n");
             showErrorLabel(lblErrorMerk1, "Nama Layanan wajib dipilih");
@@ -1082,6 +1179,41 @@ public class DataMesin {
 
     private boolean isKosong(String s) {
         return s == null || s.trim().isEmpty();
+    }
+
+    // =====================================================================
+// CEK DUPLIKAT NAMA MESIN
+// =====================================================================
+
+    private boolean isNamaMesinDuplikat(String nama, String idKecuali) {
+        String query = "SELECT COUNT(*) FROM Mesin WHERE Nama_Mesin = ? AND ID_Mesin != ?";
+        try (PreparedStatement ps = db.getConnection().prepareStatement(query)) {
+            ps.setString(1, nama);
+            ps.setString(2, idKecuali);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error cek duplikat: " + e.getMessage());
+        }
+        return false;
+    }
+
+    private boolean isNamaMesinDuplikatForInsert(String nama) {
+        String query = "SELECT COUNT(*) FROM Mesin WHERE Nama_Mesin = ?";
+        try (PreparedStatement ps = db.getConnection().prepareStatement(query)) {
+            ps.setString(1, nama);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            System.out.println("Error cek duplikat: " + e.getMessage());
+        }
+        return false;
     }
 
     // =====================================================================

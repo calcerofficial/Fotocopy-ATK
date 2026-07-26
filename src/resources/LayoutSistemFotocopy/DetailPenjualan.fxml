@@ -2,7 +2,6 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.image.Image?>
 <?import javafx.scene.image.ImageView?>
@@ -14,7 +13,7 @@
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Text?>
 
-<AnchorPane prefHeight="621.0" prefWidth="390.0" stylesheets="@../css/DetailPembayaran.css" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="SistemFotocopy.Transaksi.TransaksiPenjualan.DetailPenjualan.Controller.DetailPenjualan">
+<AnchorPane prefHeight="621.0" prefWidth="390.0" stylesheets="@../css/DetailPembayaran.css" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="SistemFotocopy.Transaksi.TransaksiPenjualan.DetailPenjualan.Controller.DetailPenjualan">
 
     <!-- Container Utama -->
     <VBox alignment="TOP_CENTER" prefHeight="624.0" prefWidth="380.0" spacing="12.0" styleClass="main-container">
@@ -28,7 +27,7 @@
             <HBox alignment="CENTER" styleClass="logo-container">
                 <ImageView fitHeight="40.0" fitWidth="40.0" pickOnBounds="true" preserveRatio="true">
                     <image>
-
+                        <!-- Kamu bisa isi url gambar logo di sini jika ada -->
                     </image>
                 </ImageView>
             </HBox>
@@ -63,41 +62,41 @@
             </rowConstraints>
 
             <Label styleClass="info-label" text="Tanggal :" GridPane.columnIndex="0" GridPane.rowIndex="0" />
-            <Label fx:id="lblTanggal" styleClass="info-value" text="01/01/2026" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+            <Label fx:id="lblTanggal" styleClass="info-value" text="-" GridPane.columnIndex="1" GridPane.rowIndex="0" />
 
             <Label styleClass="info-label" text="Kasir :" GridPane.columnIndex="2" GridPane.rowIndex="0" />
-            <Label fx:id="lblNamaPegawai" styleClass="info-value" text="Nama Pegawai" GridPane.columnIndex="3" GridPane.rowIndex="0" />
+            <Label fx:id="lblNamaPegawai" styleClass="info-value" text="-" GridPane.columnIndex="3" GridPane.rowIndex="0" />
         </GridPane>
 
         <!-- Garis Pemisah -->
         <Separator styleClass="separator-line" />
 
-        <!-- Daftar Produk ScrollPane -->
-        <ScrollPane fitToWidth="true" hbarPolicy="NEVER" maxHeight="200.0" prefHeight="150.0" prefWidth="340.0" styleClass="products-scroll">
-            <content>
-                <VBox spacing="6.0" styleClass="products-section">
-                    <Label fx:id="lblproduk1" styleClass="product-title" text="Detail Produk" wrapText="true" />
-                </VBox>
-            </content>
-        </ScrollPane>
+        <!-- Daftar Produk (PERBAIKAN DI SINI) -->
+        <!-- Saya hapus ScrollPane agar teks panjang bisa turun ke bawah tanpa terpotong -->
+        <VBox spacing="6.0" styleClass="products-section">
+            <Label styleClass="product-title" text="Detail Produk" />
+            <!-- Label ini akan menampung list produk yang dikirim dari Java -->
+            <Label fx:id="lblproduk1" text="-" wrapText="true" alignment="TOP_LEFT" />
+        </VBox>
 
         <!-- Garis Pemisah -->
         <Separator styleClass="separator-line" />
 
         <!-- Bagian Total dan Pembayaran -->
         <VBox spacing="4.0" styleClass="payment-section">
-         <HBox prefHeight="28.0" prefWidth="340.0">
-            <children>
-                  <!-- Total QTY -->
-                  <Label styleClass="total-qty" text="Total QTY : " />
-               <Label fx:id="gty" prefHeight="25.0" prefWidth="49.0" text="Label" />
-            </children>
-         </HBox>
+            <HBox prefHeight="28.0" prefWidth="340.0">
+                <children>
+                    <!-- Total QTY -->
+                    <Label styleClass="total-qty" text="Total QTY : " />
+                    <!-- PERBAIKAN: Ganti fx:id="gty" menjadi fx:id="qty" agar sesuai dengan Java -->
+                    <Label fx:id="qty" prefHeight="25.0" prefWidth="49.0" text="0" />
+                </children>
+            </HBox>
 
             <!-- Metode Pembayaran -->
             <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="payment-row">
                 <Label styleClass="payment-label" text="Metode Pembayaran :" HBox.hgrow="ALWAYS" />
-                <Label fx:id="metode" styleClass="payment-value" text="Cash" HBox.hgrow="NEVER" />
+                <Label fx:id="metode" styleClass="payment-value" text="-" HBox.hgrow="NEVER" />
             </HBox>
 
             <!-- Total -->

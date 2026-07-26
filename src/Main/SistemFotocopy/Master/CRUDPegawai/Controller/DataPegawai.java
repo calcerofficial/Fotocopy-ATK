@@ -2,6 +2,7 @@ package SistemFotocopy.Master.CRUDPegawai.Controller;
 
 import Database.DBConnection;
 import SistemFotocopy.Master.CRUDPegawai.Dataclass.PegawaiModel;
+import javafx.animation.PauseTransition;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
@@ -9,6 +10,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
+import javafx.util.Duration;
 
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
@@ -102,6 +104,51 @@ public class DataPegawai {
     private boolean statusTampilKonfirmasiPassword = false;
 
     // =========================================================
+    // SETUP ROLE COMBOBOX
+    // =========================================================
+    private void setupRoleComboBox() {
+        cmbRole.setItems(FXCollections.observableArrayList("Pegawai", "Admin"));
+        cmbRole.setValue("Pegawai");
+
+        cmbRole.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (mode == Mode.TAMBAH) {
+                generateIdOtomatis();
+            }
+        });
+    }
+
+    // =========================================================
+    // GENERATE ID OTOMATIS (BERDASARKAN ROLE YANG DIPILIH)
+    // =========================================================
+    private void generateIdOtomatis() {
+        String role = cmbRole.getValue();
+        String prefix = "Admin".equals(role) ? "ADM" : "PGW";
+
+        String query = "SELECT TOP 1 ID_Pegawai FROM Pegawai WHERE ID_Pegawai LIKE ? ORDER BY ID_Pegawai DESC";
+
+        try (PreparedStatement ps = dbConnection.getConnection().prepareStatement(query)) {
+            ps.setString(1, prefix + "%");
+            try (ResultSet rs = ps.executeQuery()) {
+                int nextNumber = 1;
+                if (rs.next()) {
+                    String lastId = rs.getString("ID_Pegawai");
+                    String numberPart = lastId.substring(prefix.length());
+                    try {
+                        nextNumber = Integer.parseInt(numberPart) + 1;
+                    } catch (NumberFormatException nfe) {
+                        nextNumber = 1;
+                    }
+                }
+                String idBaru = prefix + String.format("%03d", nextNumber);
+                txtIdPegawai.setText(idBaru);
+            }
+        } catch (SQLException e) {
+            txtIdPegawai.setText("");
+            e.printStackTrace();
+        }
+    }
+
+    // =========================================================
     // INITIALIZE
     // =========================================================
     @FXML
@@ -116,7 +163,10 @@ public class DataPegawai {
         setupRowSelectionListener();
         setupButtonListeners();
         setupRoleComboBox();
-        setupInputValidation();
+
+        setupInputFilters();
+        setupLiveValidation();
+
         tampilkanData();
         hitungDashboard();
         resetForm();
@@ -132,265 +182,261 @@ public class DataPegawai {
     }
 
     // =========================================================
-    // INPUT VALIDATION SETUP
+    // FLASH MERAH KETIKA KARAKTER DITOLAK OLEH TEXT FORMATTER
     // =========================================================
-    private void setupInputValidation() {
-        // 1. NAMA LENGKAP - Hanya huruf dan spasi, minimal 4 karakter
-        TextFormatter<String> namaFormatter = new TextFormatter<>(change -> {
-            String newText = change.getControlNewText();
-            if (newText.isEmpty()) {
-                txtNamaLengkap.setStyle(null);
-                return change;
-            }
-            if (!newText.matches("^[a-zA-Z\\s]*$")) {
-                txtNamaLengkap.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-                return null;
-            }
-            txtNamaLengkap.setStyle(null);
-            return change;
-        });
-        txtNamaLengkap.setTextFormatter(namaFormatter);
+    private void flashInvalidInput(Control control, Label errorLabel, String message, Runnable revalidate) {
+        setRedBorder(control);
+        showErrorLabel(errorLabel, message);
 
-        // 2. EMAIL - Hanya huruf kecil, angka, @, ., _, -
-        TextFormatter<String> emailFormatter = new TextFormatter<>(change -> {
-            String newText = change.getControlNewText();
-            if (newText.isEmpty()) {
-                txtEmail.setStyle(null);
-                return change;
-            }
-            if (!newText.matches("^[a-z0-9@._-]*$")) {
-                txtEmail.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-                return null;
-            }
-            txtEmail.setStyle(null);
-            return change;
-        });
-        txtEmail.setTextFormatter(emailFormatter);
-
-        // 3. NOMOR TELEPON - HARUS diawali 08, hanya angka, min 10 max 13
-        TextFormatter<String> telpFormatter = new TextFormatter<>(change -> {
-            String newText = change.getControlNewText();
-            if (newText.isEmpty()) {
-                txtNomorTelepon.setStyle(null);
-                return change;
-            }
-            if (newText.length() > 13) {
-                return null;
-            }
-            if (newText.length() >= 2) {
-                if (!newText.substring(0, 2).equals("08")) {
-                    txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-                    return null;
-                }
-            } else {
-                if (!newText.matches("^0$")) {
-                    txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-                    return null;
-                }
-            }
-            if (!newText.matches("^[0-9]*$")) {
-                txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-                return null;
-            }
-            if (newText.startsWith("08")) {
-                txtNomorTelepon.setStyle(null);
-            }
-            return change;
-        });
-        txtNomorTelepon.setTextFormatter(telpFormatter);
-
-        // 4. ALAMAT - Hanya huruf, angka, spasi, dan titik
-        TextFormatter<String> alamatFormatter = new TextFormatter<>(change -> {
-            String newText = change.getControlNewText();
-            if (newText.isEmpty()) {
-                txtAlamatLengkap.setStyle(null);
-                return change;
-            }
-            if (!newText.matches("^[a-zA-Z0-9\\s.]*$")) {
-                txtAlamatLengkap.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-                return null;
-            }
-            txtAlamatLengkap.setStyle(null);
-            return change;
-        });
-        txtAlamatLengkap.setTextFormatter(alamatFormatter);
-
-        // 5. USERNAME - HANYA HURUF, minimal 4 max 10
-        TextFormatter<String> usernameFormatter = new TextFormatter<>(change -> {
-            String newText = change.getControlNewText();
-            if (newText.isEmpty()) {
-                txtUsername.setStyle(null);
-                return change;
-            }
-            if (newText.length() > 10) {
-                return null;
-            }
-            if (!newText.matches("^[a-zA-Z]*$")) {
-                txtUsername.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-                return null;
-            }
-            txtUsername.setStyle(null);
-            return change;
-        });
-        txtUsername.setTextFormatter(usernameFormatter);
+        PauseTransition pause = new PauseTransition(Duration.millis(400));
+        pause.setOnFinished(e -> revalidate.run());
+        pause.play();
     }
 
     // =========================================================
-    // CHECK INPUT ERRORS
-    // =========================================================
-    private boolean checkInputErrors() {
-        boolean hasError = false;
+// FILTER INPUT (BLOKIR KARAKTER TERLARANG SAAT DIKETIK)
+// =========================================================
+    private void setupInputFilters() {
 
-        String nama = txtNamaLengkap.getText();
-        if (!nama.isEmpty() && nama.length() < 4) {
-            txtNamaLengkap.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-            showErrorLabel(lblErrorNama, "Nama lengkap minimal 4 karakter");
-            hasError = true;
-        } else if (!nama.isEmpty() && !nama.matches("^[a-zA-Z\\s]+$")) {
-            txtNamaLengkap.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-            showErrorLabel(lblErrorNama, "Nama hanya boleh berisi huruf dan spasi");
-            hasError = true;
-        } else {
-            txtNamaLengkap.setStyle(null);
+        // --- NAMA LENGKAP: hanya huruf dan spasi ---
+        txtNamaLengkap.setTextFormatter(new TextFormatter<String>(change -> {
+            String newText = change.getControlNewText();
+            if (newText.matches("^[a-zA-Z\\s]*$")) {
+                return change;
+            }
+            flashInvalidInput(txtNamaLengkap, lblErrorNama, "Karakter tidak diizinkan", this::validateNamaLive);
+            return null;
+        }));
+
+        // --- EMAIL: hanya huruf, angka, dan simbol @._- ---
+        txtEmail.setTextFormatter(new TextFormatter<String>(change -> {
+            String newText = change.getControlNewText();
+            if (newText.matches("^[a-zA-Z0-9@._-]*$")) {
+                return change;
+            }
+            flashInvalidInput(txtEmail, lblErrorEmail, "Karakter tidak diizinkan", this::validateEmailLive);
+            return null;
+        }));
+
+        // --- NOMOR TELEPON: harus "08", hanya angka, maksimal 13 digit ---
+        txtNomorTelepon.setTextFormatter(new TextFormatter<String>(change -> {
+            String newText = change.getControlNewText();
+
+            // Regex: kosong ATAU "0" ATAU "08" diikuti 0-11 digit angka
+            if (newText.isEmpty() || newText.matches("^0$") || newText.matches("^08\\d{0,11}$")) {
+                return change;
+            }
+
+            flashInvalidInput(txtNomorTelepon, lblErrorTelepon, "Harus diawali '08' & maksimal 13 digit", this::validateTeleponLive);
+            return null;
+        }));
+
+        // --- ALAMAT: hanya huruf, angka, spasi, dan titik ---
+        txtAlamatLengkap.setTextFormatter(new TextFormatter<String>(change -> {
+            String newText = change.getControlNewText();
+            if (newText.matches("^[a-zA-Z0-9\\s.]*$")) {
+                return change;
+            }
+            flashInvalidInput(txtAlamatLengkap, lblErrorAlamat, "Karakter tidak diizinkan", this::validateAlamatLive);
+            return null;
+        }));
+
+        // --- USERNAME: hanya huruf dan angka ---
+        txtUsername.setTextFormatter(new TextFormatter<String>(change -> {
+            String newText = change.getControlNewText();
+            if (newText.matches("^[a-zA-Z0-9]*$")) {
+                return change;
+            }
+            flashInvalidInput(txtUsername, lblErrorUsername, "Karakter tidak diizinkan", this::validateUsernameLive);
+            return null;
+        }));
+    }
+
+    // =========================================================
+    // LIVE COLOR VALIDATION (REAL-TIME MERAH, ORANYE, HIJAU)
+    // =========================================================
+    private void setupLiveValidation() {
+        txtNamaLengkap.textProperty().addListener((obs, oldVal, newVal) -> validateNamaLive());
+        txtEmail.textProperty().addListener((obs, oldVal, newVal) -> validateEmailLive());
+        txtNomorTelepon.textProperty().addListener((obs, oldVal, newVal) -> validateTeleponLive());
+        txtUsername.textProperty().addListener((obs, oldVal, newVal) -> validateUsernameLive());
+        txtAlamatLengkap.textProperty().addListener((obs, oldVal, newVal) -> validateAlamatLive());
+
+        // --- PASSWORD ---
+        txtPassword.textProperty().addListener((obs, oldVal, newVal) -> validatePasswordLive());
+        txtPasswordVisible.textProperty().addListener((obs, oldVal, newVal) -> validatePasswordLive());
+
+        // --- KONFIRMASI PASSWORD ---
+        txtKonfirmasiPassword.textProperty().addListener((obs, oldVal, newVal) -> validateKonfirmasiPasswordLive());
+        txtKonfirmasiPasswordVisible.textProperty().addListener((obs, oldVal, newVal) -> validateKonfirmasiPasswordLive());
+    }
+
+    // =========================================================
+    // VALIDASI LIVE PER FIELD (DIPAKAI LISTENER & FLASH REVALIDATE)
+    // =========================================================
+    private void validateNamaLive() {
+        String newVal = txtNamaLengkap.getText();
+        if (newVal == null || newVal.isEmpty()) {
+            resetBorder(txtNamaLengkap);
             hideErrorLabel(lblErrorNama);
-        }
-
-        String email = txtEmail.getText();
-        if (!email.isEmpty() && !isValidEmail(email)) {
-            txtEmail.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-            showErrorLabel(lblErrorEmail, "Format email tidak valid. Gunakan domain yang diizinkan");
-            hasError = true;
-        } else {
-            txtEmail.setStyle(null);
-            hideErrorLabel(lblErrorEmail);
-        }
-
-        String telp = txtNomorTelepon.getText();
-        if (!telp.isEmpty()) {
-            if (!telp.startsWith("08")) {
-                txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-                showErrorLabel(lblErrorTelepon, "Nomor telepon HARUS diawali 08");
-                hasError = true;
-            } else if (telp.length() < 10 || telp.length() > 13) {
-                txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-                showErrorLabel(lblErrorTelepon, "Nomor telepon harus 10-13 digit");
-                hasError = true;
-            } else if (!telp.matches("^[0-9]+$")) {
-                txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-                showErrorLabel(lblErrorTelepon, "Nomor telepon hanya boleh berisi angka");
-                hasError = true;
-            } else {
-                txtNomorTelepon.setStyle(null);
-                hideErrorLabel(lblErrorTelepon);
-            }
-        }
-
-        String alamat = txtAlamatLengkap.getText();
-        if (!alamat.isEmpty() && !alamat.matches("^[a-zA-Z0-9\\s.]+$")) {
-            txtAlamatLengkap.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-            showErrorLabel(lblErrorAlamat, "Alamat hanya boleh huruf, angka, spasi, dan titik");
-            hasError = true;
-        } else {
-            txtAlamatLengkap.setStyle(null);
-            hideErrorLabel(lblErrorAlamat);
-        }
-
-        String username = txtUsername.getText();
-        if (!username.isEmpty()) {
-            if (username.length() < 4 || username.length() > 10) {
-                txtUsername.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-                showErrorLabel(lblErrorUsername, "Username harus 4-10 karakter");
-                hasError = true;
-            } else if (!username.matches("^[a-zA-Z]+$")) {
-                txtUsername.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-                showErrorLabel(lblErrorUsername, "Username HANYA boleh huruf (tanpa angka/simbol)");
-                hasError = true;
-            } else {
-                txtUsername.setStyle(null);
-                hideErrorLabel(lblErrorUsername);
-            }
-        }
-
-        return hasError;
-    }
-
-    // =========================================================
-    // VALIDASI EMAIL - DOMAIN YANG DIIZINKAN
-    // =========================================================
-    private boolean isValidEmail(String email) {
-        if (isKosong(email)) return false;
-
-        email = email.trim().toLowerCase();
-
-        String[] allowedDomains = {
-                "@gmail.com",
-                "@yahoo.com",
-                "@outlook.com",
-                "@icloud.com",
-                "@ac.id",
-                "@edu"
-        };
-
-        for (String domain : allowedDomains) {
-            if (email.endsWith(domain)) {
-                String prefix = email.substring(0, email.length() - domain.length());
-                return !prefix.isEmpty() && prefix.matches("^[a-z0-9._-]+$");
-            }
-        }
-
-        return email.matches("^[a-z0-9._-]+@student\\.[a-z]+\\.ac\\.id$");
-    }
-
-    // =========================================================
-    // SETUP ROLE COMBOBOX
-    // =========================================================
-    private void setupRoleComboBox() {
-        cmbRole.setItems(FXCollections.observableArrayList("Pegawai", "Admin"));
-        cmbRole.setValue("Pegawai");
-
-        cmbRole.setOnAction(event -> {
-            if (mode == Mode.TAMBAH) {
-                generateIdOtomatis();
-            }
-        });
-    }
-
-    private void generateIdOtomatis() {
-        String role = cmbRole.getValue();
-        String prefix = "";
-
-        if ("Admin".equals(role)) {
-            prefix = "ADM";
-        } else if ("Pegawai".equals(role)) {
-            prefix = "PGW";
-        } else {
             return;
         }
-
-        try {
-            String query = "SELECT COALESCE(MAX(CAST(SUBSTRING(ID_Pegawai, 4, LEN(ID_Pegawai)) AS INT)), 0) AS MaxID " +
-                    "FROM Pegawai WHERE ID_Pegawai LIKE ?";
-
-            try (PreparedStatement ps = dbConnection.getConnection().prepareStatement(query)) {
-                ps.setString(1, prefix + "%");
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        int maxId = rs.getInt("MaxID");
-                        int newId = maxId + 1;
-                        String idBaru = prefix + String.format("%03d", newId);
-                        txtIdPegawai.setText(idBaru);
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            if ("Admin".equals(role)) {
-                txtIdPegawai.setText("ADM001");
-            } else {
-                txtIdPegawai.setText("PGW001");
-            }
-            tampilkanAlert(Alert.AlertType.WARNING, "Peringatan",
-                    "Gagal generate ID otomatis: " + e.getMessage() + "\nMenggunakan ID default.");
+        if (!newVal.matches("^[a-zA-Z\\s]*$")) {
+            setRedBorder(txtNamaLengkap);
+            showErrorLabel(lblErrorNama, "Hanya huruf dan spasi");
+        } else if (newVal.length() < 4) {
+            setOrangeBorder(txtNamaLengkap);
+            showErrorLabel(lblErrorNama, "Minimal 4 karakter");
+        } else {
+            setGreenBorder(txtNamaLengkap);
+            hideErrorLabel(lblErrorNama);
         }
+    }
+
+    private void validateEmailLive() {
+        String newVal = txtEmail.getText();
+        if (newVal == null || newVal.isEmpty()) {
+            resetBorder(txtEmail);
+            hideErrorLabel(lblErrorEmail);
+            return;
+        }
+        String valLower = newVal.toLowerCase();
+        if (!valLower.matches("^[a-z0-9@._-]*$")) {
+            setRedBorder(txtEmail);
+            showErrorLabel(lblErrorEmail, "Hanya huruf, angka, dan simbol (@._-)");
+        } else if (!valLower.contains("@") || valLower.split("@")[0].length() < 3) {
+            setOrangeBorder(txtEmail);
+            showErrorLabel(lblErrorEmail, "Minimal 3 karakter sebelum @");
+        } else if (!valLower.contains("@") || valLower.split("@").length != 2 || !isValidEmailDomain(valLower)) {
+            setOrangeBorder(txtEmail);
+            showErrorLabel(lblErrorEmail, "Domain tidak diizinkan");
+        } else {
+            setGreenBorder(txtEmail);
+            hideErrorLabel(lblErrorEmail);
+        }
+    }
+
+    private void validateTeleponLive() {
+        String newVal = txtNomorTelepon.getText();
+        if (newVal == null || newVal.isEmpty()) {
+            resetBorder(txtNomorTelepon);
+            hideErrorLabel(lblErrorTelepon);
+            return;
+        }
+        if (!newVal.matches("^[0-9]*$")) {
+            setRedBorder(txtNomorTelepon);
+            showErrorLabel(lblErrorTelepon, "Hanya angka");
+        } else if (newVal.length() > 13) {
+            setRedBorder(txtNomorTelepon);
+            showErrorLabel(lblErrorTelepon, "Maksimal 13 digit");
+        } else if (newVal.length() < 10) {
+            setOrangeBorder(txtNomorTelepon);
+            showErrorLabel(lblErrorTelepon, "Minimal 10 digit");
+        } else if (!newVal.startsWith("08")) {
+            setRedBorder(txtNomorTelepon);
+            showErrorLabel(lblErrorTelepon, "Harus diawali '08'");
+        } else {
+            setGreenBorder(txtNomorTelepon);
+            hideErrorLabel(lblErrorTelepon);
+        }
+    }
+
+    private void validateUsernameLive() {
+        String newVal = txtUsername.getText();
+        if (newVal == null || newVal.isEmpty()) {
+            resetBorder(txtUsername);
+            hideErrorLabel(lblErrorUsername);
+            return;
+        }
+        if (!newVal.matches("^[a-zA-Z0-9]*$")) {
+            setRedBorder(txtUsername);
+            showErrorLabel(lblErrorUsername, "Hanya huruf dan angka");
+        } else if (newVal.length() > 50) {
+            setRedBorder(txtUsername);
+            showErrorLabel(lblErrorUsername, "Maksimal 50 karakter");
+        } else if (newVal.length() < 4) {
+            setOrangeBorder(txtUsername);
+            showErrorLabel(lblErrorUsername, "Minimal 4 karakter");
+        } else {
+            setGreenBorder(txtUsername);
+            hideErrorLabel(lblErrorUsername);
+        }
+    }
+
+    private void validateAlamatLive() {
+        String newVal = txtAlamatLengkap.getText();
+        if (newVal == null || newVal.isEmpty()) {
+            resetBorder(txtAlamatLengkap);
+            hideErrorLabel(lblErrorAlamat);
+            return;
+        }
+        if (!newVal.matches("^[a-zA-Z0-9\\s.]*$")) {
+            setRedBorder(txtAlamatLengkap);
+            showErrorLabel(lblErrorAlamat, "Huruf, angka, spasi, dan titik (.)");
+        } else {
+            setGreenBorder(txtAlamatLengkap);
+            hideErrorLabel(lblErrorAlamat);
+        }
+    }
+
+    // =========================================================
+    // LIVE VALIDATION - PASSWORD & KONFIRMASI PASSWORD
+    // =========================================================
+    private void validatePasswordLive() {
+        String value = getPasswordText();
+        Control aktif = statusTampilPassword ? txtPasswordVisible : txtPassword;
+
+        if (value.isEmpty()) {
+            resetBorder(txtPassword);
+            resetBorder(txtPasswordVisible);
+            hideErrorLabel(lblErrorPassword);
+        } else if (value.length() < 4) {
+            setOrangeBorder(aktif);
+            showErrorLabel(lblErrorPassword, "Minimal 4 karakter");
+        } else if (value.length() > 50) {
+            setRedBorder(aktif);
+            showErrorLabel(lblErrorPassword, "Maksimal 50 karakter");
+        } else {
+            setGreenBorder(aktif);
+            hideErrorLabel(lblErrorPassword);
+        }
+
+        // Re-cek konfirmasi setiap kali password berubah
+        validateKonfirmasiPasswordLive();
+    }
+
+    private void validateKonfirmasiPasswordLive() {
+        String password = getPasswordText();
+        String konfirmasi = getKonfirmasiPasswordText();
+        Control aktif = statusTampilKonfirmasiPassword ? txtKonfirmasiPasswordVisible : txtKonfirmasiPassword;
+
+        if (konfirmasi.isEmpty()) {
+            resetBorder(txtKonfirmasiPassword);
+            resetBorder(txtKonfirmasiPasswordVisible);
+            hideErrorLabel(lblErrorKonfirmasiPassword);
+        } else if (!konfirmasi.equals(password)) {
+            setRedBorder(aktif);
+            showErrorLabel(lblErrorKonfirmasiPassword, "Password tidak sama");
+        } else {
+            setGreenBorder(aktif);
+            hideErrorLabel(lblErrorKonfirmasiPassword);
+        }
+    }
+
+    // =========================================================
+    // HELPER BORDER STYLES
+    // =========================================================
+    private void resetBorder(Control control) {
+        control.setStyle("-fx-border-color: #ced4da; -fx-border-width: 1px; -fx-border-radius: 3px;");
+    }
+    private void setGreenBorder(Control control) {
+        control.setStyle("-fx-border-color: #28a745; -fx-border-width: 2px; -fx-border-radius: 3px;");
+    }
+    private void setOrangeBorder(Control control) {
+        control.setStyle("-fx-border-color: #ffc107; -fx-border-width: 2px; -fx-border-radius: 3px;");
+    }
+    private void setRedBorder(Control control) {
+        control.setStyle("-fx-border-color: #dc3545; -fx-border-width: 2px; -fx-border-radius: 3px;");
     }
 
     // =========================================================
@@ -773,6 +819,15 @@ public class DataPegawai {
         btnSimpan.setDisable(true);
 
         hideAllErrorLabels();
+        resetBorder(txtNamaLengkap);
+        resetBorder(txtEmail);
+        resetBorder(txtNomorTelepon);
+        resetBorder(txtAlamatLengkap);
+        resetBorder(txtUsername);
+        resetBorder(txtPassword);
+        resetBorder(txtPasswordVisible);
+        resetBorder(txtKonfirmasiPassword);
+        resetBorder(txtKonfirmasiPasswordVisible);
     }
 
     // =========================================================
@@ -780,11 +835,6 @@ public class DataPegawai {
     // =========================================================
     @FXML
     void handleSimpanData(ActionEvent event) {
-        if (checkInputErrors()) {
-            tampilkanAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Mohon perbaiki input yang ditandai merah");
-            return;
-        }
-
         if (!validasiInput(true)) return;
 
         String role = cmbRole.getValue();
@@ -860,11 +910,6 @@ public class DataPegawai {
         if ("NonAktif".equalsIgnoreCase(statusSekarang)) {
             tampilkanAlert(Alert.AlertType.WARNING, "Tidak Bisa Ubah",
                     "Pegawai dengan status NonAktif tidak dapat diubah.\nGunakan tombol 'Aktifkan' untuk mengubah status.");
-            return;
-        }
-
-        if (checkInputErrors()) {
-            tampilkanAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Mohon perbaiki input yang ditandai merah");
             return;
         }
 
@@ -1050,12 +1095,15 @@ public class DataPegawai {
         statusPegawaiTerpilih = "";
 
         hideAllErrorLabels();
-
-        txtNamaLengkap.setStyle(null);
-        txtEmail.setStyle(null);
-        txtNomorTelepon.setStyle(null);
-        txtAlamatLengkap.setStyle(null);
-        txtUsername.setStyle(null);
+        resetBorder(txtNamaLengkap);
+        resetBorder(txtEmail);
+        resetBorder(txtNomorTelepon);
+        resetBorder(txtAlamatLengkap);
+        resetBorder(txtUsername);
+        resetBorder(txtPassword);
+        resetBorder(txtPasswordVisible);
+        resetBorder(txtKonfirmasiPassword);
+        resetBorder(txtKonfirmasiPasswordVisible);
 
         setAllFieldsDisable(false);
         hideAllStatusComponents();
@@ -1117,6 +1165,8 @@ public class DataPegawai {
             txtPasswordVisible.setVisible(false);
             txtPasswordVisible.setManaged(false);
         }
+
+        validatePasswordLive();
     }
 
     @FXML
@@ -1136,6 +1186,8 @@ public class DataPegawai {
             txtKonfirmasiPasswordVisible.setVisible(false);
             txtKonfirmasiPasswordVisible.setManaged(false);
         }
+
+        validateKonfirmasiPasswordLive();
     }
 
     private String getPasswordText() {
@@ -1147,7 +1199,46 @@ public class DataPegawai {
     }
 
     // =========================================================
-    // VALIDASI INPUT
+    // VALIDASI DOMAIN EMAIL
+    // =========================================================
+    private boolean isValidEmailDomain(String email) {
+        if (isKosong(email)) return false;
+
+        if (!email.contains("@")) {
+            return false;
+        }
+
+        String[] parts = email.split("@");
+        if (parts.length != 2) {
+            return false;
+        }
+
+        String domain = parts[1];
+
+        String[] allowedDomains = {
+                "gmail.com",
+                "yahoo.com",
+                "outlook.com",
+                "icloud.com",
+                "ac.id",
+                "edu"
+        };
+
+        for (String allowedDomain : allowedDomains) {
+            if (domain.equals(allowedDomain)) {
+                return true;
+            }
+        }
+
+        if (domain.matches("^student\\.[a-z]+\\.ac\\.id$")) {
+            return true;
+        }
+
+        return false;
+    }
+
+    // =========================================================
+    // VALIDASI INPUT (SAAT TOMBOL SIMPAN DI TEKAN)
     // =========================================================
     private boolean validasiInput(boolean wajibPassword) {
         StringBuilder pesan = new StringBuilder();
@@ -1175,17 +1266,25 @@ public class DataPegawai {
             }
         }
 
+        // ==================== VALIDASI EMAIL ====================
         if (isKosong(txtEmail.getText())) {
             pesan.append("- Email wajib diisi.\n");
             showErrorLabel(lblErrorEmail, "Email wajib diisi");
         } else {
             String email = txtEmail.getText().trim().toLowerCase();
-            if (!isValidEmail(email)) {
-                pesan.append("- Format email tidak valid. Gunakan domain: @gmail.com, @yahoo.com, @outlook.com, @icloud.com, @ac.id, @edu, @student.(kampus).ac.id\n");
-                showErrorLabel(lblErrorEmail, "Format email tidak valid");
-            } else if (isDataExist("Email", email)) {
+
+            if (isDataExist("Email", email)) {
                 pesan.append("- Email sudah digunakan.\n");
                 showErrorLabel(lblErrorEmail, "Email sudah digunakan");
+            } else if (email.split("@")[0].length() < 3) {
+                pesan.append("- Bagian depan email (sebelum @) minimal 3 karakter.\n");
+                showErrorLabel(lblErrorEmail, "Minimal 3 karakter sebelum @");
+            } else if (!email.matches("^[a-z0-9@._-]+$")) {
+                pesan.append("- Email hanya boleh huruf, angka, dan simbol (@ . _ -).\n");
+                showErrorLabel(lblErrorEmail, "Hanya huruf, angka, dan simbol (@._-)");
+            } else if (!isValidEmailDomain(email)) {
+                pesan.append("- Format domain tidak valid. Gunakan: @gmail.com, @yahoo.com, @outlook.com, @icloud.com, @ac.id, @edu, @student.(kampus).ac.id\n");
+                showErrorLabel(lblErrorEmail, "Domain tidak diizinkan");
             } else {
                 hideErrorLabel(lblErrorEmail);
             }
@@ -1221,12 +1320,12 @@ public class DataPegawai {
             if (username.length() < 4) {
                 pesan.append("- Username minimal 4 karakter.\n");
                 showErrorLabel(lblErrorUsername, "Username minimal 4 karakter");
-            } else if (username.length() > 10) {
-                pesan.append("- Username maksimal 10 karakter.\n");
-                showErrorLabel(lblErrorUsername, "Username maksimal 10 karakter");
-            } else if (!username.matches("^[a-zA-Z]+$")) {
-                pesan.append("- Username HANYA boleh huruf (tanpa angka/simbol).\n");
-                showErrorLabel(lblErrorUsername, "Username HANYA boleh huruf");
+            } else if (username.length() > 50) {
+                pesan.append("- Username maksimal 50 karakter.\n");
+                showErrorLabel(lblErrorUsername, "Username maksimal 50 karakter");
+            } else if (!username.matches("^[a-zA-Z0-9]+$")) {
+                pesan.append("- Username hanya boleh huruf dan angka.\n");
+                showErrorLabel(lblErrorUsername, "Username hanya boleh huruf dan angka");
             } else if (isDataExist("Username", username)) {
                 pesan.append("- Username sudah dipakai.\n");
                 showErrorLabel(lblErrorUsername, "Username sudah dipakai");
@@ -1253,19 +1352,27 @@ public class DataPegawai {
             if (isKosong(password)) {
                 pesan.append("- Password wajib diisi.\n");
                 showErrorLabel(lblErrorPassword, "Password wajib diisi");
-            } else if (password.trim().length() < 4) {
-                pesan.append("- Password minimal 4 karakter.\n");
-                showErrorLabel(lblErrorPassword, "Password minimal 4 karakter");
+            } else if (password.length() < 6) {
+                pesan.append("- Password minimal 6 karakter.\n");
+                showErrorLabel(lblErrorPassword, "Password minimal 6 karakter");
+            } else if (password.length() > 50) {
+                pesan.append("- Password maksimal 50 karakter.\n");
+                showErrorLabel(lblErrorPassword, "Password maksimal 50 karakter");
+            } else {
+                hideErrorLabel(lblErrorPassword);
+            }
+        } else if (!isKosong(password)) {
+            if (password.length() < 6) {
+                pesan.append("- Password minimal 6 karakter.\n");
+                showErrorLabel(lblErrorPassword, "Password minimal 6 karakter");
+            } else if (password.length() > 50) {
+                pesan.append("- Password maksimal 50 karakter.\n");
+                showErrorLabel(lblErrorPassword, "Password maksimal 50 karakter");
             } else {
                 hideErrorLabel(lblErrorPassword);
             }
         } else {
-            if (!isKosong(password) && password.trim().length() < 4) {
-                pesan.append("- Password minimal 4 karakter.\n");
-                showErrorLabel(lblErrorPassword, "Password minimal 4 karakter");
-            } else {
-                hideErrorLabel(lblErrorPassword);
-            }
+            hideErrorLabel(lblErrorPassword);
         }
 
         if (!isKosong(password)) {

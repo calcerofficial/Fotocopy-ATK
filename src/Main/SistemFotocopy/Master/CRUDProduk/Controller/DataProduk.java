@@ -344,6 +344,7 @@ public class DataProduk {
     // VALIDASI INPUT
     // =========================================================
     private void setupInputValidation() {
+        // 1. NAMA PRODUK - Hanya huruf, angka, spasi, dan minimal 4 karakter
         TextFormatter<String> namaFormatter = new TextFormatter<>(change -> {
             String newText = change.getControlNewText();
             if (newText.isEmpty()) {
@@ -354,11 +355,36 @@ public class DataProduk {
                 txtNamaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
                 return null;
             }
-            txtNamaBarang.setStyle(null);
+            // VALIDASI MINIMAL 4 KARAKTER (warna kuning/orange sebagai warning)
+            if (newText.length() < 4) {
+                txtNamaBarang.setStyle("-fx-border-color: #ffaa00; -fx-border-width: 2px;");
+            } else {
+                txtNamaBarang.setStyle(null);
+            }
             return change;
         });
         txtNamaBarang.setTextFormatter(namaFormatter);
 
+        // LISTENER REAL-TIME VALIDASI NAMA
+        txtNamaBarang.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.isEmpty()) {
+                if (newVal.length() < 4) {
+                    txtNamaBarang.setStyle("-fx-border-color: #ffaa00; -fx-border-width: 2px;");
+                    showErrorLabel(lblErrorNama, "Nama produk minimal 4 karakter");
+                } else if (!newVal.matches("^[a-zA-Z0-9\\s]+$")) {
+                    txtNamaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                    showErrorLabel(lblErrorNama, "Nama hanya boleh huruf, angka, dan spasi");
+                } else {
+                    txtNamaBarang.setStyle(null);
+                    hideErrorLabel(lblErrorNama);
+                }
+            } else {
+                txtNamaBarang.setStyle(null);
+                hideErrorLabel(lblErrorNama);
+            }
+        });
+
+        // 2. HARGA - (kode tetap sama seperti sebelumnya)
         txtHargaBarang.textProperty().addListener((observable, oldValue, newValue) -> {
             if (isUpdatingHarga) return;
 
@@ -418,6 +444,7 @@ public class DataProduk {
             }
         });
 
+        // 3. STOCK - (kode tetap sama seperti sebelumnya)
         txtStockBarang.textProperty().addListener((observable, oldValue, newValue) -> {
             if (txtStockBarang.isDisabled()) {
                 txtStockBarang.setStyle(null);
@@ -465,6 +492,7 @@ public class DataProduk {
             }
         });
 
+        // 4. MERK - (kode tetap sama seperti sebelumnya)
         TextFormatter<String> merkFormatter = new TextFormatter<>(change -> {
             if (txtMerk.isDisabled()) {
                 txtMerk.setStyle(null);
@@ -493,16 +521,24 @@ public class DataProduk {
     private boolean checkInputErrors() {
         boolean hasError = false;
 
+        // VALIDASI NAMA PRODUK - MINIMAL 4 KARAKTER
         String nama = txtNamaBarang.getText();
-        if (!nama.isEmpty() && !nama.matches("^[a-zA-Z0-9\\s]+$")) {
-            txtNamaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
-            showErrorLabel(lblErrorNama, "Nama hanya boleh huruf, angka, dan spasi");
-            hasError = true;
-        } else {
-            txtNamaBarang.setStyle(null);
-            hideErrorLabel(lblErrorNama);
+        if (!nama.isEmpty()) {
+            if (nama.length() < 4) {
+                txtNamaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                showErrorLabel(lblErrorNama, "Nama produk minimal 4 karakter");
+                hasError = true;
+            } else if (!nama.matches("^[a-zA-Z0-9\\s]+$")) {
+                txtNamaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                showErrorLabel(lblErrorNama, "Nama hanya boleh huruf, angka, dan spasi");
+                hasError = true;
+            } else {
+                txtNamaBarang.setStyle(null);
+                hideErrorLabel(lblErrorNama);
+            }
         }
 
+        // VALIDASI HARGA
         String hargaText = txtHargaBarang.getText();
         if (!hargaText.isEmpty()) {
             try {
@@ -522,6 +558,7 @@ public class DataProduk {
             }
         }
 
+        // VALIDASI STOCK UNTUK BARANG
         String kategori = cmbKategoriProduk.getValue();
         if ("Barang".equalsIgnoreCase(kategori) && !txtStockBarang.isDisabled()) {
             String stockText = txtStockBarang.getText();
@@ -551,6 +588,7 @@ public class DataProduk {
             txtStockBarang.setStyle(null);
         }
 
+        // VALIDASI MERK UNTUK BARANG
         if ("Barang".equalsIgnoreCase(kategori) && !txtMerk.isDisabled()) {
             String merk = txtMerk.getText();
             if (merk == null || merk.isEmpty()) {
@@ -714,47 +752,97 @@ public class DataProduk {
             return;
         }
 
+        // ===== VALIDASI NAMA =====
         if (txtNamaBarang.getText().isEmpty()) {
             showErrorLabel(lblErrorNama, "Nama produk wajib diisi");
             showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Nama produk wajib diisi");
             return;
         }
 
+        if (txtNamaBarang.getText().trim().length() < 4) {
+            showErrorLabel(lblErrorNama, "Nama produk minimal 4 karakter");
+            showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Nama produk minimal 4 karakter");
+            return;
+        }
+
+        // ===== VALIDASI HARGA =====
         if (txtHargaBarang.getText().isEmpty()) {
             showErrorLabel(lblErrorHarga, "Harga wajib diisi");
             showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Harga wajib diisi");
             return;
         }
 
+        try {
+            int harga = Integer.parseInt(txtHargaBarang.getText().replaceAll("[^0-9]", ""));
+            if (harga < 1000) {
+                showErrorLabel(lblErrorHarga, "Harga minimal Rp1.000");
+                showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Harga minimal Rp1.000");
+                return;
+            }
+            if (harga > 100000) {
+                showErrorLabel(lblErrorHarga, "Harga maksimal Rp100.000");
+                showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Harga maksimal Rp100.000");
+                return;
+            }
+        } catch (NumberFormatException e) {
+            showErrorLabel(lblErrorHarga, "Harga harus berupa angka");
+            showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Harga harus berupa angka");
+            return;
+        }
+
+        // ===== VALIDASI KATEGORI =====
         String kategori = cmbKategoriProduk.getValue();
         if (kategori == null) {
             showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Kategori wajib dipilih");
             return;
         }
 
+        // ===== CEK DUPLIKAT NAMA =====
+        if (isNamaProdukDuplikat(txtNamaBarang.getText().trim(), "")) {
+            showErrorLabel(lblErrorNama, "Nama produk sudah terdaftar!");
+            showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Nama produk sudah terdaftar.");
+            return;
+        }
+
+        // ===== VALIDASI KHUSUS BARANG =====
         if ("Barang".equalsIgnoreCase(kategori)) {
             if (txtStockBarang.getText().isEmpty() || txtStockBarang.getText().equals("-")) {
                 showErrorLabel(lblErrorStock, "Stock wajib diisi");
                 showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Stock wajib diisi");
                 return;
             }
+
+            try {
+                int stock = Integer.parseInt(txtStockBarang.getText().trim());
+                if (stock < 10) {
+                    showErrorLabel(lblErrorStock, "Stock minimal 10");
+                    showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Stock minimal 10");
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                showErrorLabel(lblErrorStock, "Stock harus berupa angka");
+                showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Stock harus berupa angka");
+                return;
+            }
+
             if (txtMerk.getText().isEmpty() || txtMerk.getText().equals("-")) {
                 showErrorLabel(lblErrorMerk, "Merk wajib diisi");
                 showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Merk wajib diisi");
                 return;
             }
 
-            if (isNamaProdukDuplikat(txtNamaBarang.getText().trim(), "")) {
-                showErrorLabel(lblErrorNama, "Nama produk sudah terdaftar!");
-                showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Nama produk sudah terdaftar.");
+            if (!txtMerk.getText().matches("^[a-zA-Z0-9\\s]+$")) {
+                showErrorLabel(lblErrorMerk, "Merk hanya boleh huruf, angka, dan spasi");
+                showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Merk hanya boleh huruf, angka, dan spasi");
                 return;
             }
         }
 
+        // ===== PROSES SIMPAN =====
         String sqlProcedure = "{CALL sp_TambahProduk(?, ?, ?, ?, ?)}";
         try {
             try (CallableStatement cs = db.getConnection().prepareCall(sqlProcedure)) {
-                cs.setString(1, txtNamaBarang.getText());
+                cs.setString(1, txtNamaBarang.getText().trim());
                 cs.setString(2, cmbKategoriProduk.getValue());
                 cs.setDouble(3, hilangkanFormatRupiah(txtHargaBarang.getText()));
 
@@ -828,17 +916,57 @@ public class DataProduk {
             return;
         }
 
+        // ===== VALIDASI NAMA =====
+        if (txtNamaBarang.getText().isEmpty()) {
+            showErrorLabel(lblErrorNama, "Nama produk wajib diisi");
+            showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Nama produk wajib diisi");
+            return;
+        }
+
+        if (txtNamaBarang.getText().trim().length() < 4) {
+            showErrorLabel(lblErrorNama, "Nama produk minimal 4 karakter");
+            showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Nama produk minimal 4 karakter");
+            return;
+        }
+
+        // ===== VALIDASI HARGA =====
+        if (txtHargaBarang.getText().isEmpty()) {
+            showErrorLabel(lblErrorHarga, "Harga wajib diisi");
+            showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Harga wajib diisi");
+            return;
+        }
+
+        try {
+            int harga = Integer.parseInt(txtHargaBarang.getText().replaceAll("[^0-9]", ""));
+            if (harga < 1000) {
+                showErrorLabel(lblErrorHarga, "Harga minimal Rp1.000");
+                showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Harga minimal Rp1.000");
+                return;
+            }
+            if (harga > 100000) {
+                showErrorLabel(lblErrorHarga, "Harga maksimal Rp100.000");
+                showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Harga maksimal Rp100.000");
+                return;
+            }
+        } catch (NumberFormatException e) {
+            showErrorLabel(lblErrorHarga, "Harga harus berupa angka");
+            showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Harga harus berupa angka");
+            return;
+        }
+
+        // ===== CEK DUPLIKAT NAMA (KECUALI DIRI SENDIRI) =====
         if (isNamaProdukDuplikat(txtNamaBarang.getText().trim(), txtIdBarang.getText().trim())) {
             showErrorLabel(lblErrorNama, "Nama produk sudah terdaftar di data lain!");
             showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Nama produk sudah digunakan oleh produk lain.");
             return;
         }
 
+        // ===== PROSES UPDATE =====
         String sqlProcedure = "{CALL sp_UpdateProduk(?, ?, ?, ?, ?, ?)}";
         try {
             try (CallableStatement cs = db.getConnection().prepareCall(sqlProcedure)) {
                 cs.setString(1, txtIdBarang.getText());
-                cs.setString(2, txtNamaBarang.getText());
+                cs.setString(2, txtNamaBarang.getText().trim());
                 cs.setString(3, cmbKategoriProduk.getValue());
                 cs.setDouble(4, hilangkanFormatRupiah(txtHargaBarang.getText()));
 
@@ -847,8 +975,34 @@ public class DataProduk {
                     cs.setString(5, "0");
                     cs.setString(6, "-");
                 } else {
-                    cs.setString(5, txtStockBarang.getText());
-                    cs.setString(6, txtMerk.getText());
+                    // VALIDASI STOCK
+                    if (txtStockBarang.getText().isEmpty() || txtStockBarang.getText().equals("-")) {
+                        showErrorLabel(lblErrorStock, "Stock wajib diisi");
+                        showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Stock wajib diisi");
+                        return;
+                    }
+
+                    try {
+                        int stock = Integer.parseInt(txtStockBarang.getText().trim());
+                        if (stock < 10) {
+                            showErrorLabel(lblErrorStock, "Stock minimal 10");
+                            showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Stock minimal 10");
+                            return;
+                        }
+                    } catch (NumberFormatException e) {
+                        showErrorLabel(lblErrorStock, "Stock harus berupa angka");
+                        showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Stock harus berupa angka");
+                        return;
+                    }
+
+                    if (txtMerk.getText().isEmpty() || txtMerk.getText().equals("-")) {
+                        showErrorLabel(lblErrorMerk, "Merk wajib diisi");
+                        showAlert(Alert.AlertType.WARNING, "Validasi Gagal", "Merk wajib diisi");
+                        return;
+                    }
+
+                    cs.setString(5, txtStockBarang.getText().trim());
+                    cs.setString(6, txtMerk.getText().trim());
                 }
 
                 cs.execute();

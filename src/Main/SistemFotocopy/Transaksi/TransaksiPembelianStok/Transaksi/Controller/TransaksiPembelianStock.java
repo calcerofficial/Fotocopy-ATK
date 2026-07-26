@@ -361,6 +361,25 @@ public class TransaksiPembelianStock implements Initializable {
     }
 
     // =============================================================
+    // CEK STOK BARANG
+    // =============================================================
+    private int getStokBarang(String idProduk) {
+        if (connection == null) return 0;
+
+        String query = "SELECT Stok FROM Produk WHERE ID_Produk = ?";
+        try (PreparedStatement ps = connection.prepareStatement(query)) {
+            ps.setString(1, idProduk);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                return rs.getInt("Stok");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    // =============================================================
     // CEK SALDO KAS - APAKAH CUKUP UNTUK PEMBELIAN
     // =============================================================
     private double getSaldoKas() {
@@ -402,21 +421,36 @@ public class TransaksiPembelianStock implements Initializable {
 
     @FXML
     void handleBayar(ActionEvent event) {
+        // 1. CEK SUPPLIER
         if (cbSupplier.getValue() == null || cbSupplier.getValue().equals("Pilih Supplier...")) {
             showAlert("Peringatan", "Silakan pilih supplier terlebih dahulu!", Alert.AlertType.WARNING);
             return;
         }
 
+        // 2. CEK ITEM
         if (detailItems.isEmpty()) {
             showAlert("Peringatan", "Belum ada item yang dipilih untuk dibeli!", Alert.AlertType.WARNING);
             return;
         }
 
+        // 3. CEK STOK TERSEDIA UNTUK SEMUA ITEM
+        for (DetailPembelianItem item : detailItems) {
+            int stokTersedia = getStokBarang(item.getIdProduk());
+            if (item.getJumlah() > stokTersedia) {
+                showAlert("Peringatan", "Stok tidak mencukupi untuk item: " + item.getNamaBarang() + "\n" +
+                        "Stok tersedia: " + stokTersedia + "\n" +
+                        "Diminta: " + item.getJumlah(), Alert.AlertType.WARNING);
+                return;
+            }
+        }
+
+        // 4. HITUNG TOTAL HARGA
         double totalHarga = 0;
         for (DetailPembelianItem item : detailItems) {
             totalHarga += item.getJumlah() * item.getHarga();
         }
 
+        // 5. CEK SALDO KAS
         double saldoKas = getSaldoKas();
 
         if (saldoKas < totalHarga) {
@@ -434,6 +468,7 @@ public class TransaksiPembelianStock implements Initializable {
             return;
         }
 
+        // 6. PROSES PEMBELIAN
         String supplierValue = cbSupplier.getValue();
         String idSupplier = supplierValue.split(" - ")[0];
 
@@ -662,48 +697,35 @@ public class TransaksiPembelianStock implements Initializable {
         return idSupplier;
     }
 
-    private void resetForm() {
-        detailItems.clear();
-        vboxItems.getChildren().clear();
-        lblTotalHarga.setText("Rp. 0");
-        cbSupplier.setValue("Pilih Supplier...");
-        txtCari.clear();
-        katalogData.clear();
-        filteredData.clear();
-        tblKatalog.setItems(filteredData);
-        updatePaginationInfo();
-        populateInfoFields();
-    }
-
-    private void resetDetailPembelian() {
-        detailItems.clear();
-        vboxItems.getChildren().clear();
-        lblTotalHarga.setText("Rp. 0");
-    }
-
-    private String formatRupiah(double amount) {
-        return String.format("Rp. %,.0f", amount);
-    }
-
-    private void showAlert(String title, String message, Alert.AlertType type) {
-        Platform.runLater(() -> {
-            Alert alert = new Alert(type);
-            alert.setTitle(title);
-            alert.setHeaderText(null);
-            alert.setContentText(message);
-            alert.showAndWait();
-        });
-    }
-
+    // =============================================================
+    // TAMBAH ITEM KE DETAIL - DENGAN CEK STOK
+    // =============================================================
     public void addItemToDetail(KatalogItem item) {
+        // 1. CEK STOK TERSEDIA
+        int stokTersedia = getStokBarang(item.getIdProduk());
+
+        if (stokTersedia <= 0) {
+            showAlert("Peringatan", "Stok barang '" + item.getNamaBarang() + "' sedang kosong (0)!", Alert.AlertType.WARNING);
+            return;
+        }
+
+        // 2. CEK APAKAH ITEM SUDAH ADA DI DETAIL
         for (DetailPembelianItem existingItem : detailItems) {
             if (existingItem.getIdProduk().equals(item.getIdProduk())) {
-                existingItem.setJumlah(existingItem.getJumlah() + 1);
+                int newJumlah = existingItem.getJumlah() + 1;
+                if (newJumlah > stokTersedia) {
+                    showAlert("Peringatan", "Stok tidak mencukupi!\n" +
+                            "Stok tersedia: " + stokTersedia + "\n" +
+                            "Ingin menambah: " + newJumlah, Alert.AlertType.WARNING);
+                    return;
+                }
+                existingItem.setJumlah(newJumlah);
                 updateDetailUI();
                 return;
             }
         }
 
+        // 3. TAMBAHKAN ITEM BARU
         DetailPembelianItem newItem = new DetailPembelianItem(
                 item.getIdProduk(),
                 item.getNamaBarang(),
@@ -715,6 +737,9 @@ public class TransaksiPembelianStock implements Initializable {
         updateDetailUI();
     }
 
+    // =============================================================
+    // UPDATE DETAIL UI - DENGAN CEK STOK PADA TOMBOL PLUS
+    // =============================================================
     private void updateDetailUI() {
         vboxItems.getChildren().clear();
 
@@ -732,6 +757,7 @@ public class TransaksiPembelianStock implements Initializable {
 
         for (DetailPembelianItem item : detailItems) {
             totalHarga += item.getJumlah() * item.getHarga();
+            int stokTersedia = getStokBarang(item.getIdProduk());
 
             VBox itemCard = new VBox(8);
             itemCard.setPadding(new Insets(10, 12, 10, 12));
@@ -747,6 +773,11 @@ public class TransaksiPembelianStock implements Initializable {
             HBox nameRow = new HBox(10);
             nameRow.setAlignment(Pos.CENTER_LEFT);
 
+            // Tampilkan stok tersedia
+            Label stokLabel = new Label("Stok: " + stokTersedia);
+            stokLabel.setFont(Font.font("System", 11));
+            stokLabel.setStyle("-fx-text-fill: #6c757d;");
+
             Label nameLabel = new Label(item.getNamaBarang());
             nameLabel.setFont(Font.font("System", FontWeight.BOLD, 14));
             nameLabel.setStyle("-fx-text-fill: #1a1a2e;");
@@ -758,7 +789,7 @@ public class TransaksiPembelianStock implements Initializable {
             subtotalLabel.setFont(Font.font("System", FontWeight.BOLD, 14));
             subtotalLabel.setStyle("-fx-text-fill: #198754;");
 
-            nameRow.getChildren().addAll(nameLabel, spacer, subtotalLabel);
+            nameRow.getChildren().addAll(nameLabel, stokLabel, spacer, subtotalLabel);
 
             HBox controlRow = new HBox(8);
             controlRow.setAlignment(Pos.CENTER_LEFT);
@@ -792,15 +823,36 @@ public class TransaksiPembelianStock implements Initializable {
             Button btnPlus = new Button("+");
             btnPlus.setPrefWidth(30);
             btnPlus.setPrefHeight(30);
-            btnPlus.setStyle(
-                    "-fx-background-color: #198754; " +
-                            "-fx-text-fill: white; " +
-                            "-fx-font-weight: bold; " +
-                            "-fx-background-radius: 15; " +
-                            "-fx-font-size: 14;"
-            );
+
+            // CEK STOK SEBELUM TAMBAH
+            if (item.getJumlah() >= stokTersedia) {
+                btnPlus.setDisable(true);
+                btnPlus.setStyle(
+                        "-fx-background-color: #6c757d; " +
+                                "-fx-text-fill: white; " +
+                                "-fx-font-weight: bold; " +
+                                "-fx-background-radius: 15; " +
+                                "-fx-font-size: 14;"
+                );
+            } else {
+                btnPlus.setStyle(
+                        "-fx-background-color: #198754; " +
+                                "-fx-text-fill: white; " +
+                                "-fx-font-weight: bold; " +
+                                "-fx-background-radius: 15; " +
+                                "-fx-font-size: 14;"
+                );
+            }
+
             btnPlus.setOnAction(e -> {
-                item.setJumlah(item.getJumlah() + 1);
+                int newJumlah = item.getJumlah() + 1;
+                if (newJumlah > stokTersedia) {
+                    showAlert("Peringatan", "Stok tidak mencukupi!\n" +
+                            "Stok tersedia: " + stokTersedia + "\n" +
+                            "Ingin menambah: " + newJumlah, Alert.AlertType.WARNING);
+                    return;
+                }
+                item.setJumlah(newJumlah);
                 updateDetailUI();
             });
 
@@ -835,5 +887,38 @@ public class TransaksiPembelianStock implements Initializable {
         }
 
         lblTotalHarga.setText(formatRupiah(totalHarga));
+    }
+
+    private void resetForm() {
+        detailItems.clear();
+        vboxItems.getChildren().clear();
+        lblTotalHarga.setText("Rp. 0");
+        cbSupplier.setValue("Pilih Supplier...");
+        txtCari.clear();
+        katalogData.clear();
+        filteredData.clear();
+        tblKatalog.setItems(filteredData);
+        updatePaginationInfo();
+        populateInfoFields();
+    }
+
+    private void resetDetailPembelian() {
+        detailItems.clear();
+        vboxItems.getChildren().clear();
+        lblTotalHarga.setText("Rp. 0");
+    }
+
+    private String formatRupiah(double amount) {
+        return String.format("Rp. %,.0f", amount);
+    }
+
+    private void showAlert(String title, String message, Alert.AlertType type) {
+        Platform.runLater(() -> {
+            Alert alert = new Alert(type);
+            alert.setTitle(title);
+            alert.setHeaderText(null);
+            alert.setContentText(message);
+            alert.showAndWait();
+        });
     }
 }

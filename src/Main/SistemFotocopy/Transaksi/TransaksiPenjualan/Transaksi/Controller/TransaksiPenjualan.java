@@ -3,6 +3,7 @@ package SistemFotocopy.Transaksi.TransaksiPenjualan.Transaksi.Controller;
 import Database.DBConnection;
 import SistemFotocopy.Transaksi.TransaksiPenjualan.Transaksi.Dataclass.DataMesinStatus;
 import SistemFotocopy.Transaksi.TransaksiPenjualan.Transaksi.Dataclass.DetailDataPenjualan;
+import SistemFotocopy.Transaksi.TransaksiPenjualan.DetailPenjualan.Controller.DetailPenjualan;
 import SistemFotocopy.UserSession;
 import javafx.animation.PauseTransition;
 import javafx.collections.FXCollections;
@@ -187,6 +188,7 @@ public class TransaksiPenjualan implements Initializable {
 
     private void loadLayananData() {
         ObservableList<String> layananList = FXCollections.observableArrayList();
+        // PERBAIKAN PENTING: Hapus filter 'AND m.Status_Mesin = 'Aktif'' agar layanan tetap muncul meski ada mesin NonAktif
         String query =
                 "SELECT DISTINCT p.ID_Produk, p.Nama_Barang " +
                         "FROM Produk p " +
@@ -194,12 +196,6 @@ public class TransaksiPenjualan implements Initializable {
                         "INNER JOIN Mesin m ON dpm.ID_Mesin = m.ID_Mesin " +
                         "WHERE p.Kategori_Produk = 'layanan' " +
                         "AND p.Status_Barang = 'tersedia' " +
-                        "AND m.Status_Mesin = 'Aktif' " +
-                        "AND NOT EXISTS ( " +
-                        "    SELECT 1 FROM Maintenance_Mesin mm " +
-                        "    WHERE mm.ID_Mesin = m.ID_Mesin " +
-                        "    AND mm.Status_Maintenance = 'rusak' " +
-                        ") " +
                         "ORDER BY p.Nama_Barang";
 
         try (Statement stmt = conn.createStatement();
@@ -226,22 +222,7 @@ public class TransaksiPenjualan implements Initializable {
                 "SELECT " +
                         "    m.ID_Mesin, " +
                         "    m.Nama_Mesin, " +
-                        "    m.Status_Mesin, " +
-                        "    CASE " +
-                        "        WHEN m.Status_Mesin = 'NonAktif' THEN 'NonAktif' " +
-                        "        WHEN EXISTS ( " +
-                        "            SELECT 1 FROM Maintenance_Mesin mm " +
-                        "            WHERE mm.ID_Mesin = m.ID_Mesin " +
-                        "            AND mm.Status_Maintenance = 'rusak' " +
-                        "            AND mm.Tanggal_Maintenance = ( " +
-                        "                SELECT MAX(mm2.Tanggal_Maintenance) " +
-                        "                FROM Maintenance_Mesin mm2 " +
-                        "                WHERE mm2.ID_Mesin = m.ID_Mesin " +
-                        "                AND mm2.Status_Maintenance IN ('rusak', 'selesai') " +
-                        "            ) " +
-                        "        ) THEN 'Rusak' " +
-                        "        ELSE 'Aktif' " +
-                        "    END AS Status_Operasional " +
+                        "    m.Status_Mesin " +
                         "FROM DetailProdukMesin dpm " +
                         "INNER JOIN Mesin m ON dpm.ID_Mesin = m.ID_Mesin " +
                         "WHERE dpm.ID_Produk = ? " +
@@ -254,8 +235,7 @@ public class TransaksiPenjualan implements Initializable {
                     String idMesin = rs.getString("ID_Mesin");
                     String namaMesin = rs.getString("Nama_Mesin");
                     String statusMesin = rs.getString("Status_Mesin");
-                    String statusOperasional = rs.getString("Status_Operasional");
-                    mesinList.add(new DataMesinStatus(idMesin, namaMesin, statusMesin, statusOperasional));
+                    mesinList.add(new DataMesinStatus(idMesin, namaMesin, statusMesin, statusMesin));
                 }
             }
         } catch (SQLException e) {
@@ -267,13 +247,15 @@ public class TransaksiPenjualan implements Initializable {
     private boolean isLayananTersedia(String idProduk) {
         ObservableList<DataMesinStatus> mesinList = getMesinStatusLayanan(idProduk);
 
+        // Jika tidak ada mesin yang terdaftar sama sekali
         if (mesinList.isEmpty()) {
             return false;
         }
 
+        // Cek apakah ada setidaknya 1 mesin dengan status "Aktif"
         for (DataMesinStatus mesin : mesinList) {
-            if ("Aktif".equals(mesin.getStatusMesin()) && "Aktif".equals(mesin.getStatusOperasional())) {
-                return true;
+            if ("Aktif".equalsIgnoreCase(mesin.getStatusMesin())) {
+                return true; // Karena ada minimal 1 mesin aktif, layanan valid!
             }
         }
         return false;
@@ -288,44 +270,36 @@ public class TransaksiPenjualan implements Initializable {
         }
 
         int totalAktif = 0;
-        int totalRusak = 0;
         int totalNonAktif = 0;
 
         for (DataMesinStatus mesin : mesinList) {
-            if ("NonAktif".equals(mesin.getStatusMesin())) {
-                totalNonAktif++;
-            } else if ("Rusak".equals(mesin.getStatusOperasional())) {
-                totalRusak++;
-            } else if ("Aktif".equals(mesin.getStatusMesin()) && "Aktif".equals(mesin.getStatusOperasional())) {
+            if ("Aktif".equalsIgnoreCase(mesin.getStatusMesin())) {
                 totalAktif++;
+            } else {
+                totalNonAktif++;
             }
         }
 
         info.append("📊 Status Mesin:\n");
         info.append("   • Total mesin terdaftar: ").append(mesinList.size()).append("\n");
-        info.append("   • Mesin aktif siap pakai: ").append(totalAktif).append("\n");
-        info.append("   • Mesin rusak: ").append(totalRusak).append("\n");
-        info.append("   • Mesin nonaktif: ").append(totalNonAktif).append("\n\n");
+        info.append("   • Mesin AKTIF siap pakai: ").append(totalAktif).append("\n");
+        info.append("   • Mesin TIDAK AKTIF/Rusak: ").append(totalNonAktif).append("\n\n");
 
         info.append("📋 Detail Mesin:\n");
         for (DataMesinStatus mesin : mesinList) {
-            String statusIcon = "🟢";
-            if ("Rusak".equals(mesin.getStatusOperasional())) {
-                statusIcon = "🔴";
-            } else if ("NonAktif".equals(mesin.getStatusMesin())) {
-                statusIcon = "⚫";
-            } else if (!"Aktif".equals(mesin.getStatusMesin())) {
-                statusIcon = "🟡";
+            String statusIcon = "🟢"; // Hijau = Aktif
+            if (!"Aktif".equalsIgnoreCase(mesin.getStatusMesin())) {
+                statusIcon = "🔴"; // Merah = NonAktif / Rusak
             }
             info.append("   ").append(statusIcon).append(" ").append(mesin.getNamaMesin())
-                    .append(" (Status: ").append(mesin.getStatusMesin())
-                    .append(" | Operasional: ").append(mesin.getStatusOperasional()).append(")\n");
+                    .append(" (Status Database: ").append(mesin.getStatusMesin()).append(")\n");
         }
 
         return info.toString();
     }
 
     private boolean cekLayananMemilikiMesin(String idProduk) {
+        // PERBAIKAN PENTING: Panggil fungsi getMesinStatusLayanan, jangan panggil dirinya sendiri (cegah infinite loop)
         ObservableList<DataMesinStatus> mesinList = getMesinStatusLayanan(idProduk);
         return !mesinList.isEmpty();
     }
@@ -930,9 +904,6 @@ public class TransaksiPenjualan implements Initializable {
     // =========================================================
     private void showDetailPenjualanFXML() {
         try {
-            System.out.println("=== MEMBUKA DETAIL PENJUALAN FXML ===");
-            System.out.println("ID Penjualan: " + strukIdPenjualan);
-
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/LayoutSistemFotocopy/DetailPenjualan.fxml"));
 
             if (loader.getLocation() == null) {
@@ -942,26 +913,40 @@ public class TransaksiPenjualan implements Initializable {
             }
 
             Parent root = loader.load();
-            DetailDataPenjualan controller = loader.getController();
 
+            // PERBAIKAN PENTING: Ambil controller dari FXML yang baru saja di-load
+            DetailPenjualan controller = loader.getController();
+
+            // 1. Siapkan format String untuk Daftar Produk (agar muat di 1 label)
             StringBuilder produkBuilder = new StringBuilder();
             int totalQty = 0;
             int counter = 1;
-
             for (DetailDataPenjualan data : strukDetailList) {
                 produkBuilder.append(counter).append(". ")
                         .append(data.getNamaBarang())
-                        .append("\n")
-                        .append("   ")
-                        .append(data.getJumlah()).append(" x ")
+                        .append(" (")
+                        .append(data.getJumlah())
+                        .append(" x ")
                         .append(formatRupiah((long) data.getHarga()))
-                        .append("\n");
+                        .append(")\n");
                 totalQty += data.getJumlah();
                 counter++;
             }
 
+            // 2. Set data ke dalam controller
+            controller.setData(
+                    strukIdPenjualan,
+                    strukTanggal,
+                    strukPegawai,
+                    produkBuilder.toString(), // Kirim daftar produk yang sudah diformat
+                    String.valueOf(totalQty), // Total Kuantiti
+                    strukMetode,
+                    formatRupiah((long) strukTotalHarga),
+                    formatRupiah((long) strukUangBayar),
+                    formatRupiah((long) strukKembalian)
+            );
 
-
+            // 3. Tampilkan Stage
             Stage detailStage = new Stage();
             detailStage.setTitle("Detail Penjualan - " + strukIdPenjualan);
             Scene scene = new Scene(root);

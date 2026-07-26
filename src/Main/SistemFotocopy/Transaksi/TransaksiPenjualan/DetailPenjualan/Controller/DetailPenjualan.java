@@ -2,12 +2,8 @@ package SistemFotocopy.Transaksi.TransaksiPenjualan.DetailPenjualan.Controller;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
-import javafx.scene.layout.HBox;
 
 public class DetailPenjualan {
-
-    @FXML
-    private HBox Kembalian;
 
     @FXML
     private Label lblNamaPegawai;
@@ -40,11 +36,12 @@ public class DetailPenjualan {
      * Set data dengan 9 parameter (termasuk ID Penjualan)
      */
     public void setData(String idPenjualan, String tanggal, String pegawai, String produk,
-                        String qty, String metode, String total,
+                        String qtyProduk, String metodeBayar, String total,
                         String bayar, String kembali) {
+
         // Set ID
         if (lblIdPenjualan != null) {
-            lblIdPenjualan.setText("ID Penjualan: " + (idPenjualan != null ? idPenjualan : "-"));
+            lblIdPenjualan.setText((idPenjualan != null ? idPenjualan : "-"));
         }
 
         // Set Tanggal
@@ -57,19 +54,20 @@ public class DetailPenjualan {
             lblNamaPegawai.setText(pegawai != null ? pegawai : "-");
         }
 
-        // Set Produk
+        // Set Produk (Menggunakan setWrapText(true) agar bisa menampilkan list produk yang panjang)
         if (lblproduk1 != null) {
             lblproduk1.setText(produk != null ? produk : "Tidak ada produk");
+            lblproduk1.setWrapText(true);
         }
 
         // Set QTY
         if (this.qty != null) {
-            this.qty.setText(qty != null ? qty : "0");
+            this.qty.setText(qtyProduk != null ? qtyProduk : "0");
         }
 
         // Set Metode
         if (this.metode != null) {
-            this.metode.setText(metode != null ? metode : "-");
+            this.metode.setText(metodeBayar != null ? metodeBayar : "-");
         }
 
         // Set Total
