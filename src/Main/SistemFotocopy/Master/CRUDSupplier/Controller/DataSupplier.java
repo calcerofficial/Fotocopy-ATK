@@ -16,6 +16,22 @@ import java.sql.SQLException;
 
 public class DataSupplier {
 
+    // =========================================================
+    // HELPER BORDER STYLES
+    // =========================================================
+    private void resetBorder(Control control) {
+        control.setStyle("-fx-border-color: #ced4da; -fx-border-width: 1px; -fx-border-radius: 3px;");
+    }
+    private void setGreenBorder(Control control) {
+        control.setStyle("-fx-border-color: #28a745; -fx-border-width: 2px; -fx-border-radius: 3px;");
+    }
+    private void setOrangeBorder(Control control) {
+        control.setStyle("-fx-border-color: #ffc107; -fx-border-width: 2px; -fx-border-radius: 3px;");
+    }
+    private void setRedBorder(Control control) {
+        control.setStyle("-fx-border-color: #dc3545; -fx-border-width: 2px; -fx-border-radius: 3px;");
+    }
+
     @FXML private Button btnBatal;
     @FXML private Button btnHapus;
     @FXML private Button btnNextPage;
@@ -242,15 +258,15 @@ public class DataSupplier {
 
         // Style untuk menunjukkan field disabled
         if (disable) {
-            txtNamaSupplier.setStyle("-fx-opacity: 0.6; -fx-border-color: #cccccc;");
-            txtEmail.setStyle("-fx-opacity: 0.6; -fx-border-color: #cccccc;");
-            txtNomorTelepon.setStyle("-fx-opacity: 0.6; -fx-border-color: #cccccc;");
-            txtAlamatLengkap.setStyle("-fx-opacity: 0.6; -fx-border-color: #cccccc;");
+            txtNamaSupplier.setStyle("-fx-opacity: 0.6;");
+            txtEmail.setStyle("-fx-opacity: 0.6;");
+            txtNomorTelepon.setStyle("-fx-opacity: 0.6;");
+            txtAlamatLengkap.setStyle("-fx-opacity: 0.6;");
         } else {
-            txtNamaSupplier.setStyle(null);
-            txtEmail.setStyle(null);
-            txtNomorTelepon.setStyle(null);
-            txtAlamatLengkap.setStyle(null);
+            resetBorder(txtNamaSupplier);
+            resetBorder(txtEmail);
+            resetBorder(txtNomorTelepon);
+            resetBorder(txtAlamatLengkap);
         }
     }
 
@@ -378,70 +394,144 @@ public class DataSupplier {
     // VALIDASI INPUT
     // =========================================================
     private void setupInputValidation() {
+        // NAMA
         TextFormatter<String> namaFormatter = new TextFormatter<>(change -> {
             String newText = change.getControlNewText();
             if (newText.isEmpty()) {
-                txtNamaSupplier.setStyle(null);
+                resetBorder(txtNamaSupplier);
                 return change;
             }
             if (!newText.matches("^[a-zA-Z\\s]*$")) {
-                txtNamaSupplier.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtNamaSupplier);
                 return null;
             }
-            txtNamaSupplier.setStyle(null);
+            if (newText.length() < 4) {
+                setOrangeBorder(txtNamaSupplier);
+            } else {
+                setGreenBorder(txtNamaSupplier);
+            }
             return change;
         });
         txtNamaSupplier.setTextFormatter(namaFormatter);
 
+        txtNamaSupplier.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.isEmpty()) {
+                if (newVal.length() < 4) {
+                    setOrangeBorder(txtNamaSupplier);
+                    showErrorLabel(lblErrorNama, "Nama minimal 4 karakter");
+                } else if (!newVal.matches("^[a-zA-Z\\s]+$")) {
+                    setRedBorder(txtNamaSupplier);
+                    showErrorLabel(lblErrorNama, "Nama hanya boleh huruf dan spasi");
+                } else {
+                    setGreenBorder(txtNamaSupplier);
+                    hideErrorLabel(lblErrorNama);
+                }
+            } else {
+                resetBorder(txtNamaSupplier);
+                hideErrorLabel(lblErrorNama);
+            }
+        });
+
+        // EMAIL
         TextFormatter<String> emailFormatter = new TextFormatter<>(change -> {
             String newText = change.getControlNewText();
             if (newText.isEmpty()) {
-                txtEmail.setStyle(null);
+                resetBorder(txtEmail);
                 return change;
             }
             if (!newText.matches("^[a-z0-9@._-]*$")) {
-                txtEmail.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtEmail);
                 return null;
             }
-            txtEmail.setStyle(null);
             return change;
         });
         txtEmail.setTextFormatter(emailFormatter);
 
+        txtEmail.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.isEmpty()) {
+                if (!isValidEmail(newVal)) {
+                    setRedBorder(txtEmail);
+                    showErrorLabel(lblErrorEmail, "Format email tidak valid");
+                } else {
+                    setGreenBorder(txtEmail);
+                    hideErrorLabel(lblErrorEmail);
+                }
+            } else {
+                resetBorder(txtEmail);
+                hideErrorLabel(lblErrorEmail);
+            }
+        });
+
+        // NO TELEPON
         TextFormatter<String> telpFormatter = new TextFormatter<>(change -> {
             String newText = change.getControlNewText();
             if (newText.isEmpty()) {
-                txtNomorTelepon.setStyle(null);
+                resetBorder(txtNomorTelepon);
                 return change;
             }
             if (newText.length() > 13) return null;
             if (newText.length() >= 2 && !newText.substring(0, 2).equals("08")) {
-                txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtNomorTelepon);
                 return null;
             }
             if (!newText.matches("^[0-9]*$")) {
-                txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtNomorTelepon);
                 return null;
             }
-            if (newText.startsWith("08")) txtNomorTelepon.setStyle(null);
             return change;
         });
         txtNomorTelepon.setTextFormatter(telpFormatter);
 
+        txtNomorTelepon.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.isEmpty()) {
+                if (!newVal.startsWith("08")) {
+                    setRedBorder(txtNomorTelepon);
+                    showErrorLabel(lblErrorTelepon, "Harus diawali 08");
+                } else if (newVal.length() < 10) {
+                    setOrangeBorder(txtNomorTelepon);
+                    showErrorLabel(lblErrorTelepon, "Minimal 10 digit");
+                } else if (newVal.length() > 13) {
+                    setRedBorder(txtNomorTelepon);
+                    showErrorLabel(lblErrorTelepon, "Maksimal 13 digit");
+                } else {
+                    setGreenBorder(txtNomorTelepon);
+                    hideErrorLabel(lblErrorTelepon);
+                }
+            } else {
+                resetBorder(txtNomorTelepon);
+                hideErrorLabel(lblErrorTelepon);
+            }
+        });
+
+        // ALAMAT
         TextFormatter<String> alamatFormatter = new TextFormatter<>(change -> {
             String newText = change.getControlNewText();
             if (newText.isEmpty()) {
-                txtAlamatLengkap.setStyle(null);
+                resetBorder(txtAlamatLengkap);
                 return change;
             }
             if (!newText.matches("^[a-zA-Z0-9\\s.]*$")) {
-                txtAlamatLengkap.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtAlamatLengkap);
                 return null;
             }
-            txtAlamatLengkap.setStyle(null);
             return change;
         });
         txtAlamatLengkap.setTextFormatter(alamatFormatter);
+
+        txtAlamatLengkap.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && !newVal.isEmpty()) {
+                if (!newVal.matches("^[a-zA-Z0-9\\s.]+$")) {
+                    setRedBorder(txtAlamatLengkap);
+                    showErrorLabel(lblErrorAlamat, "Alamat hanya huruf, angka, spasi, dan titik");
+                } else {
+                    setGreenBorder(txtAlamatLengkap);
+                    hideErrorLabel(lblErrorAlamat);
+                }
+            } else {
+                resetBorder(txtAlamatLengkap);
+                hideErrorLabel(lblErrorAlamat);
+            }
+        });
     }
 
     // =========================================================
@@ -487,67 +577,75 @@ public class DataSupplier {
         if (isKosong(txtNamaSupplier.getText())) {
             pesan.append("- Nama supplier wajib diisi.\n");
             showErrorLabel(lblErrorNama, "Wajib diisi");
-            txtNamaSupplier.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+            setRedBorder(txtNamaSupplier);
         } else if (txtNamaSupplier.getText().trim().length() < 4) {
             pesan.append("- Nama supplier minimal 4 karakter.\n");
             showErrorLabel(lblErrorNama, "Min 4 karakter");
-            txtNamaSupplier.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+            setOrangeBorder(txtNamaSupplier);
         } else if (!txtNamaSupplier.getText().trim().matches("^[a-zA-Z\\s]+$")) {
             pesan.append("- Nama hanya boleh huruf dan spasi.\n");
             showErrorLabel(lblErrorNama, "Hanya huruf dan spasi");
-            txtNamaSupplier.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+            setRedBorder(txtNamaSupplier);
         } else if (isDataDuplicate(txtNamaSupplier.getText().trim(), null, null, currentId)) {
             pesan.append("- Nama supplier sudah terdaftar.\n");
             showErrorLabel(lblErrorNama, "Nama sudah terdaftar");
-            txtNamaSupplier.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+            setRedBorder(txtNamaSupplier);
+        } else {
+            setGreenBorder(txtNamaSupplier);
         }
 
         // Validasi Email dengan domain yang diizinkan
         if (isKosong(txtEmail.getText())) {
             pesan.append("- Email wajib diisi.\n");
             showErrorLabel(lblErrorEmail, "Wajib diisi");
-            txtEmail.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+            setRedBorder(txtEmail);
         } else if (!isValidEmail(txtEmail.getText().trim())) {
             pesan.append("- Format email tidak valid. Gunakan domain: @gmail.com, @yahoo.com, @outlook.com, @icloud.com, @ac.id, @edu, @student.(kampus).ac.id\n");
             showErrorLabel(lblErrorEmail, "Format email tidak valid");
-            txtEmail.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+            setRedBorder(txtEmail);
         } else if (isDataDuplicate(null, txtEmail.getText().trim(), null, currentId)) {
             pesan.append("- Email sudah digunakan.\n");
             showErrorLabel(lblErrorEmail, "Email sudah digunakan");
-            txtEmail.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+            setRedBorder(txtEmail);
+        } else {
+            setGreenBorder(txtEmail);
         }
 
         String telp = txtNomorTelepon.getText().trim();
         if (isKosong(telp)) {
             pesan.append("- Nomor telepon wajib diisi.\n");
             showErrorLabel(lblErrorTelepon, "Wajib diisi");
-            txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+            setRedBorder(txtNomorTelepon);
         } else if (!telp.startsWith("08")) {
             pesan.append("- Nomor telepon harus diawali 08.\n");
             showErrorLabel(lblErrorTelepon, "Harus diawali 08");
-            txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+            setRedBorder(txtNomorTelepon);
         } else if (telp.length() < 10 || telp.length() > 13) {
             pesan.append("- Nomor telepon harus 10-13 digit.\n");
             showErrorLabel(lblErrorTelepon, "10-13 digit");
-            txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+            setRedBorder(txtNomorTelepon);
         } else if (!telp.matches("^[0-9]+$")) {
             pesan.append("- Nomor telepon hanya boleh angka.\n");
             showErrorLabel(lblErrorTelepon, "Hanya angka");
-            txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+            setRedBorder(txtNomorTelepon);
         } else if (isDataDuplicate(null, null, telp, currentId)) {
             pesan.append("- Nomor telepon sudah terdaftar.\n");
             showErrorLabel(lblErrorTelepon, "Nomor sudah terdaftar");
-            txtNomorTelepon.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+            setRedBorder(txtNomorTelepon);
+        } else {
+            setGreenBorder(txtNomorTelepon);
         }
 
         if (isKosong(txtAlamatLengkap.getText())) {
             pesan.append("- Alamat wajib diisi.\n");
             showErrorLabel(lblErrorAlamat, "Wajib diisi");
-            txtAlamatLengkap.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+            setRedBorder(txtAlamatLengkap);
         } else if (!txtAlamatLengkap.getText().trim().matches("^[a-zA-Z0-9\\s.]+$")) {
             pesan.append("- Alamat hanya boleh huruf, angka, spasi, dan titik.\n");
             showErrorLabel(lblErrorAlamat, "Alamat tidak valid");
-            txtAlamatLengkap.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+            setRedBorder(txtAlamatLengkap);
+        } else {
+            setGreenBorder(txtAlamatLengkap);
         }
 
         if (pesan.length() > 0) {
@@ -586,10 +684,10 @@ public class DataSupplier {
     }
 
     private void resetStyle() {
-        txtNamaSupplier.setStyle(null);
-        txtEmail.setStyle(null);
-        txtNomorTelepon.setStyle(null);
-        txtAlamatLengkap.setStyle(null);
+        resetBorder(txtNamaSupplier);
+        resetBorder(txtEmail);
+        resetBorder(txtNomorTelepon);
+        resetBorder(txtAlamatLengkap);
     }
 
     private void showAlert(Alert.AlertType type, String title, String message) {

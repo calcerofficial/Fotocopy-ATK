@@ -27,6 +27,22 @@ import java.util.List;
 
 public class DataMesin {
 
+    // =========================================================
+    // HELPER BORDER STYLES
+    // =========================================================
+    private void resetBorder(Control control) {
+        control.setStyle("-fx-border-color: #ced4da; -fx-border-width: 1px; -fx-border-radius: 3px;");
+    }
+    private void setGreenBorder(Control control) {
+        control.setStyle("-fx-border-color: #28a745; -fx-border-width: 2px; -fx-border-radius: 3px;");
+    }
+    private void setOrangeBorder(Control control) {
+        control.setStyle("-fx-border-color: #ffc107; -fx-border-width: 2px; -fx-border-radius: 3px;");
+    }
+    private void setRedBorder(Control control) {
+        control.setStyle("-fx-border-color: #dc3545; -fx-border-width: 2px; -fx-border-radius: 3px;");
+    }
+
     // =====================================================================
     // FXML BINDINGS
     // =====================================================================
@@ -107,10 +123,7 @@ public class DataMesin {
         resetForm();
     }
 
-    // =====================================================================
-    // RESET RIWAYAT
-    // =====================================================================
-
+    // RESET RIWAYAT MAintenance
     private void resetRiwayat() {
         tableRiwayat.setItems(FXCollections.observableArrayList());
 
@@ -119,9 +132,8 @@ public class DataMesin {
         tableRiwayat.setPlaceholder(emptyLabel);
     }
 
-    // =====================================================================
-    // SHOW/HIDE STATUS COMPONENTS
-    // =====================================================================
+
+    // tombol STATUS jika mau di aktifkan
 
     private void showAllStatusComponents(String status) {
         lblStatusLabel.setVisible(true);
@@ -142,6 +154,7 @@ public class DataMesin {
         lblStatusHint.setText("Klik tombol Aktifkan untuk mengubah status");
     }
 
+    // Sembuyikan button aktif
     private void hideAllStatusComponents() {
         lblStatusLabel.setVisible(false);
         lblStatusLabel.setManaged(false);
@@ -160,9 +173,8 @@ public class DataMesin {
     }
 
     // =====================================================================
-    // CEK APAKAH MESIN ADA DI MAINTENANCE (RUSAK)
+    //  APAKAH MESIN ADA DI MAINTENANCE (RUSAK)
     // =====================================================================
-
     private boolean isMesinRusak(String idMesin) {
         String sql = "SELECT COUNT(*) FROM Maintenance_Mesin " +
                 "WHERE ID_Mesin = ? AND Status_Maintenance = 'rusak'";
@@ -180,6 +192,9 @@ public class DataMesin {
         return false;
     }
 
+    // =====================================================================
+    //  APAKAH MESIN ADA DI MAINTENANCE (SELESAI)
+    // =====================================================================
     private boolean isMesinDalamMaintenance(String idMesin) {
         String sql = "SELECT COUNT(*) FROM Maintenance_Mesin " +
                 "WHERE ID_Mesin = ? AND Status_Maintenance != 'selesai'";
@@ -198,7 +213,7 @@ public class DataMesin {
     }
 
     // =====================================================================
-    // SETUP KOLOM TABEL
+    // SETUP KOLOM TABEL MESIN
     // =====================================================================
 
     private void setupTableMesin() {
@@ -226,6 +241,7 @@ public class DataMesin {
         });
     }
 
+    // SETUP KILOM TABEL RIWAYAT
     private void setupTableRiwayat() {
         colRiwayatId.setCellValueFactory(d -> d.getValue().idMesinProperty());
         colRiwayatTanggal.setCellValueFactory(d -> d.getValue().tanggalProperty());
@@ -233,9 +249,8 @@ public class DataMesin {
     }
 
     // =====================================================================
-    // KOLOM AKSI
+    //  BUAT KOLOM AKSI DETAIL
     // =====================================================================
-
     private void setupKolomAksi() {
         colStatusMesin1.setCellFactory(col -> new TableCell<>() {
             private final Button btnDetail = new Button("Detail");
@@ -257,9 +272,8 @@ public class DataMesin {
     }
 
     // =====================================================================
-    // BUKA JENDELA DETAIL MESIN (FINAL - HANYA 3 KOLOM)
+    // BUKA JENDELA DETAIL MESIN
     // =====================================================================
-
     private void bukaJendelaDetailMesin(MesinModel mesin) {
         TableView<DetailProdukMesinModel> tableDetail = new TableView<>();
 
@@ -296,9 +310,8 @@ public class DataMesin {
     }
 
     // =====================================================================
-    // LOAD DETAIL PRODUK MESIN (FINAL - QUERY 3 KOLOM)
+    // LOAD DETAIL PRODUK MESIN
     // =====================================================================
-
     private ObservableList<DetailProdukMesinModel> loadDetailProdukMesin(String idMesin) {
         ObservableList<DetailProdukMesinModel> list = FXCollections.observableArrayList();
         String sql = "SELECT dpm.ID_Mesin, p.ID_Produk, p.Nama_Barang " +
@@ -327,7 +340,6 @@ public class DataMesin {
     // =====================================================================
     // NAMA LAYANAN
     // =====================================================================
-
     private void loadNamaLayanan() {
         ObservableList<String> daftarLayanan = FXCollections.observableArrayList();
         String sql = "SELECT Nama_Barang FROM Produk " +
@@ -345,6 +357,7 @@ public class DataMesin {
         }
     }
 
+    //menyimpan detail produk Mesin
     private void simpanDetailProdukMesin(String idMesin, String namaProduk) {
         String sql = "INSERT INTO DetailProdukMesin (ID_Produk, ID_Mesin) " +
                 "SELECT p.ID_Produk, ? FROM Produk p " +
@@ -365,10 +378,6 @@ public class DataMesin {
     }
 
     // =====================================================================
-    // INPUT VALIDATION
-    // =====================================================================
-
-    // =====================================================================
 // INPUT VALIDATION
 // =====================================================================
 
@@ -376,19 +385,21 @@ public class DataMesin {
         // 1. NAMA MESIN - Hanya huruf, angka, spasi, dan minimal 4 karakter
         TextFormatter<String> namaFormatter = new TextFormatter<>(change -> {
             String newText = change.getControlNewText();
+            // Jika field kosong, reset style dan izinkan
             if (newText.isEmpty()) {
-                txtNamaMesin.setStyle(null);
+                resetBorder(txtNamaMesin);
                 return change;
             }
+            // Cek apakah ada karakter ilegal
             if (!newText.matches("^[a-zA-Z0-9\\s]*$")) {
-                txtNamaMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtNamaMesin);
                 return null;
             }
-            // VALIDASI MINIMAL 4 KARAKTER (warna kuning/orange sebagai warning)
+            // VALIDASI MINIMAL 4 KARAKTER
             if (newText.length() < 4) {
-                txtNamaMesin.setStyle("-fx-border-color: #ffaa00; -fx-border-width: 2px;");
+                setOrangeBorder(txtNamaMesin);
             } else {
-                txtNamaMesin.setStyle(null);
+                setGreenBorder(txtNamaMesin);
             }
             return change;
         });
@@ -398,17 +409,17 @@ public class DataMesin {
         txtNamaMesin.textProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null && !newVal.isEmpty()) {
                 if (newVal.length() < 4) {
-                    txtNamaMesin.setStyle("-fx-border-color: #ffaa00; -fx-border-width: 2px;");
+                    setOrangeBorder(txtNamaMesin);
                     showErrorLabel(lblErrorNama, "Nama mesin minimal 4 karakter");
                 } else if (!newVal.matches("^[a-zA-Z0-9\\s]+$")) {
-                    txtNamaMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                    setRedBorder(txtNamaMesin);
                     showErrorLabel(lblErrorNama, "Nama hanya boleh huruf, angka, dan spasi");
                 } else {
-                    txtNamaMesin.setStyle(null);
+                    setGreenBorder(txtNamaMesin);
                     hideErrorLabel(lblErrorNama);
                 }
             } else {
-                txtNamaMesin.setStyle(null);
+                resetBorder(txtNamaMesin);
                 hideErrorLabel(lblErrorNama);
             }
         });
@@ -417,18 +428,18 @@ public class DataMesin {
         TextFormatter<String> merkFormatter = new TextFormatter<>(change -> {
             String newText = change.getControlNewText();
             if (newText.isEmpty()) {
-                txtMerkMesin.setStyle(null);
+                resetBorder(txtMerkMesin);
                 return change;
             }
             if (!newText.matches("^[a-zA-Z0-9\\s]*$")) {
-                txtMerkMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtMerkMesin);
                 return null;
             }
             // VALIDASI MINIMAL 3 KARAKTER (warna kuning/orange sebagai warning)
             if (newText.length() < 3) {
-                txtMerkMesin.setStyle("-fx-border-color: #ffaa00; -fx-border-width: 2px;");
+                setOrangeBorder(txtMerkMesin);
             } else {
-                txtMerkMesin.setStyle(null);
+                setGreenBorder(txtMerkMesin);
             }
             return change;
         });
@@ -438,25 +449,22 @@ public class DataMesin {
         txtMerkMesin.textProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null && !newVal.isEmpty()) {
                 if (newVal.length() < 3) {
-                    txtMerkMesin.setStyle("-fx-border-color: #ffaa00; -fx-border-width: 2px;");
+                    setOrangeBorder(txtMerkMesin);
                     showErrorLabel(lblErrorMerk, "Merk mesin minimal 3 karakter");
                 } else if (!newVal.matches("^[a-zA-Z0-9\\s]+$")) {
-                    txtMerkMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                    setRedBorder(txtMerkMesin);
                     showErrorLabel(lblErrorMerk, "Merk hanya boleh huruf, angka, dan spasi");
                 } else {
-                    txtMerkMesin.setStyle(null);
+                    setGreenBorder(txtMerkMesin);
                     hideErrorLabel(lblErrorMerk);
                 }
             } else {
-                txtMerkMesin.setStyle(null);
+                resetBorder(txtMerkMesin);
                 hideErrorLabel(lblErrorMerk);
             }
         });
     }
 
-    // =====================================================================
-    // CHECK INPUT ERRORS
-    // =====================================================================
 
     // =====================================================================
 // CHECK INPUT ERRORS
@@ -469,15 +477,15 @@ public class DataMesin {
         String nama = txtNamaMesin.getText();
         if (!nama.isEmpty()) {
             if (nama.length() < 4) {
-                txtNamaMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setOrangeBorder(txtNamaMesin);
                 showErrorLabel(lblErrorNama, "Nama mesin minimal 4 karakter");
                 hasError = true;
             } else if (!nama.matches("^[a-zA-Z0-9\\s]+$")) {
-                txtNamaMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtNamaMesin);
                 showErrorLabel(lblErrorNama, "Nama hanya boleh huruf, angka, dan spasi");
                 hasError = true;
             } else {
-                txtNamaMesin.setStyle(null);
+                setGreenBorder(txtNamaMesin);
                 hideErrorLabel(lblErrorNama);
             }
         }
@@ -486,15 +494,15 @@ public class DataMesin {
         String merk = txtMerkMesin.getText();
         if (!merk.isEmpty()) {
             if (merk.length() < 3) {
-                txtMerkMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setOrangeBorder(txtMerkMesin);
                 showErrorLabel(lblErrorMerk, "Merk mesin minimal 3 karakter");
                 hasError = true;
             } else if (!merk.matches("^[a-zA-Z0-9\\s]+$")) {
-                txtMerkMesin.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtMerkMesin);
                 showErrorLabel(lblErrorMerk, "Merk hanya boleh huruf, angka, dan spasi");
                 hasError = true;
             } else {
-                txtMerkMesin.setStyle(null);
+                setGreenBorder(txtMerkMesin);
                 hideErrorLabel(lblErrorMerk);
             }
         }
@@ -614,8 +622,8 @@ public class DataMesin {
             txtNamaMesin.setStyle("-fx-opacity: 0.6;");
             txtMerkMesin.setStyle("-fx-opacity: 0.6;");
         } else {
-            txtNamaMesin.setStyle(null);
-            txtMerkMesin.setStyle(null);
+            resetBorder(txtNamaMesin);
+            resetBorder(txtMerkMesin);
         }
     }
 
@@ -624,8 +632,8 @@ public class DataMesin {
         txtNamaMesin.setText(m.getNamaMesin());
         txtMerkMesin.setText(m.getMerkMesin());
 
-        txtNamaMesin.setStyle(null);
-        txtMerkMesin.setStyle(null);
+        resetBorder(txtNamaMesin);
+        resetBorder(txtMerkMesin);
 
         BrtSimpan.setDisable(true);
         BtUbah.setDisable(false);
@@ -740,7 +748,6 @@ public class DataMesin {
     // =====================================================================
     // STAT CARDS
     // =====================================================================
-
     private void hitungStatCard() {
         try {
             String query = "SELECT " +

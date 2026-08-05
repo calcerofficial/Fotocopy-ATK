@@ -8,6 +8,8 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
 
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
@@ -18,6 +20,22 @@ import java.util.Locale;
 
 public class DataProduk {
 
+    // =========================================================
+    // HELPER BORDER STYLES
+    // =========================================================
+    private void resetBorder(Control control) {
+        control.setStyle("-fx-border-color: #ced4da; -fx-border-width: 1px; -fx-border-radius: 3px;");
+    }
+    private void setGreenBorder(Control control) {
+        control.setStyle("-fx-border-color: #28a745; -fx-border-width: 2px; -fx-border-radius: 3px;");
+    }
+    private void setOrangeBorder(Control control) {
+        control.setStyle("-fx-border-color: #ffc107; -fx-border-width: 2px; -fx-border-radius: 3px;");
+    }
+    private void setRedBorder(Control control) {
+        control.setStyle("-fx-border-color: #dc3545; -fx-border-width: 2px; -fx-border-radius: 3px;");
+    }
+    
     @FXML private Button btnBatal;
     @FXML private Button btnHapus;
     @FXML private Button btnNextPage;
@@ -117,10 +135,10 @@ public class DataProduk {
             hideErrorLabel(lblErrorNama);
             hideErrorLabel(lblErrorHarga);
 
-            txtStockBarang.setStyle(null);
-            txtMerk.setStyle(null);
-            txtNamaBarang.setStyle(null);
-            txtHargaBarang.setStyle(null);
+            resetBorder(txtStockBarang);
+            resetBorder(txtMerk);
+            resetBorder(txtNamaBarang);
+            resetBorder(txtHargaBarang);
 
             updateStockMerkState(newValue);
 
@@ -176,8 +194,8 @@ public class DataProduk {
                         txtMerk.setDisable(false);
                     }
 
-                    txtStockBarang.setStyle(null);
-                    txtMerk.setStyle(null);
+                    resetBorder(txtStockBarang);
+                    resetBorder(txtMerk);
                 }
 
                 hideAllErrorLabels();
@@ -228,10 +246,10 @@ public class DataProduk {
             txtStockBarang.setStyle("-fx-opacity: 0.6;");
             txtMerk.setStyle("-fx-opacity: 0.6;");
         } else {
-            txtNamaBarang.setStyle(null);
-            txtHargaBarang.setStyle(null);
-            txtStockBarang.setStyle(null);
-            txtMerk.setStyle(null);
+            resetBorder(txtNamaBarang);
+            resetBorder(txtHargaBarang);
+            resetBorder(txtStockBarang);
+            resetBorder(txtMerk);
         }
     }
 
@@ -293,8 +311,8 @@ public class DataProduk {
             txtStockBarang.setDisable(false);
             txtMerk.setDisable(false);
 
-            txtStockBarang.setStyle(null);
-            txtMerk.setStyle(null);
+            resetBorder(txtStockBarang);
+            resetBorder(txtMerk);
         }
     }
 
@@ -348,18 +366,18 @@ public class DataProduk {
         TextFormatter<String> namaFormatter = new TextFormatter<>(change -> {
             String newText = change.getControlNewText();
             if (newText.isEmpty()) {
-                txtNamaBarang.setStyle(null);
+                resetBorder(txtNamaBarang);
                 return change;
             }
             if (!newText.matches("^[a-zA-Z0-9\\s]*$")) {
-                txtNamaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtNamaBarang);
                 return null;
             }
-            // VALIDASI MINIMAL 4 KARAKTER (warna kuning/orange sebagai warning)
+            // VALIDASI MINIMAL 4 KARAKTER
             if (newText.length() < 4) {
-                txtNamaBarang.setStyle("-fx-border-color: #ffaa00; -fx-border-width: 2px;");
+                setOrangeBorder(txtNamaBarang);
             } else {
-                txtNamaBarang.setStyle(null);
+                setGreenBorder(txtNamaBarang);
             }
             return change;
         });
@@ -369,17 +387,17 @@ public class DataProduk {
         txtNamaBarang.textProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null && !newVal.isEmpty()) {
                 if (newVal.length() < 4) {
-                    txtNamaBarang.setStyle("-fx-border-color: #ffaa00; -fx-border-width: 2px;");
+                    setOrangeBorder(txtNamaBarang);
                     showErrorLabel(lblErrorNama, "Nama produk minimal 4 karakter");
                 } else if (!newVal.matches("^[a-zA-Z0-9\\s]+$")) {
-                    txtNamaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                    setRedBorder(txtNamaBarang);
                     showErrorLabel(lblErrorNama, "Nama hanya boleh huruf, angka, dan spasi");
                 } else {
-                    txtNamaBarang.setStyle(null);
+                    setGreenBorder(txtNamaBarang);
                     hideErrorLabel(lblErrorNama);
                 }
             } else {
-                txtNamaBarang.setStyle(null);
+                resetBorder(txtNamaBarang);
                 hideErrorLabel(lblErrorNama);
             }
         });
@@ -389,7 +407,7 @@ public class DataProduk {
             if (isUpdatingHarga) return;
 
             if (newValue == null || newValue.isEmpty()) {
-                txtHargaBarang.setStyle(null);
+                resetBorder(txtHargaBarang);
                 hideErrorLabel(lblErrorHarga);
                 return;
             }
@@ -400,7 +418,7 @@ public class DataProduk {
                 isUpdatingHarga = true;
                 txtHargaBarang.setText("");
                 isUpdatingHarga = false;
-                txtHargaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtHargaBarang);
                 showErrorLabel(lblErrorHarga, "Harga harus diisi angka");
                 return;
             }
@@ -409,7 +427,7 @@ public class DataProduk {
                 isUpdatingHarga = true;
                 txtHargaBarang.setText(oldValue != null ? oldValue : "");
                 isUpdatingHarga = false;
-                txtHargaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtHargaBarang);
                 showErrorLabel(lblErrorHarga, "Harga tidak boleh diawali 0");
                 return;
             }
@@ -418,13 +436,13 @@ public class DataProduk {
                 int value = Integer.parseInt(cleanString);
 
                 if (value < 1000) {
-                    txtHargaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                    setRedBorder(txtHargaBarang);
                     showErrorLabel(lblErrorHarga, "Harga minimal Rp1.000");
                     return;
                 }
 
                 if (value > 100000) {
-                    txtHargaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                    setRedBorder(txtHargaBarang);
                     showErrorLabel(lblErrorHarga, "Harga maksimal Rp100.000");
                     return;
                 }
@@ -435,11 +453,11 @@ public class DataProduk {
                 txtHargaBarang.positionCaret(formatted.length());
                 isUpdatingHarga = false;
 
-                txtHargaBarang.setStyle(null);
+                setGreenBorder(txtHargaBarang);
                 hideErrorLabel(lblErrorHarga);
 
             } catch (NumberFormatException e) {
-                txtHargaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtHargaBarang);
                 showErrorLabel(lblErrorHarga, "Harga harus berupa angka");
             }
         });
@@ -447,13 +465,13 @@ public class DataProduk {
         // 3. STOCK - (kode tetap sama seperti sebelumnya)
         txtStockBarang.textProperty().addListener((observable, oldValue, newValue) -> {
             if (txtStockBarang.isDisabled()) {
-                txtStockBarang.setStyle(null);
+                resetBorder(txtStockBarang);
                 hideErrorLabel(lblErrorStock);
                 return;
             }
 
             if (newValue == null || newValue.isEmpty()) {
-                txtStockBarang.setStyle(null);
+                resetBorder(txtStockBarang);
                 hideErrorLabel(lblErrorStock);
                 return;
             }
@@ -462,14 +480,14 @@ public class DataProduk {
 
             if (cleanString.isEmpty()) {
                 txtStockBarang.setText("");
-                txtStockBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtStockBarang);
                 showErrorLabel(lblErrorStock, "Stock harus diisi angka");
                 return;
             }
 
             if (cleanString.startsWith("0")) {
                 txtStockBarang.setText(oldValue != null ? oldValue : "");
-                txtStockBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtStockBarang);
                 showErrorLabel(lblErrorStock, "Stock tidak boleh diawali 0");
                 return;
             }
@@ -478,16 +496,16 @@ public class DataProduk {
                 int value = Integer.parseInt(cleanString);
 
                 if (value < 10) {
-                    txtStockBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                    setRedBorder(txtStockBarang);
                     showErrorLabel(lblErrorStock, "Stock minimal 10");
                     return;
                 }
 
-                txtStockBarang.setStyle(null);
+                setGreenBorder(txtStockBarang);
                 hideErrorLabel(lblErrorStock);
 
             } catch (NumberFormatException e) {
-                txtStockBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtStockBarang);
                 showErrorLabel(lblErrorStock, "Stock harus berupa angka");
             }
         });
@@ -495,24 +513,40 @@ public class DataProduk {
         // 4. MERK - (kode tetap sama seperti sebelumnya)
         TextFormatter<String> merkFormatter = new TextFormatter<>(change -> {
             if (txtMerk.isDisabled()) {
-                txtMerk.setStyle(null);
+                resetBorder(txtMerk);
                 return change;
             }
 
             String newText = change.getControlNewText();
             if (newText.isEmpty()) {
-                txtMerk.setStyle(null);
+                resetBorder(txtMerk);
                 return change;
             }
             if (!newText.matches("^[a-zA-Z0-9\\s]*$")) {
-                txtMerk.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtMerk);
                 return null;
             }
-            txtMerk.setStyle(null);
+            setGreenBorder(txtMerk);
             if (lblErrorMerk != null) hideErrorLabel(lblErrorMerk);
             return change;
         });
         txtMerk.setTextFormatter(merkFormatter);
+        
+        txtMerk.textProperty().addListener((obs, oldVal, newVal) -> {
+            if (txtMerk.isDisabled()) return;
+            if (newVal != null && !newVal.isEmpty()) {
+                if (!newVal.matches("^[a-zA-Z0-9\\s]+$")) {
+                    setRedBorder(txtMerk);
+                    showErrorLabel(lblErrorMerk, "Merk hanya boleh huruf, angka, dan spasi");
+                } else {
+                    setGreenBorder(txtMerk);
+                    hideErrorLabel(lblErrorMerk);
+                }
+            } else {
+                resetBorder(txtMerk);
+                hideErrorLabel(lblErrorMerk);
+            }
+        });
     }
 
     // =========================================================
@@ -525,15 +559,15 @@ public class DataProduk {
         String nama = txtNamaBarang.getText();
         if (!nama.isEmpty()) {
             if (nama.length() < 4) {
-                txtNamaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setOrangeBorder(txtNamaBarang);
                 showErrorLabel(lblErrorNama, "Nama produk minimal 4 karakter");
                 hasError = true;
             } else if (!nama.matches("^[a-zA-Z0-9\\s]+$")) {
-                txtNamaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtNamaBarang);
                 showErrorLabel(lblErrorNama, "Nama hanya boleh huruf, angka, dan spasi");
                 hasError = true;
             } else {
-                txtNamaBarang.setStyle(null);
+                setGreenBorder(txtNamaBarang);
                 hideErrorLabel(lblErrorNama);
             }
         }
@@ -544,15 +578,15 @@ public class DataProduk {
             try {
                 int harga = Integer.parseInt(hargaText.replaceAll("[^0-9]", ""));
                 if (harga < 1000 || harga > 100000) {
-                    txtHargaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                    setRedBorder(txtHargaBarang);
                     showErrorLabel(lblErrorHarga, "Harga harus 1000 - 100000");
                     hasError = true;
                 } else {
-                    txtHargaBarang.setStyle(null);
+                    setGreenBorder(txtHargaBarang);
                     hideErrorLabel(lblErrorHarga);
                 }
             } catch (NumberFormatException e) {
-                txtHargaBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtHargaBarang);
                 showErrorLabel(lblErrorHarga, "Harga harus berupa angka");
                 hasError = true;
             }
@@ -563,49 +597,49 @@ public class DataProduk {
         if ("Barang".equalsIgnoreCase(kategori) && !txtStockBarang.isDisabled()) {
             String stockText = txtStockBarang.getText();
             if (stockText == null || stockText.isEmpty()) {
-                txtStockBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtStockBarang);
                 showErrorLabel(lblErrorStock, "Stock wajib diisi");
                 hasError = true;
             } else if (!stockText.equals("-")) {
                 try {
                     int stock = Integer.parseInt(stockText);
                     if (stock < 10) {
-                        txtStockBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                        setRedBorder(txtStockBarang);
                         showErrorLabel(lblErrorStock, "Stock minimal 10");
                         hasError = true;
                     } else {
-                        txtStockBarang.setStyle(null);
+                        setGreenBorder(txtStockBarang);
                         hideErrorLabel(lblErrorStock);
                     }
                 } catch (NumberFormatException e) {
-                    txtStockBarang.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                    setRedBorder(txtStockBarang);
                     showErrorLabel(lblErrorStock, "Stock harus berupa angka");
                     hasError = true;
                 }
             }
         } else {
             hideErrorLabel(lblErrorStock);
-            txtStockBarang.setStyle(null);
+            if (!txtStockBarang.isDisabled()) resetBorder(txtStockBarang);
         }
 
         // VALIDASI MERK UNTUK BARANG
         if ("Barang".equalsIgnoreCase(kategori) && !txtMerk.isDisabled()) {
             String merk = txtMerk.getText();
             if (merk == null || merk.isEmpty()) {
-                txtMerk.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtMerk);
                 showErrorLabel(lblErrorMerk, "Merk wajib diisi");
                 hasError = true;
             } else if (!merk.matches("^[a-zA-Z0-9\\s]+$")) {
-                txtMerk.setStyle("-fx-border-color: red; -fx-border-width: 2px;");
+                setRedBorder(txtMerk);
                 showErrorLabel(lblErrorMerk, "Merk hanya boleh huruf, angka, dan spasi");
                 hasError = true;
             } else {
-                txtMerk.setStyle(null);
+                setGreenBorder(txtMerk);
                 hideErrorLabel(lblErrorMerk);
             }
         } else {
             hideErrorLabel(lblErrorMerk);
-            txtMerk.setStyle(null);
+            if (!txtMerk.isDisabled()) resetBorder(txtMerk);
         }
 
         return hasError;
@@ -1132,10 +1166,10 @@ public class DataProduk {
 
         hideAllErrorLabels();
 
-        txtNamaBarang.setStyle(null);
-        txtHargaBarang.setStyle(null);
-        txtStockBarang.setStyle(null);
-        txtMerk.setStyle(null);
+        resetBorder(txtNamaBarang);
+        resetBorder(txtHargaBarang);
+        resetBorder(txtStockBarang);
+        resetBorder(txtMerk);
 
         if (!lblInfoData.getText().contains("⚠")) {
             updateInfoData();

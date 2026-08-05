@@ -244,6 +244,7 @@ public class TransaksiPenjualan implements Initializable {
         return mesinList;
     }
 
+    // Cek layanan apakah tersedia
     private boolean isLayananTersedia(String idProduk) {
         ObservableList<DataMesinStatus> mesinList = getMesinStatusLayanan(idProduk);
 
@@ -261,6 +262,7 @@ public class TransaksiPenjualan implements Initializable {
         return false;
     }
 
+    // cek layanan apakah dah terdaftar di mesin
     private String getInfoMesinLayanan(String idProduk) {
         ObservableList<DataMesinStatus> mesinList = getMesinStatusLayanan(idProduk);
         StringBuilder info = new StringBuilder();
@@ -298,6 +300,7 @@ public class TransaksiPenjualan implements Initializable {
         return info.toString();
     }
 
+    // apakah layanan memiliki mesin
     private boolean cekLayananMemilikiMesin(String idProduk) {
         // PERBAIKAN PENTING: Panggil fungsi getMesinStatusLayanan, jangan panggil dirinya sendiri (cegah infinite loop)
         ObservableList<DataMesinStatus> mesinList = getMesinStatusLayanan(idProduk);
